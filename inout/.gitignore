@@ -35,3 +35,16 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Eclipse project files
+.project
+.classpath
+.settings/
+/bin/
+
+# Gradle build output
+/build/
+
+# IDE specific files (Optional, but good practice)
+*.iml
+.idea/
