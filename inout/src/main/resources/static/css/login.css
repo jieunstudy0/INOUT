@@ -1,0 +1,107 @@
+/* 기본 배경 및 폰트 설정 (대시보드 톤앤매너) */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    background-color: #f4f7f6; /* 대시보드 배경색과 동일 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* 로그인 컨테이너 */
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+/* 로그인 박스 */
+.login-box {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
+}
+
+/* 헤더 디자인 */
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h2 {
+    color: #1a237e; /* 대시보드 메인 네이비 컬러 */
+    margin: 0;
+    font-size: 24px;
+    letter-spacing: 1px;
+}
+
+.login-header p {
+    color: #666;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+/* 입력창 그룹 */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box; /* 패딩 포함 크기 계산 */
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #1a237e; /* 포커스 시 네이비 */
+}
+
+/* 로그인 버튼 */
+.login-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #1a237e; /* 대시보드 버튼 테마 */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.login-btn:hover {
+    background-color: #0d1642;
+}
+
+/* 푸터 링크 */
+.login-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.login-footer a {
+    font-size: 13px;
+    color: #666;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}

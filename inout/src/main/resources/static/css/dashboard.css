@@ -1,0 +1,193 @@
+/* 대시보드 전체 컨테이너 */
+.dashboard-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* 섹션 전체: 오른쪽으로 밀기 */
+.user-profile-section {
+    display: flex;
+    justify-content: flex-end; /* 모든 내용을 오른쪽으로 정렬 */
+    align-items: center;
+    padding: 15px 5px;
+    margin-bottom: 10px;
+}
+
+/* 인사말과 버튼을 감싸는 박스 */
+.user-info-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 인사말과 버튼 사이 간격 */
+}
+
+.user-info {
+    font-size: 1rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+/* 본사(지점명) 태그 스타일 - 글자가 다 보이도록 여백 조정 */
+.branch-name {
+    display: inline-block;
+    background-color: #e9ecef;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #495057;
+    margin-right: 8px;
+    min-width: fit-content; /* 글자 길이에 맞춰 박스 크기 조절 */
+}
+
+.admin-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-right: 5px;
+}
+
+.admin-name {
+    font-size: 1.2rem;
+    color: #000;
+}
+
+/* 정보 수정 버튼 */
+.edit-profile-btn {
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap; /* 버튼 글자 잘림 방지 */
+}
+
+.edit-profile-btn:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 상단 상태바 스타일 */
+.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+.status-item {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.status-item span {
+    color: #007bff; /* 숫자 부분 파란색 강조 */
+    font-size: 1.4rem;
+    margin-left: 5px;
+}
+
+.status-divider {
+    color: #dee2e6;
+    font-weight: 300;
+}
+
+/* 상단 3열 그리드 */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 무조건 한 줄에 3개 */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+/* 배지 텍스트 공통 스타일 */
+.badge-text {
+    color: #ff4d4f; /* 강조용 빨간색 */
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-top: 8px; /* 메뉴 텍스트와의 간격 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* 숫자 부분을 살짝 더 강조하고 싶을 때 */
+.badge-text span {
+    margin-left: 4px;
+}
+
+/* 하단 버튼 컨테이너 */
+.menu-bottom {
+    display: flex;
+    flex-direction: row; /* 가로로 나열 */
+    gap: 20px;           /* 버튼 사이 간격 */
+    margin-top: 20px;    /* 위 그리드와의 간격 */
+}
+
+
+/* 히스토리 섹션 (표나 리스트가 들어갈 자리) */
+.history-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    min-height: 300px;
+}
+
+/* 개별 메뉴 아이템 기본 스타일 */
+.menu-item {
+    background: white;
+    padding: 70px 30px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+   min-height: 160px; /* 배지가 생겨도 버튼 크기가 일정하게 유지되도록 설정 */
+}
+
+/* 하단 버튼 스타일 (상단 사각형 버튼과 디자인 통일) */
+.menu-item.long {
+    flex: 1;             /* 한 줄을 1:1 비율로 똑같이 나눠 가짐 */
+    flex-direction: column; /* 아이콘과 글자를 다시 세로로 배치 (상단과 동일하게) */
+    padding: 30px;       /* 상단 버튼과 동일한 패딩 */
+    border-radius: 12px; /* 상단 버튼과 동일한 둥근 정도 */
+    aspect-ratio: auto;  /* 가로로 넓은 직사각형 형태 유지 */
+}
+
+/* 하단 버튼 내부 아이콘 간격 조정 (상단과 통일) */
+.menu-item.long .menu-icon {
+    margin-right: 0;     /* 가로 배치용 여백 제거 */
+    margin-bottom: 10px; /* 상단 버튼처럼 아래에 여백 추가 */
+}
+
+.menu-item.long .menu-text {
+    font-size: 1.2rem;
+}
+
+/* 호버 효과 */
+.menu-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-color: #007bff;
+}
+.menu-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.menu-text {
+    font-weight: bold;
+    color: #495057;
+}

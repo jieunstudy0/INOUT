@@ -48,3 +48,5 @@ out/
 # IDE specific files (Optional, but good practice)
 *.iml
 .idea/
+
+application-secret.properties
