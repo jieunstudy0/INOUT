@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org"
+
+xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+
+layout:decorate="~{layouts/layout}">
+
+
+
+<th:block layout:fragment="css">
+
+<link th:href="@{/css/common.css}" rel="stylesheet">
+
+<link th:href="@{/css/dashboard.css}" rel="stylesheet">
+
+</th:block>
+
+
+
+<main layout:fragment="content">
+
+<div class="dashboard-container"> <div class="user-profile-section">
+
+<div class="user-info-wrapper">
+
+<div class="user-info">
+    <span class="branch-name" th:text="${summary?.branchName} ?: '본사'">본사</span>
+    <span class="admin-label">관리자</span>
+    <strong class="admin-name" th:text="${summary?.userName} ?: '김땡땡'">김땡땡</strong>님, 반갑습니다.
+</div>
+
+<button class="edit-profile-btn" onclick="location.href='/admin/profile/edit'">
+
+정보 수정
+
+</button>
+
+</div>
+
+</div>
+
+
+
+<div class="status-bar">
+    <div class="status-item">오늘 입고: <span th:text="${summary?.todayInCount} ?: 0">0</span>건</div>
+    <div class="status-divider">|</div>
+    <div class="status-item">오늘 출고: <span th:text="${summary?.todayOutCount} ?: 0">0</span>건</div>
+    <div class="status-divider">|</div>
+    <div class="status-item">미확인 문의: <span th:text="${summary?.unreadInquiryCount} ?: 0">0</span>건</div>
+</div>
+
+
+
+<div class="menu-grid">
+
+<div class="menu-item" onclick="location.href='/admin/stock'">
+    <div class="menu-icon">📦</div>
+    <div class="menu-text">재고 목록</div>
+    <div class="badge-text" th:if="${summary?.lowStockCount > 0}">
+        ● 저재고 <span th:text="${summary.lowStockCount}">0</span>
+    </div>
+</div>
+
+<div class="menu-item" onclick="location.href='/admin/items/register'">
+
+<div class="menu-icon">🆕</div>
+
+<div class="menu-text">물품 등록</div>
+
+</div>
+
+<div class="menu-item" onclick="location.href='/admin/stock/in'">
+
+<div class="menu-icon">📥</div>
+
+<div class="menu-text">입고 처리</div>
+
+</div>
+
+<div class="menu-item" onclick="location.href='/admin/orders/request'">
+        <div class="menu-icon">📝</div>
+        <div class="menu-text">발주 요청 목록</div>
+        <div class="badge-text" th:if="${summary?.pendingOrderCount > 0}">
+            ● 승인 대기 <span th:text="${summary.pendingOrderCount}">0</span>
+        </div>
+    </div>
+
+<div class="menu-item" onclick="location.href='/admin/employees'">
+
+<div class="menu-icon">👥</div>
+
+<div class="menu-text">직원 목록</div>
+
+</div>
+
+<div class="menu-item" onclick="location.href='/admin/inquiries'">
+        <div class="menu-icon">💬</div>
+        <div class="menu-text">문의 내역</div>
+        <div class="badge-text" th:if="${summary?.unreadInquiryCount > 0}">
+            ● 미확인 <span th:text="${summary.unreadInquiryCount}">0</span>
+        </div>
+    </div>
+
+</div>
+
+
+
+<div class="menu-bottom">
+
+<div class="menu-item long" onclick="location.href='/admin/history/in'">
+
+<div class="menu-icon">📅</div>
+
+<div class="menu-text">입고 이력 조회</div>
+
+</div>
+
+<div class="menu-item long" onclick="location.href='/admin/history/out'">
+
+<div class="menu-icon">📊</div>
+
+<div class="menu-text">출고 이력 조회</div>
+
+</div>
+
+</div>
+
+
+
+</div> </main>
+
+
+
+<th:block layout:fragment="script">
+
+<script th:src="@{/js/dashboard.js}"></script>
+
+</th:block>
+
+</html> 
