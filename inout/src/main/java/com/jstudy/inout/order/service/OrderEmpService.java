@@ -20,7 +20,6 @@ import com.jstudy.inout.order.entity.OrderStatus;
 import com.jstudy.inout.order.repository.CartDetailRepository;
 import com.jstudy.inout.order.repository.OrderDetailRepository;
 import com.jstudy.inout.order.repository.OrderRequestRepository;
-import com.jstudy.inout.stock.entity.Item;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -159,10 +158,6 @@ public class OrderEmpService {
         }
 
         order.updateStatus(OrderStatus.CANCELLED);
-
-        for (OrderDetail detail : order.getOrderDetails()) {
-            Item item = detail.getItem(); 
-            item.addStock(detail.getRequestQuantity()); 
-        }
+        order.updateProcessDate(LocalDateTime.now());
     }   	
 }
