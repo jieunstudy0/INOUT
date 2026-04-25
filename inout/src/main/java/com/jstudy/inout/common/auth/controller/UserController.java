@@ -2,6 +2,7 @@ package com.jstudy.inout.common.auth.controller;
 
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.dto.UserInput;
 import com.jstudy.inout.common.auth.dto.UserInputFind;
 import com.jstudy.inout.common.auth.dto.UserInputPassword;
@@ -160,11 +163,16 @@ public class UserController {
 	// 8. 사용자 비밀번호 수정 API
 	@PatchMapping("/user/{id}/password")
 	public ResponseEntity<?> updateUserPassword(@PathVariable("id") Long id, 
+			@AuthenticationPrincipal CustomUserDetails principal,
 	                                            @RequestBody @Valid UserInputPassword userInputPassword, 
 	                                            Errors errors) {
 
 	    if (errors.hasErrors()) {
 	        return ResponseResult.fail("입력값이 규격에 맞지 않습니다.", ResponseError.of(errors.getAllErrors()));
+	    }
+	    
+	    if (!principal.getUser().getId().equals(id)) {
+	        return ResponseResult.fail("본인의 정보만 수정할 수 있습니다.", 403);
 	    }
 
 	    User user = userRepository.findById(id)

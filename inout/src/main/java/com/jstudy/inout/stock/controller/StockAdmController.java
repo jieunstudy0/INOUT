@@ -136,7 +136,7 @@ public class StockAdmController {
     }
 
     @GetMapping("/detail/{itemId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<?> getStockDetail(
             @PathVariable Long itemId,
             @RequestParam(defaultValue = "0") int page,  

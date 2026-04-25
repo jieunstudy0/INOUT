@@ -42,6 +42,10 @@ public class CartDetail extends BaseTimeEntity {
 
     @Column(nullable = false)
     private Integer quantity; 
+    
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
 
     public void updateQuantity(int quantity) {
         this.quantity = quantity;
