@@ -20,7 +20,7 @@ public class StockRegister {
     private String name;
 
     @NotNull(message = "카테고리 ID는 필수입니다.")
-    private Long categoryId;
+    private Integer categoryId;
 
     @NotNull(message = "단가는 필수입니다.")
     @Min(value = 0, message = "단가는 0원 이상이어야 합니다.")

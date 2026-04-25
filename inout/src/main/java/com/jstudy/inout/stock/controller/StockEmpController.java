@@ -31,7 +31,7 @@ public class StockEmpController {
     private final StockEmpService stockEmpService;
 
     @PostMapping("/use")
-    @PreAuthorize("hasRole('USER')") 
+    @PreAuthorize("hasRole('EMPLOYEE')") 
     public ResponseEntity<?> useStock(@RequestBody @Valid StockUseRequest stockUseRequest
     		, @AuthenticationPrincipal CustomUserDetails principal) {
 
@@ -49,7 +49,7 @@ public class StockEmpController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')") 
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')") 
     public ResponseEntity<?> getEmployeeStockList(
             @RequestParam(value = "name", required = false) String name,
             @PageableDefault(size = 10, sort = "name", direction = Sort.Direction.ASC) Pageable pageable 
@@ -62,7 +62,7 @@ public class StockEmpController {
     }
 
     @GetMapping("/detail/{itemId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> getStockDetail(@PathVariable Long itemId) {
     	
         StockUserDetailResponse detail = stockEmpService.getEmployeeStockDetail(itemId);

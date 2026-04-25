@@ -1,13 +1,24 @@
-<button onclick="downloadExcel()" class="btn btn-success">
-    📊 엑셀 다운로드
-</button>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<th:block layout:fragment="css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</th:block>
 
-<script>
-    function downloadExcel() {
-        // GET 요청을 보내면 브라우저가 알아서 파일을 받아줍니다.
-        location.href = '/admin/orders/excel';
-    }
-</script>
+<main layout:fragment="content" class="bg-slate-50 min-h-screen py-8">
+    <div id="order-dashboard-root" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"></div>
+</main>
 
+<th:block layout:fragment="script">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<!-- 나중에 엑셀 다운로드 받는 기능 추가할 때 사용할 엑셀 다운로드 html  -->
+    <script type="text/babel" data-presets="react" th:src="@{/js/admin/orders/api/orderAdminApi.js}"></script>
+    <script type="text/babel" data-presets="react" th:src="@{/js/admin/orders/components/SummaryCard.js}"></script>
+    <script type="text/babel" data-presets="react" th:src="@{/js/admin/orders/components/OrderTable.js}"></script>
+    <script type="text/babel" data-presets="react" th:src="@{/js/admin/orders/orderDashboardApp.js}"></script>
+</th:block>
+</html>

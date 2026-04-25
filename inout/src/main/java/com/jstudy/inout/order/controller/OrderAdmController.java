@@ -25,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 import com.jstudy.inout.common.exception.InoutException;
 
-
 @RestController
 @RequestMapping("/api/admin/orders")
 @PreAuthorize("hasRole('ADMIN')") 
@@ -39,8 +38,8 @@ public class OrderAdmController {
             @RequestParam(required = false) OrderStatus status) {  
 
         List<OrderAdminResponse> orders = orderAdmService.getAllOrders(status);
-        
-        return ResponseEntity.ok(ResponseResult.success(orders));
+
+        return ResponseResult.success("발주 목록 조회가 완료되었습니다.", orders);
     }
 
     @PatchMapping("/{orderId}/process")
@@ -50,7 +49,8 @@ public class OrderAdmController {
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
         orderAdmService.processOrderItems(orderId, request, principal.getUser().getId());
-        return ResponseEntity.ok(ResponseResult.success("발주 상세 처리가 완료되었습니다."));
+
+        return ResponseResult.success("발주 상세 처리가 완료되었습니다.", null); 
     }
 
     @PostMapping("/bulk-approve")
@@ -58,12 +58,12 @@ public class OrderAdmController {
             @RequestBody BulkOrderRequest request,
             @AuthenticationPrincipal CustomUserDetails principal
     ) {
-
         BulkOrderResponse response = orderAdmService.bulkApproveOrders(request, principal.getUser().getId());        
-        return ResponseEntity.ok(ResponseResult.success("일괄 승인 처리가 완료되었습니다.", response));
+
+        return ResponseResult.success("일괄 승인 처리가 완료되었습니다.", response);
     }
 
-    @GetMapping("/orders/excel")
+    @GetMapping("/excel")
     @PreAuthorize("hasRole('ADMIN')")
     public void downloadExcel(HttpServletResponse response) {
         try {

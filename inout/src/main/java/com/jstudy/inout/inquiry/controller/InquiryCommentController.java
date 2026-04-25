@@ -37,7 +37,7 @@ public class InquiryCommentController {
      */
         
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> createComment(
             @PathVariable Long inquiryId,
             @RequestBody @Valid CommentCreateRequest request,
@@ -60,7 +60,7 @@ public class InquiryCommentController {
      * PUT /inquiry/{inquiryId}/comment/{commentId}
      */
     @PutMapping("/{commentId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> updateComment(
             @PathVariable Long inquiryId,
             @PathVariable Long commentId,
@@ -80,7 +80,7 @@ public class InquiryCommentController {
      * DELETE /inquiry/{inquiryId}/comment/{commentId}
      */
     @DeleteMapping("/{commentId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> deleteComment(
             @PathVariable Long inquiryId,
             @PathVariable Long commentId,

@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+
 @Entity
 @Table(name = "item_category")
 public class ItemCategory {

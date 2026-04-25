@@ -3,6 +3,7 @@ package com.jstudy.inout.common.auth.dto;
 import java.time.LocalDate;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,10 +34,10 @@ public class UserInput {
     @NotBlank(message = "연락처는 필수 항목입니다.")
     private String phone;
 
-    @NotBlank(message = "지점 이름은 필수 항목입니다.")
+    @NotNull(message = "지점 선택은 필수 항목입니다.")
     private Long storeId;
 
-    @NotBlank(message = "생년월일은 필수 항목입니다.")
-    private LocalDate birthday; 
+    @NotNull(message = "생년월일은 필수 항목입니다.")
+    private LocalDate birthday;
 }
 

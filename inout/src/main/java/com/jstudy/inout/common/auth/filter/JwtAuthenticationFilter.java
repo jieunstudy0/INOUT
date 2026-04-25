@@ -25,10 +25,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
-        log.info("요청된 Authorization 헤더: {}", authHeader);
+        log.debug("Authorization 헤더 존재: {}", authHeader != null);
 
         String token = resolveToken(request);
-        log.info("요청된 JWT 토큰: {}", token);
+        log.debug("JWT 토큰 존재: {}", token != null);
 
         try {
             if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
