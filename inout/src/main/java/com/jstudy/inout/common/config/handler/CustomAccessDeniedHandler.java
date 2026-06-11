@@ -1,7 +1,7 @@
 package com.jstudy.inout.common.config.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jstudy.inout.common.extra.ErrorResponse; 
+import com.jstudy.inout.common.dto.ResponseMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
@@ -21,14 +21,15 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN); 
+        response.setCharacterEncoding("UTF-8");
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpServletResponse.SC_FORBIDDEN)
-                .code("AUTH_403")
-                .message("접근 권한이 없습니다.")
-                .build();
+        ResponseMessage message = ResponseMessage.fail(
+                "접근 권한이 없습니다.",
+                null,
+                "AUTH_403",
+                HttpServletResponse.SC_FORBIDDEN);
 
-        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+        response.getWriter().write(objectMapper.writeValueAsString(message));
     }
 }

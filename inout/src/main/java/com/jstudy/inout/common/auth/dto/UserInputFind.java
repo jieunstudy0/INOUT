@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInputFind {
-
     private String email;
     private String name;
     private String phone;
-
 }

@@ -54,7 +54,16 @@ public class OrderRequest {
     private LocalDateTime processDate; 
     
     private String rejectReason;
-    
+
+    @Column(length = 100)
+    private String receiverName;
+
+    @Column(length = 30)
+    private String receiverPhone;
+
+    @Column(length = 255)
+    private String destinationAddress;
+
     @OneToMany(mappedBy = "orderRequest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default 
     private List<OrderDetail> orderDetails = new ArrayList<>();

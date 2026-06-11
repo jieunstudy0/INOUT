@@ -9,10 +9,10 @@ public interface StockReceivingHistoryRepository extends JpaRepository<StockRece
 
 	List<StockReceivingHistory> findAllByItem_ItemId(Long itemId);
 
-	List<StockReceivingHistory> findAllByUser_UserId(Long userId);
+	List<StockReceivingHistory> findAllByUser_Id(Long userId);
 
     int countByProcessDateAfter(LocalDateTime startOfDay);
 
-	List<StockReceivingHistory> findAllByUser_Store_StoreId(Long storeId);
+	List<StockReceivingHistory> findAllByUser_Store_Id(Long storeId);
 	
 }

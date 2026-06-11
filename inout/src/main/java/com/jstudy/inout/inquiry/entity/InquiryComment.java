@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.entity.BaseTimeEntity;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,7 +35,8 @@ public class InquiryComment extends BaseTimeEntity {
     @Column(name = "comment_id")
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(nullable = false)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)

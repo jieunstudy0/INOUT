@@ -21,36 +21,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        if (path == null) {
+            return false;
+        }
+        return path.startsWith("/js/")
+                || path.startsWith("/css/")
+                || path.startsWith("/images/")
+                || path.startsWith("/fonts/")
+                || path.startsWith("/webjars/")
+                || path.endsWith(".ico");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
-        log.debug("Authorization 헤더 존재: {}", authHeader != null);
-
         String token = resolveToken(request);
-        log.debug("JWT 토큰 존재: {}", token != null);
+        log.trace("JWT present: {}", StringUtils.hasText(token));
 
         try {
             if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("사용자 인증 성공: {}", authentication.getName());
-                authentication.getAuthorities().forEach(auth -> log.info("부여된 권한: {}", auth.getAuthority()));
-            } else {
-                log.info("JWT 토큰이 없거나 유효하지 않음 → 인증 없이 진행");
+                log.debug("Authenticated user: {}", authentication.getName());
             }
         } catch (Exception e) {
-            log.error("JWT 인증 과정 중 예외 발생: {}", e.getMessage());
+            log.warn("JWT processing failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
-       
+
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7); 
+            return bearerToken.substring(7);
         }
 
         Cookie[] cookies = request.getCookies();
@@ -61,7 +70,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         }
-        return null; 
+        return null;
     }
-    
 }

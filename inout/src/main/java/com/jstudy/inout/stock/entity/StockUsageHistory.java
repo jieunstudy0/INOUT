@@ -16,8 +16,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AttributeOverrides({
-    @AttributeOverride(name = "processDate", column = @Column(name = "usage_date")),
-    @AttributeOverride(name = "user", column = @Column(name = "usage_user_id")) 
+    @AttributeOverride(name = "processDate", column = @Column(name = "usage_date"))
 })
 public class StockUsageHistory extends BaseStockHistory {
     private Integer usageQuantity;

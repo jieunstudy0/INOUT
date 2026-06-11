@@ -84,9 +84,9 @@ public class StockEmpService {
     @Transactional(readOnly = true)
     public List<StockHistoryResponse> getMyStoreHistory(Long userId) {
 
-        List<StockReceivingHistory> receiving = receivingHistoryRepository.findAllByUser_UserId(userId);
+        List<StockReceivingHistory> receiving = receivingHistoryRepository.findAllByUser_Id(userId);
         
-        List<StockUsageHistory> usage = usageHistoryRepository.findAllByUser_UserId(userId);
+        List<StockUsageHistory> usage = usageHistoryRepository.findAllByUser_Id(userId);
 
         List<StockHistoryResponse> combined = new ArrayList<>();
 
@@ -102,10 +102,10 @@ public class StockEmpService {
     @Transactional(readOnly = true)
     public List<StockHistoryResponse> getStoreHistory(Long storeId) {
         List<StockReceivingHistory> receiving = 
-            receivingHistoryRepository.findAllByUser_Store_StoreId(storeId);
+            receivingHistoryRepository.findAllByUser_Store_Id(storeId);
         
         List<StockUsageHistory> usage = 
-            usageHistoryRepository.findAllByUser_Store_StoreId(storeId);
+            usageHistoryRepository.findAllByUser_Store_Id(storeId);
 
         List<StockHistoryResponse> combined = new ArrayList<>();
         

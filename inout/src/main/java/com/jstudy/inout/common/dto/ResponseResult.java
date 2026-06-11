@@ -30,10 +30,14 @@ public class ResponseResult {
     }
     
     public static ResponseEntity<?> success() {
-        return success(null);
+        return successWithData((Object) null);
     }
 
-    public static ResponseEntity<?> success(Object data) {
+    public static ResponseEntity<?> successWithMessage(String message) {
+        return ResponseEntity.ok().body(ResponseMessage.success(message, null));
+    }
+
+    public static ResponseEntity<?> successWithData(Object data) {
         return ResponseEntity.ok().body(ResponseMessage.success(data));
     }
     

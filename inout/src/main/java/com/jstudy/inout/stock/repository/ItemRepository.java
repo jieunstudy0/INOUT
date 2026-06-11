@@ -37,5 +37,13 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select i from Item i where i.itemId = :id")
     Optional<Item> findByIdWithLock(@Param("id") Long id);
-    
+
+    @Query("SELECT COUNT(i) FROM Item i WHERE i.deleted = false AND i.currentStock = 0")
+    long countOutOfStockItems();
+
+    @Query("SELECT COUNT(i) FROM Item i WHERE i.deleted = false AND i.currentStock > i.minStockLevel")
+    long countNormalStockItems();
+
+    @Query("SELECT COUNT(i) FROM Item i WHERE i.deleted = false")
+    long countActiveItems();
 }

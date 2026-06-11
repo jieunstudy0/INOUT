@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.ArrayList;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.entity.BaseTimeEntity;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,7 +38,8 @@ public class Inquiry extends BaseTimeEntity {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
+    @Column(nullable = false)
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,6 +49,12 @@ public class Inquiry extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean isRead = false;
+
+    @Column(length = 255)
+    private String originalFileName; 
+
+    @Column(length = 255)
+    private String savedFilePath;
 
     @OneToMany(mappedBy = "inquiry", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

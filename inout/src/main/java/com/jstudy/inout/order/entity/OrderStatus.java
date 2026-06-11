@@ -5,14 +5,14 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum OrderStatus {
-
-    REQUESTED("발주 요청"), 
-    PARTIAL("부분 처리/지연"), 
-    COMPLETED("처리 완료"),
-    REJECTED("주문 반려"),
-    APPROVED("발주 승인"),
-    CANCELLED("(사용자)직접 취소");
+public enum OrderStatus { 
+	
+	REQUESTED("발주 요청(미결제)"), 
+    PAID("결제 완료(승인 대기)"),   
+    PARTIAL("발주 부분 승인"), 
+    COMPLETED("발주 승인 완료"), 
+    REJECTED("발주 반려"), 
+    CANCELLED("발주 취소");
 
     private final String description; 
 

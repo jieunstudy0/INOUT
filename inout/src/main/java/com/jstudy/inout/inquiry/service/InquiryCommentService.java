@@ -22,11 +22,6 @@ public class InquiryCommentService {
     private final InquiryRepository inquiryRepository;
     private final UserRepository userRepository;
 
-    /**
-     * 댓글 작성
-     * - parentId가 null이면 일반 댓글
-     * - parentId가 있으면 답댓글
-     */
     @Transactional
     public Long createComment(Long inquiryId, Long userId, CommentCreateRequest request) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
@@ -55,9 +50,6 @@ public class InquiryCommentService {
         return commentRepository.save(comment).getId();
     }
 
-    /**
-     * 댓글 삭제 (본인만 삭제 가능)
-     */
     @Transactional
     public void deleteComment(Long commentId, Long userId) {
         InquiryComment comment = commentRepository.findById(commentId)
@@ -70,9 +62,6 @@ public class InquiryCommentService {
         commentRepository.delete(comment);
     }
 
-    /**
-     * 댓글 수정 (본인만 수정 가능)
-     */
     @Transactional
     public void updateComment(Long commentId, Long userId, String newContent) {
         InquiryComment comment = commentRepository.findById(commentId)

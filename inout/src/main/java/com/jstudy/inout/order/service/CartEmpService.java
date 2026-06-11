@@ -23,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class CartEmpService {
 	
 	private final CartDetailRepository cartDetailRepository;
@@ -46,7 +45,7 @@ public class CartEmpService {
     @Transactional
     public void reOrder(Long userId, Long pastOrderId) {
 
-        OrderRequest pastOrder = orderRequestRepository.findById(pastOrderId)
+        OrderRequest pastOrder = orderRequestRepository.findWithDetailsGraphById(pastOrderId)
                 .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
 
         if (!pastOrder.getRequestUser().getId().equals(userId)) {
@@ -65,7 +64,7 @@ public class CartEmpService {
     }
 
     private Cart getOrCreateCart(Long userId) {
-        return cartRepository.findByUser_UserId(userId)
+        return cartRepository.findByUser_Id(userId)
                 .orElseGet(() -> cartRepository.save(Cart.builder()
                 		.user(userRepository.findById(userId)
                 			    .orElseThrow(() -> new InoutException("사용자 없음", 404, "USER_NOT_FOUND")))
@@ -90,7 +89,7 @@ public class CartEmpService {
 	@Transactional(readOnly = true)
 	public CartResponse getCartList(Long userId) {
 		
-		List<CartDetail> cartDetails = cartDetailRepository.findAllByCart_User_UserId(userId);
+		List<CartDetail> cartDetails = cartDetailRepository.findWithItemByCartUserIdNotDeleted(userId);
 
 	    List<CartResponse.CartItemResponse> itemResponses = cartDetails.stream()
 	    	    .map(CartResponse.CartItemResponse::from) 

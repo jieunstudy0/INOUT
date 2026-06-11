@@ -1,11 +1,14 @@
 package com.jstudy.inout.inquiry.dto;
 
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class InquiryCreateRequest {
 
@@ -15,4 +18,6 @@ public class InquiryCreateRequest {
 
     @NotBlank(message = "내용은 필수입니다.")
     private String content;
+
+    private MultipartFile file; 
 }

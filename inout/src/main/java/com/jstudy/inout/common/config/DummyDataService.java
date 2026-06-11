@@ -1,0 +1,221 @@
+package com.jstudy.inout.common.config;
+
+import com.jstudy.inout.common.auth.entity.*;
+import com.jstudy.inout.common.auth.repository.*;
+import com.jstudy.inout.delivery.entity.*;
+import com.jstudy.inout.delivery.repository.DeliveryRepository;
+import com.jstudy.inout.inquiry.repository.InquiryCommentRepository;
+import com.jstudy.inout.inquiry.repository.InquiryRepository;
+import com.jstudy.inout.order.entity.*;
+import com.jstudy.inout.order.repository.*;
+import com.jstudy.inout.payment.entity.*;
+import com.jstudy.inout.payment.repository.*;
+import com.jstudy.inout.stock.entity.*;
+import com.jstudy.inout.stock.repository.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+@Slf4j
+@Service
+@Profile({"local", "demo", "secret"})
+@RequiredArgsConstructor
+public class DummyDataService {
+
+    private final RoleRepository roleRepository;
+    private final StoreRepository storeRepository;
+    private final UserRepository userRepository;
+    private final UserRoleRepository userRoleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final ItemCategoryRepository categoryRepository;
+    private final ItemRepository itemRepository;
+    private final StockReceivingHistoryRepository receivingHistoryRepository;
+    private final StockUsageHistoryRepository usageHistoryRepository;
+    private final DepositAccountRepository depositAccountRepository;
+    private final DepositHistoryRepository depositHistoryRepository;
+    private final OrderRequestRepository orderRequestRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final CartDetailRepository cartDetailRepository;
+    private final CartRepository cartRepository;
+    private final InquiryCommentRepository inquiryCommentRepository;
+    private final InquiryRepository inquiryRepository;
+
+    @Transactional
+    public void clearAllData() {
+        log.info("기존 더미 데이터를 모두 삭제합니다.");
+
+        inquiryCommentRepository.deleteAll();
+        inquiryCommentRepository.flush();         
+        inquiryRepository.deleteAllInBatch();
+        cartDetailRepository.deleteAllInBatch();
+        cartRepository.deleteAllInBatch();
+        deliveryRepository.deleteAllInBatch();
+        orderDetailRepository.deleteAllInBatch();
+        orderRequestRepository.deleteAllInBatch();
+        depositHistoryRepository.deleteAllInBatch();
+        depositAccountRepository.deleteAllInBatch();
+        usageHistoryRepository.deleteAllInBatch();
+        receivingHistoryRepository.deleteAllInBatch();
+        itemRepository.deleteAllInBatch();
+        categoryRepository.deleteAllInBatch();
+        refreshTokenRepository.deleteAllInBatch(); 
+        userRoleRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
+        storeRepository.deleteAllInBatch();
+        roleRepository.deleteAllInBatch();
+    }
+
+
+    @Transactional
+    public void generateDummyData() {
+        log.info("데모용 더미 데이터를 새롭게 생성합니다...");
+        String defaultPw = passwordEncoder.encode("inout1234!");
+
+        Role adminRole = roleRepository.save(Role.builder().roleName("ROLE_ADMIN").build());
+        Role empRole = roleRepository.save(Role.builder().roleName("ROLE_EMPLOYEE").build());
+
+        Store hq = storeRepository.save(Store.builder().name("본사").address("서울 강남구").phone("02-000-0000").build());
+        List<Store> branches = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            branches.add(storeRepository.save(Store.builder().name("지점 " + i + "호").address("서울 마포구 " + i + "길").phone("02-111-100" + i).build()));
+        }
+
+        User admin1 = createUser("admin1@test.com", "김본사", hq, defaultPw, adminRole);
+        User admin2 = createUser("admin2@test.com", "이본사", hq, defaultPw, adminRole);
+
+        List<User> employees = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            UserStatus status = (i == 20) ? UserStatus.LEAVE : UserStatus.ACTIVE; // 1명은 휴직 상태
+            Store assignedStore = branches.get(i % 5);
+            User emp = createUser("emp" + i + "@test.com", "가맹점주" + i, assignedStore, defaultPw, empRole);
+            emp.updateStatusAndStore(status, assignedStore);
+            employees.add(emp);
+
+            createDepositAccount(emp, 50_000_000L, admin1);
+        }
+
+        ItemCategory catCoffee = categoryRepository.save(ItemCategory.builder().categoryName("커피/원두").build());
+        ItemCategory catSupply = categoryRepository.save(ItemCategory.builder().categoryName("소모품/포장재").build());
+
+        List<Item> items = new ArrayList<>();
+
+        for (int i = 1; i <= 15; i++) {
+            items.add(createItem("원두 블렌드 Type-" + i, catCoffee, 15000L + (i * 1000), 10, 100, admin1));
+        }
+
+        for (int i = 1; i <= 3; i++) {
+            items.add(createItem("테이크아웃 컵 " + i + "oz", catSupply, 45000L, 10, 5, admin1));
+        }
+
+        items.add(createItem("바닐라 시럽 1L", catSupply, 12000L, 10, 0, admin1));
+        items.add(createItem("헤이즐넛 시럽 1L", catSupply, 12000L, 10, 0, admin1));
+
+        Random random = new Random();
+        for (int i = 0; i < employees.size(); i++) {
+            User emp = employees.get(i);
+            Item orderItem = items.get(random.nextInt(15)); 
+            
+
+            int mod = i % 5;
+            if (mod == 0) {
+
+                createOrder(emp, orderItem, 5, OrderStatus.REQUESTED, OrderDetailStatus.WAITING, null);
+            } else if (mod == 1) {
+                OrderRequest order = createOrder(emp, orderItem, 2, OrderStatus.PAID, OrderDetailStatus.WAITING, null);
+                deductDeposit(emp, order.getTotalPrice(), order.getId());
+            } else if (mod == 2) {
+                OrderRequest order = createOrder(emp, orderItem, 3, OrderStatus.COMPLETED, OrderDetailStatus.APPROVED, null);
+                deductDeposit(emp, order.getTotalPrice(), order.getId());
+                deductStock(orderItem, 3, admin1, order.getId());
+                createDelivery(order, DeliveryStatus.READY);
+            } else if (mod == 3) {
+                OrderRequest order = createOrder(emp, orderItem, 10, OrderStatus.REJECTED, OrderDetailStatus.REJECTED, "재고 부족으로 인한 반려");
+                deductDeposit(emp, order.getTotalPrice(), order.getId());
+                refundDeposit(emp, order.getTotalPrice(), order.getId(), admin1);
+            } else if (mod == 4) {
+                OrderRequest order = createOrder(emp, orderItem, 5, OrderStatus.COMPLETED, OrderDetailStatus.APPROVED, null);
+                deductDeposit(emp, order.getTotalPrice(), order.getId());
+                deductStock(orderItem, 5, admin1, order.getId());
+                createDelivery(order, DeliveryStatus.COMPLETED);
+            }
+        }
+        log.info("더미 데이터 세팅이 완료되었습니다!");
+    }
+
+    private User createUser(String email, String name, Store store, String pw, Role role) {
+        User user = userRepository.save(User.builder().email(email).password(pw).name(name)
+                .phone("010-0000-0000").birthday(LocalDate.of(1990, 1, 1))
+                .store(store).status(UserStatus.ACTIVE).build());
+        userRoleRepository.save(UserRole.builder().user(user).role(role).build());
+        return user;
+    }
+
+    private void createDepositAccount(User user, Long amount, User admin) {
+        DepositAccount account = depositAccountRepository.save(DepositAccount.builder().user(user).balance(amount).build());
+        depositHistoryRepository.save(DepositHistory.builder().depositAccount(account).type(TransactionType.CHARGE)
+                .amount(amount).description("테스트 계정 초기 지원금").processedBy(admin.getId()).build());
+    }
+
+    private Item createItem(String name, ItemCategory cat, Long price, int minStock, int initialStock, User admin) {
+        Item item = itemRepository.save(Item.builder().name(name).category(cat).unitPrice(price)
+                .minStockLevel(minStock).currentStock(initialStock).unitDescription("EA").deleted(false).build());
+        if (initialStock > 0) {
+            receivingHistoryRepository.save(StockReceivingHistory.builder().item(item).user(admin)
+                    .receivingQuantity(initialStock).resultStock(initialStock).memo("초기 입고").build());
+        }
+        return item;
+    }
+
+    private OrderRequest createOrder(User emp, Item item, int qty, OrderStatus status, OrderDetailStatus detailStatus, String rejectReason) {
+        long totalPrice = item.getUnitPrice() * qty;
+        OrderRequest order = orderRequestRepository.save(OrderRequest.builder()
+                .requestUser(emp).status(status).totalPrice(totalPrice).requestDate(LocalDateTime.now().minusDays(1))
+                .processDate(status != OrderStatus.REQUESTED ? LocalDateTime.now() : null)
+                .receiverName(emp.getName()).receiverPhone(emp.getPhone()).destinationAddress(emp.getStore().getAddress())
+                .rejectReason(rejectReason).build());
+
+        orderDetailRepository.save(OrderDetail.builder().orderRequest(order).item(item).requestQuantity(qty)
+                .itemPriceSnapshot(item.getUnitPrice()).status(detailStatus).build());
+        return order;
+    }
+
+    private void deductDeposit(User emp, Long amount, Long orderId) {
+        DepositAccount acc = depositAccountRepository.findByUserIdForUpdate(emp.getId()).orElseThrow();
+        acc.deductBalance(amount);
+        depositHistoryRepository.save(DepositHistory.builder().depositAccount(acc).type(TransactionType.PAYMENT)
+                .amount(amount).description("주문 결제").relatedOrderId(orderId).processedBy(emp.getId()).build());
+    }
+
+    private void refundDeposit(User emp, Long amount, Long orderId, User admin) {
+        DepositAccount acc = depositAccountRepository.findByUserIdForUpdate(emp.getId()).orElseThrow();
+        acc.addBalance(amount);
+        depositHistoryRepository.save(DepositHistory.builder().depositAccount(acc).type(TransactionType.REFUND)
+                .amount(amount).description("주문 반려 환불").relatedOrderId(orderId).processedBy(admin.getId()).build());
+    }
+
+    private void deductStock(Item item, int qty, User admin, Long orderId) {
+        item.removeStock(qty);
+        usageHistoryRepository.save(StockUsageHistory.builder().item(item).user(admin)
+                .usageQuantity(qty).resultStock(item.getCurrentStock()).memo("발주 승인 (#" + orderId + ")").build());
+    }
+
+    private void createDelivery(OrderRequest order, DeliveryStatus status) {
+        deliveryRepository.save(Delivery.builder().orderRequest(order).status(status)
+                .receiverName(order.getReceiverName()).receiverPhone(order.getReceiverPhone())
+                .destinationAddress(order.getDestinationAddress())
+                .trackingNumber(status == DeliveryStatus.READY ? null : "CJ" + System.currentTimeMillis())
+                .shippedAt(status != DeliveryStatus.READY ? LocalDateTime.now() : null)
+                .deliveredAt(status == DeliveryStatus.COMPLETED ? LocalDateTime.now() : null).build());
+    }
+}

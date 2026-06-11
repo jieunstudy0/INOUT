@@ -1,8 +1,6 @@
 package com.jstudy.inout.inquiry.dto;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 import com.jstudy.inout.inquiry.entity.InquiryComment;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,23 +9,23 @@ import lombok.Getter;
 @Builder
 public class CommentResponse {
 
-    private Long commentId;
+    private Long id; 
     private String content;
-    private String authorName;  
+    private String authorName;
+    private String authorEmail; 
     private Long authorId; 
     private LocalDateTime createdAt;
-    private List<CommentResponse> children; 
+    private Long parentId; 
 
     public static CommentResponse from(InquiryComment comment) {
         return CommentResponse.builder()
-                .commentId(comment.getId())
+                .id(comment.getId())
                 .content(comment.getContent())
                 .authorName(comment.getAuthor().getName())
+                .authorEmail(comment.getAuthor().getEmail()) 
                 .authorId(comment.getAuthor().getId())
                 .createdAt(comment.getCreatedAt())
-                .children(comment.getChildren().stream()
-                        .map(CommentResponse::from)
-                        .collect(Collectors.toList()))
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .build();
     }
 }

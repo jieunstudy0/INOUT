@@ -12,13 +12,21 @@ import com.jstudy.inout.stock.entity.Item;
 
 public interface CartDetailRepository extends JpaRepository<CartDetail, Long> {  
  
-    List<CartDetail> findAllByCart_User_UserId(Long userId);
+    List<CartDetail> findAllByCart_User_Id(Long userId);
 
     @Query("SELECT cd FROM CartDetail cd " +
            "JOIN FETCH cd.cart c " +
            "JOIN FETCH c.user u " +
+           "JOIN FETCH cd.item " +
            "WHERE cd.cartDetailId IN :ids")
     List<CartDetail> findWithCartAndUserByIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT cd FROM CartDetail cd " +
+           "JOIN FETCH cd.item " +
+           "JOIN FETCH cd.cart c " +
+           "JOIN FETCH c.user u " +
+           "WHERE u.id = :userId AND cd.deleted = false")
+    List<CartDetail> findWithItemByCartUserIdNotDeleted(@Param("userId") Long userId);
     
     Optional<CartDetail> findByCartAndItem(Cart cart, Item item);
 
@@ -28,6 +36,10 @@ public interface CartDetailRepository extends JpaRepository<CartDetail, Long> {
 
     @Modifying
     @Query("UPDATE CartDetail cd SET cd.deleted = true " +
-           "WHERE cd.cart.user.userId = :userId AND cd.deleted = false")
+           "WHERE cd.cart.user.id = :userId AND cd.deleted = false")
     void updateAllDeletedStatusByUserId(@Param("userId") Long userId);
+    
+    
+    @Query("SELECT COUNT(c) FROM CartDetail c WHERE c.cart.user.id = :userId AND c.deleted = false")
+    int countCartItemsByUserId(@Param("userId") Long userId);
 }

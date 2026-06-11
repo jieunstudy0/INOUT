@@ -1,0 +1,36 @@
+package com.jstudy.inout.delivery.repository;
+
+import com.jstudy.inout.delivery.entity.Delivery;
+import com.jstudy.inout.delivery.entity.DeliveryStatus;
+import jakarta.persistence.LockModeType;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
+
+    Optional<Delivery> findByOrderRequest_Id(Long orderId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select d from Delivery d where d.orderRequest.id = :orderId")
+    Optional<Delivery> findByOrderIdForUpdate(@Param("orderId") Long orderId);
+    
+    List<Delivery> findByStatusAndShippedAtBefore(DeliveryStatus status, LocalDateTime shippedAt);
+
+    long countByStatus(DeliveryStatus status);
+
+    @Query(value = "SELECT d FROM Delivery d JOIN FETCH d.orderRequest WHERE d.status = :status",
+           countQuery = "SELECT COUNT(d) FROM Delivery d WHERE d.status = :status")
+    Page<Delivery> findByStatusWithOrder(@Param("status") DeliveryStatus status, Pageable pageable);
+
+    @Query(value = "SELECT d FROM Delivery d JOIN FETCH d.orderRequest",
+           countQuery = "SELECT COUNT(d) FROM Delivery d")
+    Page<Delivery> findAllWithOrder(Pageable pageable);
+}

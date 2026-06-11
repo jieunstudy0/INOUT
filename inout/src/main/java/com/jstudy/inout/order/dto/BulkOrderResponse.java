@@ -8,6 +8,7 @@ import lombok.Getter;
 @Builder
 public class BulkOrderResponse {
     private int successCount; 
+    private int autoRejectCount;
     private int failureCount; 
     private List<FailedOrder> failures; 
 

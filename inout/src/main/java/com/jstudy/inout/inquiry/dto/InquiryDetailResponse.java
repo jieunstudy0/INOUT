@@ -20,10 +20,9 @@ public class InquiryDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> comments;
-
+    
     public static InquiryDetailResponse from(Inquiry inquiry) {
         List<CommentResponse> commentResponses = inquiry.getComments().stream()
-                .filter(c -> c.getParent() == null)
                 .map(CommentResponse::from)
                 .collect(Collectors.toList());
 
