@@ -13,7 +13,7 @@ const LEAVE_TYPE_OPTIONS = [
 export default function VacationRegisterEmpPage() {
   const navigate = useNavigate();
   const base = useAppBasePath();
-  const leaveRoot = base === '/owner' ? '/owner/vacation/my' : '/emp/vacation';
+  const leaveRoot = base === '/owner' ? '/owner/leaves' : '/emp/leaves';
 
   const [formData, setFormData] = useState({
     startDate: '',

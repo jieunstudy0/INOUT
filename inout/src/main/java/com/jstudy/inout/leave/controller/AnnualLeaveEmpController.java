@@ -50,30 +50,38 @@ public class AnnualLeaveEmpController {
         return ResponseResult.success("?? ??? ???????.", leaveId);
     }
 
-    @Operation(summary = "? ?? ?? ?? ??", description = "??? ??? ?? ??? ??? ?????.")
-    @ApiResponse(responseCode = "200", description = "?? ??")
+    @Operation(summary = "내 연차 신청 목록 조회", description = "본인이 신청한 연차 내역을 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
     @GetMapping
     public ResponseEntity<?> getMyLeaveList(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<AnnualLeaveDto.ListItem> result = annualLeaveService.getMyLeaveList(getUserId(principal), pageable);
-        return ResponseResult.success("?? ?? ?? ??? ???????.", result);
+        return ResponseResult.success("연차 신청 목록 조회가 완료되었습니다.", result);
     }
 
-    @Operation(summary = "? ?? ?? ?? ??", description = "??? ??? ?? ??(?? ?? ??)? ?????.")
+    @Operation(summary = "잔여 연차 조회", description = "기본 부여 일수에서 승인 사용분을 차감한 잔여 연차를 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공")
+    @GetMapping("/remaining")
+    public ResponseEntity<?> getRemainingLeaveDays(@AuthenticationPrincipal CustomUserDetails principal) {
+        int remaining = annualLeaveService.getRemainingLeaveDays(getUserId(principal));
+        return ResponseResult.success("잔여 연차 조회가 완료되었습니다.", remaining);
+    }
+
+    @Operation(summary = "내 연차 신청 상세 조회", description = "본인이 신청한 연차 상세(반려 사유 포함)를 조회합니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "?? ??"),
-            @ApiResponse(responseCode = "403", description = "?? ??? ?? ??"),
-            @ApiResponse(responseCode = "404", description = "?? ?? ??")
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "본인 신청만 조회 가능"),
+            @ApiResponse(responseCode = "404", description = "연차 신청 없음")
     })
     @GetMapping("/{leaveId}")
     public ResponseEntity<?> getMyLeaveDetail(
-            @Parameter(description = "??? ?? ?? ID") @PathVariable("leaveId") Long leaveId,
+            @Parameter(description = "조회할 연차 신청 ID") @PathVariable("leaveId") Long leaveId,
             @AuthenticationPrincipal CustomUserDetails principal) {
 
         AnnualLeaveDto.DetailResponse result = annualLeaveService.getMyLeaveDetail(getUserId(principal), leaveId);
-        return ResponseResult.success("?? ?? ?? ??? ???????.", result);
+        return ResponseResult.success("연차 신청 상세 조회가 완료되었습니다.", result);
     }
 
     private Long getUserId(CustomUserDetails principal) {

@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/deliveries")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-public class DeliveryController {
+public class DeliveryAdmController {
 
     private final DeliveryService deliveryService;
 

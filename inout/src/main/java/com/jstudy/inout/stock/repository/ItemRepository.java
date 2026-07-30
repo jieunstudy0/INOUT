@@ -31,6 +31,9 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
     @Query("SELECT i FROM Item i WHERE i.deleted = false AND i.currentStock = 0")
     List<Item> findOutOfStockItems();
 
+    @Query("SELECT i FROM Item i WHERE i.deleted = false AND i.currentStock > 0 AND i.currentStock <= i.minStockLevel")
+    List<Item> findLowStockItemsAboveZero();
+
     @Query("SELECT count(i) FROM Item i WHERE i.deleted = false AND i.currentStock <= i.minStockLevel")
     long countLowStockItems();
 

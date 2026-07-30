@@ -1,8 +1,7 @@
-import apiClient from './apiClient';
+import client, { unwrap } from './apiClient';
 
-export const getOwnerDeliveryList = async ({ status, page = 0, size = 10 }) => {
-  const response = await apiClient.get('/owner/deliveries', {
+export function getOwnerDeliveryList({ status, page = 0, size = 10 } = {}) {
+  return unwrap(client.get('/owner/deliveries', {
     params: { status, page, size },
-  });
-  return response.data.body;
-};
+  }));
+}

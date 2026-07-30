@@ -55,6 +55,20 @@ public class DeliveryService {
         return page.map(DeliveryDto::toListItem);
     }
 
+    public Page<DeliveryDto.ListItem> getMyDeliveryList(Long userId, DeliveryStatus status, Pageable pageable) {
+        Page<Delivery> page = (status != null)
+                ? deliveryRepository.findByUserIdAndStatusWithOrder(userId, status, pageable)
+                : deliveryRepository.findByUserIdWithOrder(userId, pageable);
+        return page.map(DeliveryDto::toListItem);
+    }
+
+    public Page<DeliveryDto.ListItem> getStoreDeliveryList(Long storeId, DeliveryStatus status, Pageable pageable) {
+        Page<Delivery> page = (status != null)
+                ? deliveryRepository.findByStoreIdAndStatusWithOrder(storeId, status, pageable)
+                : deliveryRepository.findByStoreIdWithOrder(storeId, pageable);
+        return page.map(DeliveryDto::toListItem);
+    }
+
     public DeliveryDto.DetailResponse getDeliveryByOrderId(Long orderId) {
         Delivery delivery = deliveryRepository.findByOrderRequest_Id(orderId)
                 .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));

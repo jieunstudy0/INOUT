@@ -33,7 +33,7 @@ export default function ResetPasswordPage() {
       navigate('/login');
     } catch (err) {
       console.error("비밀번호 재설정 에러:", err);
-      setError(err.response?.data?.header?.message || err.response?.data?.message || '비밀번호 변경에 실패했습니다.');
+      setError(err.message || '비밀번호 변경에 실패했습니다.');
     } finally {
       setLoading(false);
     }

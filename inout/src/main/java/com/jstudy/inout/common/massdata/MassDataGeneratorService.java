@@ -664,8 +664,8 @@ public class MassDataGeneratorService {
             waitingFlags.add(waiting);
         }
 
-        List<Long> ids = insertAndGetIds("inquiry",
-                "INSERT INTO `inquiry` (`title`,`content`,`user_id`,`is_read`,`ai_category`,`ai_draft_answer`,`created_at`,`updated_at`) " +
+        List<Long> ids = insertAndGetIds("inquiries",
+                "INSERT INTO `inquiries` (`title`,`content`,`user_id`,`is_read`,`ai_category`,`ai_draft_answer`,`created_at`,`updated_at`) " +
                         "VALUES (?,?,?,?,?,?,?,?)",
                 args);
         return new InquiryGenResult(ids, waitingFlags);
@@ -680,8 +680,8 @@ public class MassDataGeneratorService {
             }
             args.add(new Object[]{faker.lorem().sentence(15), inquiries.inquiryIds().get(i), adminUserId, now, now});
         }
-        return insertAndGetIds("inquiry_comment",
-                "INSERT INTO `inquiry_comment` (`content`,`inquiry_id`,`user_id`,`created_at`,`updated_at`) VALUES (?,?,?,?,?)",
+        return insertAndGetIds("inquiry_comments",
+                "INSERT INTO `inquiry_comments` (`content`,`inquiry_id`,`user_id`,`created_at`,`updated_at`) VALUES (?,?,?,?,?)",
                 args);
     }
 

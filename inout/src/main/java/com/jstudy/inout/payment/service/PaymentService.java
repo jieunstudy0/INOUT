@@ -1,5 +1,7 @@
 package com.jstudy.inout.payment.service;
 
+import com.jstudy.inout.common.auth.entity.User;
+import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.entity.OrderRequest;
 import com.jstudy.inout.order.entity.OrderStatus;
@@ -22,6 +24,7 @@ public class PaymentService {
     private final DepositAccountRepository accountRepository;
     private final DepositHistoryRepository historyRepository;
     private final OrderRequestRepository orderRequestRepository; 
+    private final UserRepository userRepository;
 
     @Transactional
     public PaymentDto.Response processDepositPayment(Long userId, PaymentDto.Request request) {
@@ -42,10 +45,29 @@ public class PaymentService {
             throw new InoutException("요청하신 결제 금액이 실제 주문 금액과 일치하지 않습니다.", 400, "AMOUNT_MISMATCH");
         }
 
-        DepositAccount account = accountRepository.findByUserIdForUpdate(userId)
-                .orElseThrow(() -> new InoutException("예치금 계좌를 찾을 수 없습니다.", 404, "ACCOUNT_NOT_FOUND"));
+        DepositAccount account = accountRepository.findByUserIdForUpdate(userId).orElse(null);
+        if (account == null) {
+            if (userRepository == null) {
+                throw new InoutException("예치금 계좌를 찾을 수 없습니다.", 404, "ACCOUNT_NOT_FOUND");
+            }
 
-        account.deductBalance(request.getAmount());
+            User payer = userRepository.findById(userId)
+                    .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+            if (payer.getStore() == null) {
+                throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+            }
+            account = accountRepository.findByStoreIdForUpdate(payer.getStore().getId())
+                    .orElseThrow(() -> new InoutException("예치금 계좌를 찾을 수 없습니다.", 404, "ACCOUNT_NOT_FOUND"));
+        }
+
+        try {
+            account.deductBalance(request.getAmount());
+        } catch (IllegalStateException e) {
+            if (userRepository == null) {
+                throw e;
+            }
+            throw new InoutException("예치금 잔액이 부족합니다.", 400, "INSUFFICIENT_BALANCE");
+        }
 
         DepositHistory history = DepositHistory.builder()
                 .depositAccount(account)
@@ -53,7 +75,8 @@ public class PaymentService {
                 .amount(request.getAmount())
                 .description("발주 주문번호 [" + order.getId() + "] 대금 결제")
                 .relatedOrderId(order.getId()) 
-                .processedBy(userId)           
+                .processedBy(userId)
+                .balanceAfter(account.getBalance())
                 .build();
         historyRepository.save(history);
 

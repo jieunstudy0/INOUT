@@ -69,13 +69,40 @@ public class DummyDataService {
         receivingHistoryRepository.deleteAllInBatch();
         itemRepository.deleteAllInBatch();
         categoryRepository.deleteAllInBatch();
-        refreshTokenRepository.deleteAllInBatch(); 
+        safeClearRefreshTokens(); 
         userRoleRepository.deleteAllInBatch();
         userRepository.deleteAllInBatch();
         storeRepository.deleteAllInBatch();
         roleRepository.deleteAllInBatch();
     }
 
+    private void safeClearRefreshTokens() {
+        try {
+            refreshTokenRepository.deleteAllInBatch();
+        } catch (Exception e) {
+            log.warn("RefreshToken 삭제 스킵 (Redis/쿠키 세션 관리 방식 사용 중): {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void resetUsersOnly() {
+        log.info("사용자 관련 더미 데이터를 초기화합니다.");
+        inquiryCommentRepository.deleteAll();
+        inquiryCommentRepository.flush();
+        inquiryRepository.deleteAllInBatch();
+        cartDetailRepository.deleteAllInBatch();
+        cartRepository.deleteAllInBatch();
+        deliveryRepository.deleteAllInBatch();
+        orderDetailRepository.deleteAllInBatch();
+        orderRequestRepository.deleteAllInBatch();
+        depositHistoryRepository.deleteAllInBatch();
+        depositAccountRepository.deleteAllInBatch();
+        safeClearRefreshTokens();
+        userRoleRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
+
+        generateDummyData();
+    }
 
     @Transactional
     public void generateDummyData() {
@@ -83,6 +110,7 @@ public class DummyDataService {
         String defaultPw = passwordEncoder.encode("inout1234!");
 
         Role adminRole = roleRepository.save(Role.builder().roleName("ROLE_ADMIN").build());
+        Role ownerRole = roleRepository.save(Role.builder().roleName("ROLE_OWNER").build());
         Role empRole = roleRepository.save(Role.builder().roleName("ROLE_EMPLOYEE").build());
 
         Store hq = storeRepository.save(Store.builder().name("본사").address("서울 강남구").phone("02-000-0000").build());
@@ -91,45 +119,48 @@ public class DummyDataService {
             branches.add(storeRepository.save(Store.builder().name("지점 " + i + "호").address("서울 마포구 " + i + "길").phone("02-111-100" + i).build()));
         }
 
-        User admin1 = createUser("admin1@test.com", "김본사", hq, defaultPw, adminRole);
-        User admin2 = createUser("admin2@test.com", "이본사", hq, defaultPw, adminRole);
+        User admin1 = createUser("admin1@test.com", "김본사", null, defaultPw, adminRole);
+        User admin2 = createUser("admin2@test.com", "이본사", null, defaultPw, adminRole);
 
-        List<User> employees = new ArrayList<>();
-        for (int i = 1; i <= 20; i++) {
-            UserStatus status = (i == 20) ? UserStatus.LEAVE : UserStatus.ACTIVE; // 1명은 휴직 상태
-            Store assignedStore = branches.get(i % 5);
-            User emp = createUser("emp" + i + "@test.com", "가맹점주" + i, assignedStore, defaultPw, empRole);
-            emp.updateStatusAndStore(status, assignedStore);
-            employees.add(emp);
-
-            createDepositAccount(emp, 50_000_000L, admin1);
+        
+        for (int i = 0; i < branches.size(); i++) {
+            Store branch = branches.get(i);
+            createUser("owner" + (i + 1) + "@test.com", "점주" + (i + 1), branch, defaultPw, ownerRole);
+            createDepositAccount(branch, 50_000_000L, admin1); 
         }
 
+      
+        List<User> employees = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            UserStatus status = (i == 20) ? UserStatus.LEAVE : UserStatus.ACTIVE;
+            Store assignedStore = branches.get(i % 5);
+            User emp = createUser("emp" + i + "@test.com", "직원" + i, assignedStore, defaultPw, empRole);
+            emp.updateStatusAndStore(status, assignedStore);
+            employees.add(emp);
+        }
+
+   
         ItemCategory catCoffee = categoryRepository.save(ItemCategory.builder().categoryName("커피/원두").build());
         ItemCategory catSupply = categoryRepository.save(ItemCategory.builder().categoryName("소모품/포장재").build());
 
         List<Item> items = new ArrayList<>();
-
         for (int i = 1; i <= 15; i++) {
             items.add(createItem("원두 블렌드 Type-" + i, catCoffee, 15000L + (i * 1000), 10, 100, admin1));
         }
-
         for (int i = 1; i <= 3; i++) {
             items.add(createItem("테이크아웃 컵 " + i + "oz", catSupply, 45000L, 10, 5, admin1));
         }
-
         items.add(createItem("바닐라 시럽 1L", catSupply, 12000L, 10, 0, admin1));
         items.add(createItem("헤이즐넛 시럽 1L", catSupply, 12000L, 10, 0, admin1));
 
+   
         Random random = new Random();
         for (int i = 0; i < employees.size(); i++) {
             User emp = employees.get(i);
             Item orderItem = items.get(random.nextInt(15)); 
-            
 
             int mod = i % 5;
             if (mod == 0) {
-
                 createOrder(emp, orderItem, 5, OrderStatus.REQUESTED, OrderDetailStatus.WAITING, null);
             } else if (mod == 1) {
                 OrderRequest order = createOrder(emp, orderItem, 2, OrderStatus.PAID, OrderDetailStatus.WAITING, null);
@@ -150,21 +181,48 @@ public class DummyDataService {
                 createDelivery(order, DeliveryStatus.COMPLETED);
             }
         }
-        log.info("더미 데이터 세팅이 완료되었습니다!");
+        log.info("더미 데이터 세팅이 완료되었습니다! (3역할: ADMIN / OWNER / EMPLOYEE)");
     }
 
     private User createUser(String email, String name, Store store, String pw, Role role) {
-        User user = userRepository.save(User.builder().email(email).password(pw).name(name)
-                .phone("010-0000-0000").birthday(LocalDate.of(1990, 1, 1))
-                .store(store).status(UserStatus.ACTIVE).build());
+        User user = userRepository.save(User.builder()
+                .email(email)
+                .password(pw)
+                .name(name)
+                .phone("010-0000-0000")
+                .birthday(LocalDate.of(1990, 1, 1))
+                .store(store)
+                .status(UserStatus.ACTIVE)
+                .deleted(false)
+                .isLocked(false)
+                .loginFailCount(0)
+                .build());
         userRoleRepository.save(UserRole.builder().user(user).role(role).build());
         return user;
     }
 
-    private void createDepositAccount(User user, Long amount, User admin) {
-        DepositAccount account = depositAccountRepository.save(DepositAccount.builder().user(user).balance(amount).build());
-        depositHistoryRepository.save(DepositHistory.builder().depositAccount(account).type(TransactionType.CHARGE)
-                .amount(amount).description("테스트 계정 초기 지원금").processedBy(admin.getId()).build());
+  
+    private void createDepositAccount(Store store, Long amount, User admin) {
+        if (store == null) {
+            log.warn("store가 null이므로 DepositAccount를 생성하지 않습니다.");
+            return;
+        }
+
+        DepositAccount account = depositAccountRepository.save(
+                DepositAccount.builder()
+                        .store(store) 
+                        .balance(amount)
+                        .build()
+        );
+
+        depositHistoryRepository.save(DepositHistory.builder()
+                .depositAccount(account)
+                .type(TransactionType.CHARGE)
+                .amount(amount)
+                .balanceAfter(account.getBalance())
+                .description("테스트 매장 초기 지원금")
+                .processedBy(admin != null ? admin.getId() : null)
+                .build());
     }
 
     private Item createItem(String name, ItemCategory cat, Long price, int minStock, int initialStock, User admin) {
@@ -182,7 +240,7 @@ public class DummyDataService {
         OrderRequest order = orderRequestRepository.save(OrderRequest.builder()
                 .requestUser(emp).status(status).totalPrice(totalPrice).requestDate(LocalDateTime.now().minusDays(1))
                 .processDate(status != OrderStatus.REQUESTED ? LocalDateTime.now() : null)
-                .receiverName(emp.getName()).receiverPhone(emp.getPhone()).destinationAddress(emp.getStore().getAddress())
+                .receiverName(emp.getName()).receiverPhone(emp.getPhone()).destinationAddress(emp.getStore() != null ? emp.getStore().getAddress() : "서울 강남구")
                 .rejectReason(rejectReason).build());
 
         orderDetailRepository.save(OrderDetail.builder().orderRequest(order).item(item).requestQuantity(qty)
@@ -191,17 +249,21 @@ public class DummyDataService {
     }
 
     private void deductDeposit(User emp, Long amount, Long orderId) {
-        DepositAccount acc = depositAccountRepository.findByUserIdForUpdate(emp.getId()).orElseThrow();
+        if (emp.getStore() == null) return;
+        DepositAccount acc = depositAccountRepository.findByStoreIdForUpdate(emp.getStore().getId()).orElseThrow();
         acc.deductBalance(amount);
         depositHistoryRepository.save(DepositHistory.builder().depositAccount(acc).type(TransactionType.PAYMENT)
-                .amount(amount).description("주문 결제").relatedOrderId(orderId).processedBy(emp.getId()).build());
+                .amount(amount).description("주문 결제").relatedOrderId(orderId).processedBy(emp.getId())
+                .balanceAfter(acc.getBalance()).build());
     }
 
     private void refundDeposit(User emp, Long amount, Long orderId, User admin) {
-        DepositAccount acc = depositAccountRepository.findByUserIdForUpdate(emp.getId()).orElseThrow();
+        if (emp.getStore() == null) return;
+        DepositAccount acc = depositAccountRepository.findByStoreIdForUpdate(emp.getStore().getId()).orElseThrow();
         acc.addBalance(amount);
         depositHistoryRepository.save(DepositHistory.builder().depositAccount(acc).type(TransactionType.REFUND)
-                .amount(amount).description("주문 반려 환불").relatedOrderId(orderId).processedBy(admin.getId()).build());
+                .amount(amount).description("주문 반려 환불").relatedOrderId(orderId).processedBy(admin != null ? admin.getId() : null)
+                .balanceAfter(acc.getBalance()).build());
     }
 
     private void deductStock(Item item, int qty, User admin, Long orderId) {

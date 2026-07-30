@@ -1,5 +1,6 @@
 package com.jstudy.inout.payment.entity;
 
+import com.jstudy.inout.common.auth.entity.Store;
 import com.jstudy.inout.common.auth.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,14 +17,19 @@ public class DepositAccount {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
+    private Store store;
+
     private Long balance = 0L;
 
     @Version 
     private Long version;
 
     @Builder
-    public DepositAccount(User user, Long balance) {
+    public DepositAccount(User user, Store store, Long balance) {
         this.user = user;
+        this.store = store;
         this.balance = balance != null ? balance : 0L;
     }
 

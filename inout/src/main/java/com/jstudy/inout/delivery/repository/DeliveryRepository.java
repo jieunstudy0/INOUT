@@ -33,4 +33,92 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     @Query(value = "SELECT d FROM Delivery d JOIN FETCH d.orderRequest",
            countQuery = "SELECT COUNT(d) FROM Delivery d")
     Page<Delivery> findAllWithOrder(Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT d
+                    FROM Delivery d
+                    JOIN FETCH d.orderRequest o
+                    JOIN FETCH o.requestUser u
+                    WHERE u.id = :userId
+                    """,
+            countQuery = """
+                    SELECT COUNT(d)
+                    FROM Delivery d
+                    JOIN d.orderRequest o
+                    JOIN o.requestUser u
+                    WHERE u.id = :userId
+                    """)
+    Page<Delivery> findByUserIdWithOrder(@Param("userId") Long userId, Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT d
+                    FROM Delivery d
+                    JOIN FETCH d.orderRequest o
+                    JOIN FETCH o.requestUser u
+                    JOIN FETCH u.store s
+                    WHERE s.id = :storeId
+                    """,
+            countQuery = """
+                    SELECT COUNT(d)
+                    FROM Delivery d
+                    JOIN d.orderRequest o
+                    JOIN o.requestUser u
+                    JOIN u.store s
+                    WHERE s.id = :storeId
+                    """)
+    Page<Delivery> findByStoreIdWithOrder(@Param("storeId") Long storeId, Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT d
+                    FROM Delivery d
+                    JOIN FETCH d.orderRequest o
+                    JOIN FETCH o.requestUser u
+                    WHERE u.id = :userId AND d.status = :status
+                    """,
+            countQuery = """
+                    SELECT COUNT(d)
+                    FROM Delivery d
+                    JOIN d.orderRequest o
+                    JOIN o.requestUser u
+                    WHERE u.id = :userId AND d.status = :status
+                    """)
+    Page<Delivery> findByUserIdAndStatusWithOrder(
+            @Param("userId") Long userId,
+            @Param("status") DeliveryStatus status,
+            Pageable pageable);
+
+    @Query(
+            value = """
+                    SELECT d
+                    FROM Delivery d
+                    JOIN FETCH d.orderRequest o
+                    JOIN FETCH o.requestUser u
+                    JOIN FETCH u.store s
+                    WHERE s.id = :storeId AND d.status = :status
+                    """,
+            countQuery = """
+                    SELECT COUNT(d)
+                    FROM Delivery d
+                    JOIN d.orderRequest o
+                    JOIN o.requestUser u
+                    JOIN u.store s
+                    WHERE s.id = :storeId AND d.status = :status
+                    """)
+    Page<Delivery> findByStoreIdAndStatusWithOrder(
+            @Param("storeId") Long storeId,
+            @Param("status") DeliveryStatus status,
+            Pageable pageable);
+
+    @Query("""
+            SELECT COUNT(d)
+            FROM Delivery d
+            JOIN d.orderRequest o
+            JOIN o.requestUser u
+            JOIN u.store s
+            WHERE s.id = :storeId AND d.status = :status
+            """)
+    long countByStoreIdAndStatus(@Param("storeId") Long storeId, @Param("status") DeliveryStatus status);
 }

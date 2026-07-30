@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getMyDepositHistory, chargeMyDeposit } from '../api/depositEmpApi';
+import { getMyDepositHistory } from '../api/depositEmpApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 
 const PAGE_SIZE = 10;
 
-
 function Pagination({ page, totalPages, onPageChange }) {
   if (totalPages <= 1) return null;
   const start = Math.max(0, page - 2);
-  const end   = Math.min(totalPages, start + 5);
+  const end = Math.min(totalPages, start + 5);
   const pages = [];
   for (let i = start; i < end; i++) pages.push(i);
   const btnBase = 'w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors';
@@ -32,9 +31,6 @@ export default function DepositEmpPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [isChargeModalOpen, setIsChargeModalOpen] = useState(false);
-  const [chargeAmount, setChargeAmount] = useState('');
-  const [isCharging, setIsCharging] = useState(false);
 
   const loadDeposit = useCallback((pg) => {
     setLoading(true);
@@ -51,41 +47,6 @@ export default function DepositEmpPage() {
   useEffect(() => {
     loadDeposit(page);
   }, [page, loadDeposit]);
-
-  const handleAmountChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setChargeAmount(value ? Number(value).toLocaleString() : '');
-  };
-
-  const handleAddAmount = (addValue) => {
-    const current = Number(chargeAmount.replace(/,/g, '')) || 0;
-    setChargeAmount((current + addValue).toLocaleString());
-  };
-  
-  const handleChargeSubmit = async () => {
-    const amount = Number(chargeAmount.replace(/,/g, ''));
-    if (!amount || amount <= 0) {
-      Toast.error('충전할 금액을 올바르게 입력해주세요.');
-      return;
-    }
-
-    setIsCharging(true);
-    try {
-      await chargeMyDeposit({ 
-        amount: amount, 
-        description: '가맹점 직접 충전' 
-      });
-      Toast.success(`${amount.toLocaleString()}원이 충전되었습니다.`);
-      setIsChargeModalOpen(false);
-      setChargeAmount('');
-      setPage(0); 
-      loadDeposit(0); 
-    } catch (err) {
-      Toast.error('충전에 실패했습니다.');
-    } finally {
-      setIsCharging(false);
-    }
-  };
 
   const getTypeBadge = (type) => {
     switch (type) {
@@ -108,47 +69,35 @@ export default function DepositEmpPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h2 className="text-xl font-bold text-slate-800">나의 예치금</h2>
-        <p className="text-sm text-slate-500 mt-0.5">매장의 예치금 잔액과 결제 및 충전 내역을 확인합니다.</p>
+        <h2 className="text-xl font-bold text-slate-800">매장 예치금</h2>
+        <p className="text-sm text-slate-500 mt-0.5">
+          매장 예치금 잔액과 결제·충전 이력을 확인합니다. 충전은 점주가 신청하고 본사가 승인한 뒤 반영됩니다.
+        </p>
       </div>
 
-      {/* ── 상단 예치금 잔액 요약 카드 ── */}
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl shadow-lg p-8 relative overflow-hidden">
         <div className="absolute -right-6 -top-6 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl" />
-        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-400 opacity-10 rounded-full blur-2xl" />
-        
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="text-slate-400 text-sm font-medium mb-1">사용 가능한 예치금 잔액</p>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-extrabold text-white tracking-tight">
-                {balance.toLocaleString()}
+                {Number(balance).toLocaleString('ko-KR')}
               </span>
               <span className="text-lg font-medium text-slate-300">원</span>
             </div>
+            <p className="text-xs text-slate-400 mt-3">
+              잔액이 부족하면 점주에게 충전 신청을 요청해 주세요. 발주 결제는 장바구니·발주 메뉴에서 진행합니다.
+            </p>
           </div>
-          
-          {/* 충전하기 버튼 추가 */}
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <button 
-              onClick={() => setIsChargeModalOpen(true)}
-              className="flex-1 sm:flex-none px-6 py-3.5 bg-white text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-100 transition-colors shadow-sm flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              충전하기
-            </button>
-            <div className="w-16 h-16 bg-white/10 rounded-full items-center justify-center backdrop-blur-sm border border-white/10 hidden sm:flex">
-              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
-              </svg>
-            </div>
+          <div className="w-16 h-16 bg-white/10 rounded-full items-center justify-center backdrop-blur-sm border border-white/10 hidden sm:flex">
+            <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
+            </svg>
           </div>
         </div>
       </div>
 
-      {/* ── 최근 거래 내역 테이블 ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <h3 className="font-bold text-slate-800">거래 내역</h3>
@@ -180,18 +129,12 @@ export default function DepositEmpPage() {
                     <td className="px-6 py-4 text-sm text-slate-500 whitespace-nowrap">
                       {new Date(item.createdAt).toLocaleString('ko-KR', {
                         year: 'numeric', month: '2-digit', day: '2-digit',
-                        hour: '2-digit', minute: '2-digit'
+                        hour: '2-digit', minute: '2-digit',
                       })}
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {getTypeBadge(item.type)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-800 font-medium">
-                      {item.description || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm">
-                      {getAmountDisplay(item.type, item.amount)}
-                    </td>
+                    <td className="px-6 py-4 text-center">{getTypeBadge(item.type)}</td>
+                    <td className="px-6 py-4 text-sm text-slate-800 font-medium">{item.description || '-'}</td>
+                    <td className="px-6 py-4 text-right text-sm">{getAmountDisplay(item.type, item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -203,56 +146,6 @@ export default function DepositEmpPage() {
       <div className="flex justify-center">
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
-
-      {/* ── 예치금 충전 모달 ── */}
-      {isChargeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-5 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800">예치금 충전</h3>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">충전 금액 (원)</label>
-                <input
-                  type="text"
-                  value={chargeAmount}
-                  onChange={handleAmountChange}
-                  placeholder="0"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-right text-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button onClick={() => handleAddAmount(10000)} className="py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100">+ 1만</button>
-                <button onClick={() => handleAddAmount(50000)} className="py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100">+ 5만</button>
-                <button onClick={() => handleAddAmount(100000)} className="py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100">+ 10만</button>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-              <button 
-                onClick={() => {
-                  setIsChargeModalOpen(false);
-                  setChargeAmount('');
-                }} 
-                className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors"
-                disabled={isCharging}
-              >
-                취소
-              </button>
-              <button 
-                onClick={handleChargeSubmit}
-                disabled={isCharging || !chargeAmount}
-                className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-              >
-                {isCharging ? <Spinner size="sm" /> : '충전하기'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

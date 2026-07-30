@@ -1,6 +1,5 @@
 package com.jstudy.inout.order.controller;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -97,8 +96,8 @@ class OrderEmpControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.header.message").value("발주 요청이 정상적으로 등록되었습니다."))
-                .andExpect(jsonPath("$.body").value(nullValue()));
+                .andExpect(jsonPath("$.header.message").value("주문서가 생성되었습니다."))
+                .andExpect(jsonPath("$.body").isNumber());
     }
 
     @Test
@@ -107,6 +106,6 @@ class OrderEmpControllerTest {
         mockMvc.perform(patch("/api/emp/orders/100/cancel"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.header.message").value("발주가 정상적으로 취소되었습니다."))
-                .andExpect(jsonPath("$.body").value(nullValue()));
+                .andExpect(jsonPath("$.body").doesNotExist());
     }
 }

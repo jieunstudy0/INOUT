@@ -74,13 +74,17 @@ public class SecurityConfig {
                       
                         .requestMatchers("/admin/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/owner/**").hasRole("OWNER")
                         .requestMatchers(
                                 "/api/emp/**",
                                 "/stock/emp/**",
                                 "/order/emp/**"
                         ).hasAnyRole("EMPLOYEE", "ADMIN")
                         .requestMatchers("/api/inquiry/**", "/inquiry/**").hasAnyRole("EMPLOYEE", "ADMIN")
-                        .requestMatchers("/api/payment/**", "/api/deposit/**").hasAnyRole("EMPLOYEE", "ADMIN")
+                        // 예치금 즉시 충전·환불은 ADMIN만 (점주 충전은 /api/owner/charges)
+                        .requestMatchers(HttpMethod.POST, "/api/deposit/**").hasRole("ADMIN")
+                        .requestMatchers("/api/payment/**").hasAnyRole("EMPLOYEE", "ADMIN")
+                        .requestMatchers("/api/emp/deposit").hasAnyRole("EMPLOYEE", "ADMIN")
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .anyRequest().authenticated()
                 )

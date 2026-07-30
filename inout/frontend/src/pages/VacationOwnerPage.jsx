@@ -165,7 +165,7 @@ function VacationTable({ leaves, processingId, onApprove, onHold, onOpenReject }
   );
 }
 
-export default function VacationAdmPage() {
+export default function VacationOwnerPage() {
   const [leaves, setLeaves]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [page, setPage]             = useState(0);

@@ -1,0 +1,5 @@
+# 로컬 개발 프로필 (spring.profiles.active=local)
+# Gemini 등 AI 스케줄러는 기본 OFF — 필요 시 true 로 켠다.
+ai:
+  scheduler:
+    enabled: false

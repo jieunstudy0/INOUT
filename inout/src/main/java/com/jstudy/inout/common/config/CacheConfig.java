@@ -48,12 +48,20 @@ public class CacheConfig implements CachingConfigurer {
         cacheConfigs.put(STORE_LIST,        buildDefaultConfig(Duration.ofHours(1)));
         cacheConfigs.put(MAIL_TEMPLATE,     buildDefaultConfig(Duration.ofHours(1)));
 
-        return RedisCacheManager.builder(redisConnectionFactory)
+        CacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
                 .withInitialCacheConfigurations(cacheConfigs)
                 .build();
+
+        // Redis 접속 불가 시에도 get/put/evict가 예외를 던지지 않도록 래핑
+        return new ResilientCacheManager(redisCacheManager);
     }
 
+    /**
+     * Redis 미기동·타임아웃 등 캐시 장애를 API 500으로 전파하지 않는다.
+     * {@link CachingConfigurer}가 캐시 어드바이저에 이 핸들러를 연결한다.
+     * (이 메서드에는 {@code @Bean}을 붙이지 않는다 — 이중 등록으로 충돌할 수 있음)
+     */
     @Override
     public CacheErrorHandler errorHandler() {
         return new LoggingCacheErrorHandler();

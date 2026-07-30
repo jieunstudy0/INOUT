@@ -2,6 +2,7 @@ package com.jstudy.inout.common.auth.service;
 
 import org.springframework.data.domain.Pageable;
 import com.jstudy.inout.common.auth.dto.AdminUserDto;
+import com.jstudy.inout.common.auth.dto.OwnerUserDto;
 import com.jstudy.inout.common.auth.dto.UserInput;
 import com.jstudy.inout.common.auth.dto.UserPasswordResetInput;
 import com.jstudy.inout.common.auth.dto.UserProfileResponse;
@@ -36,4 +37,14 @@ public interface AuthService {
     AdminUserDto.ListResponse getAdminUserList(Long storeId, String status, String keyword, Pageable pageable);
     
     void sendPasswordResetMailByAdmin(Long userId);
+
+    OwnerUserDto.ListResponse getOwnerUserList(Long ownerUserId, String status, String keyword, Pageable pageable);
+
+    ServiceResult createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request);
+
+    void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request);
+
+    void unlockEmployeeByOwner(Long ownerUserId, Long employeeUserId);
+
+    void sendPasswordResetMailByOwner(Long ownerUserId, Long employeeUserId);
 }

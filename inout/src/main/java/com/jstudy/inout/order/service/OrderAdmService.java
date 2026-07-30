@@ -85,6 +85,8 @@ public class OrderAdmService {
                         .priceSnapshot(d.getItemPriceSnapshot())
                         .subTotal(d.getItemPriceSnapshot() != null ? d.getItemPriceSnapshot() * d.getRequestQuantity() : 0L)
                         .status(d.getStatus())
+                        .isAiSuggested(d.isAiSuggested())
+                        .aiReason(d.getAiReason())
                         .build())
                 .collect(Collectors.toList());
 
@@ -117,12 +119,21 @@ public class OrderAdmService {
         for (ItemStatusUpdate update : request.items()) {
             OrderDetail detail = orderDetailRepository
                     .findByOrderDetailIdAndOrderRequest_Id(update.orderDetailId(), orderId)
-                    .orElseThrow(() -> new InoutException("상세 항목을 찾을 수 없습니다.", 404, "ORDER_DETAIL_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException("해당 주문에 속한 발주 상세 항목을 찾을 수 없습니다.", 404, "ORDER_DETAIL_NOT_FOUND"));
 
             OrderDetailStatus current = detail.getStatus();
             OrderDetailStatus target = update.status();
 
             if (current == target) continue;
+
+            if ((current == OrderDetailStatus.APPROVED || current == OrderDetailStatus.REJECTED)
+                    && target != current) {
+                throw new InoutException("이미 처리된 발주 상세 항목은 상태를 변경할 수 없습니다.", 400, "ALREADY_PROCESSED_DETAIL");
+            }
+
+            if (target == OrderDetailStatus.WAITING && current != OrderDetailStatus.WAITING) {
+                throw new InoutException("대기 상태로 되돌릴 수 없습니다.", 400, "WAITING_ROLLBACK_FORBIDDEN");
+            }
 
             if (current == OrderDetailStatus.APPROVED) {
                 restoreItemStock(detail, adminUser, orderId);

@@ -6,11 +6,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jstudy.inout.common.auth.entity.User;
+import com.jstudy.inout.common.config.CacheConfig;
 import com.jstudy.inout.dashboard.dto.DashboardStatisticsResponse;
 import com.jstudy.inout.dashboard.dto.DashboardSummaryResponse;
 import com.jstudy.inout.dashboard.dto.DashboardSummaryResponse.ActivityItem;
@@ -25,7 +27,9 @@ import com.jstudy.inout.stock.repository.ItemRepository;
 import com.jstudy.inout.stock.repository.StockReceivingHistoryRepository;
 import com.jstudy.inout.stock.repository.StockUsageHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
@@ -36,59 +40,39 @@ public class DashboardService {
     private final StockReceivingHistoryRepository receivingRepository;
     private final StockUsageHistoryRepository usageRepository;
     private final DeliveryRepository deliveryRepository;
+    private final DashboardAggregateService dashboardAggregateService;
 
     private static final DateTimeFormatter FEED_FMT = DateTimeFormatter.ofPattern("MM-dd HH:mm");
 
     @Transactional(readOnly = true)
     public DashboardSummaryResponse getDashboardSummary(User user) {
-
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-
-        long normalStockCount      = itemRepository.countNormalStockItems();
-        long lowStockCount         = itemRepository.countLowStockItems();
-        long outOfStockCount       = itemRepository.countOutOfStockItems();
-        long totalActiveStockCount = itemRepository.countActiveItems();
-        long todayNewOrderCount  = orderRequestRepository.countTodayOrders(startOfDay);
-        long pendingOrderCount   = orderRequestRepository.countByStatus(OrderStatus.REQUESTED);
-        long completedOrderCount = orderRequestRepository.countByStatus(OrderStatus.COMPLETED);
-        long rejectedOrderCount  = orderRequestRepository.countByStatus(OrderStatus.REJECTED);
-        long totalOrderCount     = orderRequestRepository.count();
-        Long rawOrderAmount = orderRequestRepository.sumTodayOrderAmount(
-                startOfDay,
-                List.of(OrderStatus.PAID, OrderStatus.PARTIAL, OrderStatus.COMPLETED));
-        long todayOrderAmount = rawOrderAmount != null ? rawOrderAmount : 0L;
-        long pendingDeliveryCount = deliveryRepository.countByStatus(DeliveryStatus.READY);
-        long shippingDeliveryCount = deliveryRepository.countByStatus(DeliveryStatus.SHIPPING);
-        long completedDeliveryCount = deliveryRepository.countByStatus(DeliveryStatus.COMPLETED);
-        
-        int todayInCount  = receivingRepository.countByProcessDateAfter(startOfDay);
-        int todayOutCount = usageRepository.countByProcessDateAfter(startOfDay);
-        long unreadInquiryCount = inquiryRepository.countByIsReadFalse();
-
-        List<ActivityItem> activities = buildRecentActivities();
+        DashboardSummaryResponse aggregate = dashboardAggregateService.getCachedAggregateSummary();
 
         String storeName = (user.getStore() != null) ? user.getStore().getName() : "지점 미지정";
         
         return DashboardSummaryResponse.builder()
                 .userName(user.getName())
                 .storeName(storeName)
-                .todayNewOrderCount(todayNewOrderCount)
-                .lowStockCount(lowStockCount)
-                .todayOrderAmount(todayOrderAmount)
-                .pendingDeliveryCount(pendingDeliveryCount)
-                .shippingDeliveryCount(shippingDeliveryCount)    
-                .completedDeliveryCount(completedDeliveryCount)   
-                .normalStockCount(normalStockCount)
-                .outOfStockCount(outOfStockCount)
-                .totalActiveStockCount(totalActiveStockCount)
-                .pendingOrderCount(pendingOrderCount)
-                .completedOrderCount(completedOrderCount)
-                .rejectedOrderCount(rejectedOrderCount)
-                .totalOrderCount(totalOrderCount)
-                .todayInCount(todayInCount)
-                .todayOutCount(todayOutCount)
-                .unreadInquiryCount(unreadInquiryCount)
-                .recentActivities(activities)
+                .todayNewOrderCount(aggregate.getTodayNewOrderCount())
+                .lowStockCount(aggregate.getLowStockCount())
+                .todayOrderAmount(aggregate.getTodayOrderAmount())
+                .pendingDeliveryCount(aggregate.getPendingDeliveryCount())
+                .shippingDeliveryCount(aggregate.getShippingDeliveryCount())
+                .completedDeliveryCount(aggregate.getCompletedDeliveryCount())
+                .normalStockCount(aggregate.getNormalStockCount())
+                .outOfStockCount(aggregate.getOutOfStockCount())
+                .totalActiveStockCount(aggregate.getTotalActiveStockCount())
+                .pendingOrderCount(aggregate.getPendingOrderCount())
+                .completedOrderCount(aggregate.getCompletedOrderCount())
+                .rejectedOrderCount(aggregate.getRejectedOrderCount())
+                .totalOrderCount(aggregate.getTotalOrderCount())
+                .todayInCount(aggregate.getTodayInCount())
+                .todayOutCount(aggregate.getTodayOutCount())
+                .unreadInquiryCount(aggregate.getUnreadInquiryCount())
+                .waitingCsInquiryCount(aggregate.getWaitingCsInquiryCount())
+                .aiDraftCompletedCount(aggregate.getAiDraftCompletedCount())
+                .aiSuggestedPendingOrderCount(aggregate.getAiSuggestedPendingOrderCount())
+                .recentActivities(aggregate.getRecentActivities())
                 .build();
     }
 
@@ -178,5 +162,16 @@ public class DashboardService {
                 .storeFrequencies(storeFrequencies)
                 .topConsumedItems(topConsumedItems)
                 .build();
+    }
+
+    @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    public void evictDashboardSummary() {
+        try {
+            dashboardAggregateService.evictCachedAggregateSummary();
+        } catch (RuntimeException ex) {
+            // CacheErrorHandler / ResilientCacheManager가 대부분의 경우를 삼키지만,
+            // 프록시·직접 호출 경로에서의 예외가 호출부(AI 저장 등)로 전파되지 않게 이중 방어한다.
+            log.warn("[Dashboard] 집계 캐시 무효화 실패(무시). cause={}", ex.getMessage());
+        }
     }
 }

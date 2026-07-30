@@ -16,17 +16,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 
 import com.jstudy.inout.common.config.JpaAuditConfig;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.inquiry.entity.Inquiry;
-import com.jstudy.inout.inquiry.testsupport.InquiryJpaTestApplication;
 
 @DataJpaTest
 @ActiveProfiles("jpa-slice")
-@ContextConfiguration(classes = InquiryJpaTestApplication.class)
 @Import(JpaAuditConfig.class)
+@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class InquiryRepositoryTest {
 
     @Autowired private InquiryRepository inquiryRepository;
@@ -40,6 +39,33 @@ class InquiryRepositoryTest {
 
     @BeforeEach
     void setUp() {
+        em.getEntityManager().createNativeQuery("""
+                CREATE TABLE IF NOT EXISTS "inquiries" (
+                    "inquiry_id" BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    "title" VARCHAR(200) NOT NULL,
+                    "content" CLOB NOT NULL,
+                    "user_id" BIGINT NOT NULL,
+                    "is_read" BOOLEAN NOT NULL,
+                    "original_file_name" VARCHAR(255),
+                    "saved_file_path" VARCHAR(255),
+                    "ai_category" VARCHAR(50),
+                    "ai_draft_answer" CLOB,
+                    "created_at" TIMESTAMP,
+                    "updated_at" TIMESTAMP
+                )
+                """).executeUpdate();
+        em.getEntityManager().createNativeQuery("""
+                CREATE TABLE IF NOT EXISTS "inquiry_comments" (
+                    "comment_id" BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    "content" CLOB NOT NULL,
+                    "inquiry_id" BIGINT NOT NULL,
+                    "user_id" BIGINT NOT NULL,
+                    "parent_id" BIGINT,
+                    "created_at" TIMESTAMP,
+                    "updated_at" TIMESTAMP
+                )
+                """).executeUpdate();
+
         testUser1 = User.builder()
                 .email("user1@test.com")
                 .password("pwd1")

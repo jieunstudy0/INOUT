@@ -16,4 +16,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     Optional<OrderDetail> findByOrderDetailIdAndOrderRequest_Id(
             @Param("detailId") Long orderDetailId,
             @Param("orderId") Long orderId);
+
+    long countByIsAiSuggestedTrueAndStatus(com.jstudy.inout.order.entity.OrderDetailStatus status);
 }

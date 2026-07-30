@@ -17,6 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,6 +26,7 @@ import lombok.AccessLevel;
 
 @Entity
 @Getter
+@Table(name = "inquiries")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 @AllArgsConstructor
@@ -56,11 +58,22 @@ public class Inquiry extends BaseTimeEntity {
     @Column(length = 255)
     private String savedFilePath;
 
+    @Column(length = 50)
+    private String aiCategory;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiDraftAnswer;
+
     @OneToMany(mappedBy = "inquiry", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<InquiryComment> comments = new ArrayList<>();
 
     public void markAsRead() {
         this.isRead = true;
+    }
+
+    public void updateAiAnalysis(String category, String draftAnswer) {
+        this.aiCategory = category;
+        this.aiDraftAnswer = draftAnswer;
     }
 }

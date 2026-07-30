@@ -2,13 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resolveHomeFromToken, getPrimaryRole, homePathByRole } from '../utils/roleUtils';
 
+/**
+ * Spring OAuth2 성공 핸들러가 리다이렉트하는 콜백.
+ * 쿼리: accessToken (필수), role (선택)
+ * refreshToken 은 HttpOnly 쿠키로 전달되므로 localStorage 에 넣지 않음.
+ */
 export default function OAuth2CallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken');
+    const accessToken =
+      searchParams.get('accessToken')
+      || searchParams.get('token')
+      || searchParams.get('access_token');
     const role = searchParams.get('role') || '';
 
     if (!accessToken) {
@@ -21,7 +29,7 @@ export default function OAuth2CallbackPage() {
     const path = resolveHomeFromToken(accessToken, role)
       || homePathByRole(getPrimaryRole(role));
 
-    navigate(path, { replace: true });
+    navigate(path || '/emp/dashboard', { replace: true });
   }, [navigate, searchParams]);
 
   if (error) {

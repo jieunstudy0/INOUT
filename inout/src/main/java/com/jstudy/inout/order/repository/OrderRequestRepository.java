@@ -64,6 +64,24 @@ public interface OrderRequestRepository extends JpaRepository<OrderRequest, Long
     @Query("SELECT COUNT(o) FROM OrderRequest o WHERE o.requestDate >= :startOfDay")
     long countTodayOrders(@Param("startOfDay") java.time.LocalDateTime startOfDay);
 
+    @Query("SELECT COUNT(o) FROM OrderRequest o JOIN o.requestUser u WHERE u.store.id = :storeId AND o.requestDate >= :startOfDay")
+    long countTodayOrdersByStoreId(@Param("storeId") Long storeId, @Param("startOfDay") java.time.LocalDateTime startOfDay);
+
+    @Query("SELECT COUNT(o) FROM OrderRequest o JOIN o.requestUser u WHERE u.store.id = :storeId AND o.status = :status")
+    long countByStoreIdAndStatus(@Param("storeId") Long storeId, @Param("status") OrderStatus status);
+
+    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.item", "requestUser", "requestUser.store"})
+    @Query("SELECT o FROM OrderRequest o JOIN o.requestUser u WHERE u.store.id = :storeId ORDER BY o.requestDate DESC")
+    org.springframework.data.domain.Page<OrderRequest> findByStoreIdOrderByRequestDateDesc(
+            @Param("storeId") Long storeId, org.springframework.data.domain.Pageable pageable);
+
+    @EntityGraph(attributePaths = {"orderDetails", "orderDetails.item", "requestUser", "requestUser.store"})
+    @Query("SELECT o FROM OrderRequest o JOIN o.requestUser u WHERE u.store.id = :storeId AND o.status = :status ORDER BY o.requestDate DESC")
+    org.springframework.data.domain.Page<OrderRequest> findByStoreIdAndStatusOrderByRequestDateDesc(
+            @Param("storeId") Long storeId,
+            @Param("status") OrderStatus status,
+            org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM OrderRequest o WHERE o.requestDate >= :startOfDay AND o.status IN :statuses")
     Long sumTodayOrderAmount(@Param("startOfDay") java.time.LocalDateTime startOfDay,
                              @Param("statuses") java.util.List<com.jstudy.inout.order.entity.OrderStatus> statuses);
@@ -71,6 +89,10 @@ public interface OrderRequestRepository extends JpaRepository<OrderRequest, Long
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"requestUser", "requestUser.store"})
     @Query("SELECT o FROM OrderRequest o ORDER BY o.requestDate DESC")
     java.util.List<OrderRequest> findRecentOrders(org.springframework.data.domain.Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"requestUser", "requestUser.store"})
+    @Query("SELECT o FROM OrderRequest o WHERE o.status = :status ORDER BY o.requestDate DESC")
+    java.util.List<OrderRequest> findRecentOrdersByStatus(@Param("status") OrderStatus status, org.springframework.data.domain.Pageable pageable);
         
     @Query("SELECT o FROM OrderRequest o JOIN FETCH o.orderDetails WHERE o.id = :id")
     Optional<OrderRequest> findByIdWithDetails(@Param("id") Long id);

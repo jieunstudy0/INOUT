@@ -37,7 +37,7 @@ export default function FindAccountPage() {
       const user = await findUserId(formData.name, formData.phone);
       setFoundEmail(user.email);
     } catch (err) {
-      setError(err.response?.data?.message || '일치하는 계정 정보가 없습니다.');
+      setError(err.message || '일치하는 계정 정보가 없습니다.');
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function FindAccountPage() {
       await resetPasswordRequest(formData.email, formData.name, formData.phone);
       setPwResetSent(true);
     } catch (err) {
-      setError(err.response?.data?.message || '입력하신 정보와 일치하는 계정이 없습니다.');
+      setError(err.message || '입력하신 정보와 일치하는 계정이 없습니다.');
     } finally {
       setLoading(false);
     }

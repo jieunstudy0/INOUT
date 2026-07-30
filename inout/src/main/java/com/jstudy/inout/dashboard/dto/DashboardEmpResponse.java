@@ -15,6 +15,8 @@ public class DashboardEmpResponse {
     private String userName;
     private String storeName;
     private long depositBalance;
+    /** 서버 기준 잔여 연차 일수 (기본 부여 − 승인 사용분) */
+    private int remainingLeaveDays;
     private int cartItemCount;
 
     private int inProgressOrderCount;

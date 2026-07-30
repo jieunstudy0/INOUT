@@ -1,5 +1,6 @@
 package com.jstudy.inout.ai.service;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "ai.scheduler.enabled", havingValue = "true", matchIfMissing = false)
 public class AiAutoOrderScheduler {
 
     private final AiAutoOrderService aiAutoOrderService;
@@ -19,7 +21,7 @@ public class AiAutoOrderScheduler {
     public void run() {
         log.info("[AI 자동 발주 스케줄러] 실행 시작");
         try {
-            aiAutoOrderService.createAutoOrderDraft(); 
+            aiAutoOrderService.createAutoOrderDraft();
         } catch (InoutException e) {
             log.warn("[AI 자동 발주 스케줄러] 처리 중단: {} ({})",
                     e.getMessage(), e.getResultCode());

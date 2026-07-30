@@ -103,7 +103,12 @@ public class AiCsService {
         }
 
         if (processedCount > 0) {
-            dashboardService.evictDashboardSummary();
+            try {
+                dashboardService.evictDashboardSummary();
+            } catch (RuntimeException ex) {
+                log.warn("[AI CS 자동화] 대시보드 캐시 무효화 실패(무시). Redis 미가용해도 CS 초안은 유지됩니다. cause={}",
+                        ex.getMessage());
+            }
         }
         log.info("[AI CS 자동화] 총 {}건 중 {}건 분석 완료", targets.size(), processedCount);
         return processedCount;

@@ -98,9 +98,21 @@ public class AiAutoOrderPersistenceService {
         }
 
         orderRequestRepository.save(order);
-        dashboardService.evictDashboardSummary();
+        safeEvictDashboardSummary();
         log.info("[AI 자동 발주] 통합 발주 초안 1건 저장 완료 (품목 {}개, 합계 {}원)",
                 validRecs.size(), String.format("%,d", totalPrice));
         return 1;
+    }
+
+    /**
+     * Redis 장애 시 캐시 무효화 실패가 발주 초안 저장 트랜잭션을 롤백하지 않도록 격리한다.
+     */
+    private void safeEvictDashboardSummary() {
+        try {
+            dashboardService.evictDashboardSummary();
+        } catch (RuntimeException ex) {
+            log.warn("[AI 자동 발주] 대시보드 캐시 무효화 실패(무시). Redis 미가용해도 발주 초안은 유지됩니다. cause={}",
+                    ex.getMessage());
+        }
     }
 }

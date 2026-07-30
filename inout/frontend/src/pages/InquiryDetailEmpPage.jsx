@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getInquiryDetail, deleteInquiry, createComment, deleteComment, updateComment } from '../api/inquiryApi';
+import { getInquiryDetail, deleteInquiry, createComment, deleteComment, updateComment, downloadInquiryFile } from '../api/inquiryApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 
@@ -20,15 +20,16 @@ function parseToken() {
 export default function InquiryDetailEmpPage() {
   const { inquiryId } = useParams();
   const navigate = useNavigate();
-  
+
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+  const [downloading, setDownloading] = useState(false);
+
   const [commentContent, setCommentContent] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editContent, setEditContent] = useState('');
-  
+
   const currentUser = parseToken();
 
   const checkIsMine = (comment) => {
@@ -62,24 +63,58 @@ export default function InquiryDetailEmpPage() {
     } catch {}
   };
 
+  const handleFileDownload = async () => {
+    const fileName = detail?.originalFileName || detail?.fileName || 'attachment';
+    setDownloading(true);
+    try {
+      const response = await downloadInquiryFile(inquiryId);
+      const blob = response.data;
+
+      if (blob?.type?.includes('application/json')) {
+        const text = await blob.text();
+        try {
+          const json = JSON.parse(text);
+          Toast.error(json?.header?.message || json?.message || '파일 다운로드에 실패했습니다.');
+        } catch {
+          Toast.error('파일 다운로드에 실패했습니다.');
+        }
+        return;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      Toast.success('파일 다운로드를 시작했습니다.');
+    } catch {
+      /* interceptor toast */
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentContent.trim()) return;
     try {
-      await createComment(inquiryId, { 
+      await createComment(inquiryId, {
         content: commentContent.trim(),
-        parentId: replyTo ? replyTo.id : null 
+        parentId: replyTo ? replyTo.id : null,
       });
       setCommentContent('');
-      setReplyTo(null); 
-      loadDetail(); 
+      setReplyTo(null);
+      loadDetail();
     } catch {}
   };
 
   const handleEditStart = (comment) => {
     setEditingCommentId(comment.id);
     setEditContent(comment.content);
-    setReplyTo(null); 
+    setReplyTo(null);
   };
 
   const handleEditCancel = () => {
@@ -111,10 +146,15 @@ export default function InquiryDetailEmpPage() {
   if (!detail) return null;
 
   const safeComments = detail.comments || [];
-  const parentComments = safeComments.filter(c => !c.parentId);
-  const childComments = safeComments.filter(c => c.parentId);
+  const parentComments = safeComments.filter((c) => !c.parentId);
+  const childComments = safeComments.filter((c) => c.parentId);
 
   const isDeletedComment = (comment) => comment.content === '삭제된 댓글입니다.' || comment.isDeleted;
+
+  const fileName = detail.originalFileName || detail.fileName || detail.attachmentName;
+  const hasAttachment = Boolean(
+    fileName && (detail.savedFilePath || detail.filePath || detail.fileUrl || detail.originalFileName),
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -124,14 +164,14 @@ export default function InquiryDetailEmpPage() {
           <p className="text-sm text-slate-500 mt-1">문의하신 내용과 본사의 답변을 확인합니다.</p>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={() => navigate('/emp/inquiries')} 
+          <button
+            onClick={() => navigate('/emp/inquiries')}
             className="px-4 py-2 bg-white border border-slate-300 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50"
           >
             목록으로
           </button>
-          <button 
-            onClick={handleDeleteInquiry} 
+          <button
+            onClick={handleDeleteInquiry}
             className="px-4 py-2 bg-rose-50 text-rose-600 text-sm font-bold rounded-xl hover:bg-rose-100"
           >
             글 삭제
@@ -149,16 +189,38 @@ export default function InquiryDetailEmpPage() {
           </div>
         </div>
 
-        <div className="px-8 py-10 min-h-[200px]">
+        <div className="px-8 py-10 min-h-[180px]">
           <p className="text-base text-slate-700 whitespace-pre-wrap leading-relaxed">{detail.content}</p>
         </div>
+
+        {hasAttachment && (
+          <div className="px-8 py-4 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-lg shrink-0">
+                📎
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800 truncate">{fileName}</p>
+                <p className="text-xs text-slate-400">첨부파일을 다운로드할 수 있습니다.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleFileDownload}
+              disabled={downloading}
+              className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap"
+            >
+              {downloading ? '다운로드 중…' : '다운로드'}
+            </button>
+          </div>
+        )}
 
         <div className="px-8 py-6 bg-slate-50/80 border-t border-slate-100">
           <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
             <span>답변 및 댓글</span>
             <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">{safeComments.length}</span>
           </h4>
-          
+
           <div className="space-y-5 mb-8">
             {parentComments.length === 0 ? (
               <p className="text-sm text-slate-500 py-4 text-center">아직 등록된 답변이 없습니다.</p>
@@ -177,11 +239,11 @@ export default function InquiryDetailEmpPage() {
                           </span>
                           <span className="text-xs text-slate-400">{new Date(comment.createdAt || Date.now()).toLocaleString('ko-KR')}</span>
                         </div>
-                        
+
                         {!isDeletedComment(comment) && (
                           <div className="flex items-center gap-3">
-                            <button 
-                              onClick={() => { setReplyTo({ id: comment.id, name: comment.authorName }); handleEditCancel(); }} 
+                            <button
+                              onClick={() => { setReplyTo({ id: comment.id, name: comment.authorName }); handleEditCancel(); }}
                               className="text-xs text-slate-500 hover:text-slate-800 font-medium"
                             >
                               답글
@@ -217,7 +279,7 @@ export default function InquiryDetailEmpPage() {
                     </div>
 
                     {childComments
-                      .filter(reply => reply.parentId === comment.id)
+                      .filter((reply) => reply.parentId === comment.id)
                       .map((reply, childIndex) => {
                         const childKey = reply.id ? `child-${reply.id}` : `child-idx-${childIndex}`;
                         const isChildMine = checkIsMine(reply);
@@ -233,7 +295,7 @@ export default function InquiryDetailEmpPage() {
                                   </span>
                                   <span className="text-xs text-slate-400">{new Date(reply.createdAt || Date.now()).toLocaleString('ko-KR')}</span>
                                 </div>
-                                
+
                                 {!isDeletedComment(reply) && isChildMine && (
                                   <div className="flex items-center gap-3">
                                     <button onClick={() => handleEditStart(reply)} className="text-xs text-indigo-500 hover:text-indigo-700 font-medium">수정</button>
@@ -281,12 +343,12 @@ export default function InquiryDetailEmpPage() {
             )}
 
             <form onSubmit={handleCommentSubmit} className="flex gap-2">
-              <input 
-                type="text" 
-                value={commentContent} 
-                onChange={(e) => setCommentContent(e.target.value)} 
-                placeholder={replyTo ? "답글 내용을 입력하세요..." : "답변이나 추가 문의사항을 남겨주세요..."}
-                className="flex-1 px-5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500" 
+              <input
+                type="text"
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                placeholder={replyTo ? '답글 내용을 입력하세요...' : '답변이나 추가 문의사항을 남겨주세요...'}
+                className="flex-1 px-5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
               />
               <button type="submit" disabled={!commentContent.trim()} className="px-6 py-3 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-900 disabled:opacity-50 transition-colors whitespace-nowrap">
                 등록

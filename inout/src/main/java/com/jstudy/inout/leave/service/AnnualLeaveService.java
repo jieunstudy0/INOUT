@@ -6,7 +6,10 @@ import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.leave.dto.AnnualLeaveDto;
 import com.jstudy.inout.leave.entity.AnnualLeave;
 import com.jstudy.inout.leave.entity.LeaveStatus;
+import com.jstudy.inout.leave.entity.LeaveType;
 import com.jstudy.inout.leave.repository.AnnualLeaveRepository;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +21,9 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AnnualLeaveService {
+
+    /** 연간 기본 부여 일수 (승인 사용분 차감 기준) */
+    public static final int DEFAULT_ANNUAL_LEAVE_DAYS = 15;
 
     private final AnnualLeaveRepository annualLeaveRepository;
     private final UserRepository userRepository;
@@ -125,6 +131,24 @@ public class AnnualLeaveService {
         }
 
         return AnnualLeaveDto.toDetail(leave);
+    }
+
+    /**
+     * 잔여 연차 = 기본 부여(15일) − 승인된 사용 일수.
+     * 반차는 0.5일로 계산하며, 결과는 반올림한 정수로 반환한다.
+     */
+    public int getRemainingLeaveDays(Long userId) {
+        List<AnnualLeave> approved = annualLeaveRepository.findByUserIdAndStatus(userId, LeaveStatus.APPROVED);
+        double used = approved.stream().mapToDouble(this::toUsedDays).sum();
+        return Math.max(0, (int) Math.round(DEFAULT_ANNUAL_LEAVE_DAYS - used));
+    }
+
+    private double toUsedDays(AnnualLeave leave) {
+        if (leave.getType() == LeaveType.HALF_DAY) {
+            return 0.5d;
+        }
+        long days = ChronoUnit.DAYS.between(leave.getStartDate(), leave.getEndDate()) + 1;
+        return Math.max(days, 0);
     }
 
     private void assertSameStore(Long ownerStoreId, User targetUser) {

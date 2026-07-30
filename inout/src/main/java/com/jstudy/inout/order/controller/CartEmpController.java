@@ -72,7 +72,7 @@ public class CartEmpController {
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> updateItemQuantity(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @Parameter(description = "수량을 변경할 장바구니 항목 ID") @PathVariable Long cartDetailId,
+            @Parameter(description = "수량을 변경할 장바구니 항목 ID") @PathVariable("cartDetailId") Long cartDetailId,
             @Valid @RequestBody CartQuantityUpdateRequest request
     ) {
         cartEmpService.updateQuantity(principal.getUser().getId(), cartDetailId, request.getQuantity());
@@ -112,7 +112,7 @@ public class CartEmpController {
     @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     public ResponseEntity<?> reOrder(
             @AuthenticationPrincipal CustomUserDetails principal,
-            @Parameter(description = "재주문 기준 발주 ID") @PathVariable Long orderId
+            @Parameter(description = "재주문 기준 발주 ID") @PathVariable("orderId") Long orderId
     ) {
         cartEmpService.reOrder(principal.getUser().getId(), orderId);
         return ResponseResult.successWithMessage("과거 주문 상품이 장바구니에 담겼습니다.");

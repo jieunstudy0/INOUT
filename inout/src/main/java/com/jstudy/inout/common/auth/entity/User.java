@@ -41,6 +41,12 @@ public class User extends BaseTimeEntity {
 
     @Column(nullable = false)
     private LocalDate birthday;
+
+    @Column(length = 30)
+    private String provider;
+
+    @Column(length = 100)
+    private String providerId;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -131,6 +137,11 @@ public class User extends BaseTimeEntity {
         } else {
             this.deleted = false;
         }
+    }
+
+    public void updateSocialProfile(String provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
     }
     
 }

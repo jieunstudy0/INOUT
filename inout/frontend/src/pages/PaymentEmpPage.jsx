@@ -6,6 +6,7 @@ import Spinner from '../components/common/Spinner';
 import { payWithDeposit } from '../api/paymentApi';
 import { getMyDepositHistory } from '../api/depositEmpApi';
 import client, { unwrap } from '../api/apiClient';
+import { dispatchHeaderRefresh } from '../utils/headerSync';
 
 export default function PaymentEmpPage() {
   const { orderId } = useParams();
@@ -39,7 +40,7 @@ export default function PaymentEmpPage() {
 
   const handlePayment = async () => {
     if (balance < order.totalPrice) {
-      return Toast.warning('예치금 잔액이 부족합니다. 충전 후 이용해주세요.');
+      return Toast.warning('예치금 잔액이 부족합니다. 점주에게 충전 신청을 요청해 주세요.');
     }
 
     if (!window.confirm('정말 예치금으로 결제하시겠습니까?')) return;
@@ -54,7 +55,7 @@ export default function PaymentEmpPage() {
           <p className="text-xs mt-1 opacity-80">남은 예치금: {response.remainingBalance?.toLocaleString()}원</p>
         </div>
       );
-      
+      dispatchHeaderRefresh({ role: 'EMPLOYEE' });
       navigate('/emp/orders', { replace: true });
     } catch (err) {
     } finally {

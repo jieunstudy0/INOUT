@@ -3,6 +3,7 @@ package com.jstudy.inout.leave.repository;
 import com.jstudy.inout.leave.entity.AnnualLeave;
 import com.jstudy.inout.leave.entity.LeaveStatus;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,4 +51,9 @@ public interface AnnualLeaveRepository extends JpaRepository<AnnualLeave, Long> 
 
     @Query("SELECT COUNT(a) FROM AnnualLeave a WHERE a.user.store.id = :storeId AND a.status = :status")
     long countByStoreIdAndStatus(@Param("storeId") Long storeId, @Param("status") LeaveStatus status);
+
+    @Query("SELECT a FROM AnnualLeave a WHERE a.user.id = :userId AND a.status = :status")
+    List<AnnualLeave> findByUserIdAndStatus(
+            @Param("userId") Long userId,
+            @Param("status") LeaveStatus status);
 }

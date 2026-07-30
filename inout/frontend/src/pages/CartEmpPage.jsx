@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import client, { unwrap } from '../api/apiClient';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
+import AiSmartOrderPanel from '../components/dashboard/AiSmartOrderPanel';
 
 export default function CartEmpPage() {
   const [cartData, setCartData]     = useState({ items: [], totalQuantity: 0, totalPrice: 0 });
@@ -93,6 +94,8 @@ const handleOrder = async () => {
         <h2 className="text-xl font-bold text-slate-800">장바구니</h2>
         <p className="text-sm text-slate-500 mt-0.5">발주 신청을 위해 담아둔 상품 목록입니다.</p>
       </div>
+
+      <AiSmartOrderPanel onAdded={loadCart} />
 
       {loading ? (
         <div className="py-20 flex justify-center"><Spinner size="lg" /></div>

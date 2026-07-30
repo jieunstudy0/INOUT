@@ -55,6 +55,13 @@ public class OrderDetail {
     @JoinColumn(name = "order_id")
     private OrderRequest orderRequest;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isAiSuggested = false;
+
+    @Column(length = 500)
+    private String aiReason;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

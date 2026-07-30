@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.jstudy.inout.common.auth.dto.AdminUserDto;
+import com.jstudy.inout.common.auth.dto.OwnerUserDto;
 import com.jstudy.inout.common.auth.dto.UserInput;
 import com.jstudy.inout.common.auth.dto.UserPasswordResetInput;
 import com.jstudy.inout.common.auth.dto.UserUpdate;
@@ -48,8 +49,11 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final StoreRepository storeRepository;
 
-    @Value("${app.server-url}")
+    @Value("${app.server-url:http://localhost:8080}")
     private String serverUrl;
+
+    @Value("${app.mail.from-email:noreply@inout.com}")
+    private String fromEmail;
 
     @Transactional
     @Override
@@ -294,5 +298,138 @@ public class AuthServiceImpl implements AuthService {
         input.setName(user.getName());
         input.setPhone(user.getPhone());
         this.resetPassword(input);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OwnerUserDto.ListResponse getOwnerUserList(Long ownerUserId, String status, String keyword, Pageable pageable) {
+        User owner = requireOwnerWithStore(ownerUserId);
+
+        UserStatus userStatus = parseUserStatus(status);
+        Page<User> userPage = userRepository.findOwnerUsersByFilters(owner.getStore().getId(), userStatus, keyword, pageable);
+
+        long total = userRepository.countByStore_Id(owner.getStore().getId());
+        long active = userPage.getContent().stream().filter(u -> u.getStatus() == UserStatus.ACTIVE).count();
+        long leave = userPage.getContent().stream().filter(u -> u.getStatus() == UserStatus.LEAVE).count();
+        long resigned = userPage.getContent().stream().filter(u -> u.getStatus() == UserStatus.RESIGNED).count();
+        long locked = userRepository.countByStore_IdAndIsLockedTrue(owner.getStore().getId());
+
+        OwnerUserDto.Summary summary = OwnerUserDto.Summary.builder()
+                .total(total)
+                .active(active)
+                .leave(leave)
+                .resigned(resigned)
+                .locked(locked)
+                .build();
+
+        Page<OwnerUserDto.UserListItem> users = userPage.map(u -> OwnerUserDto.UserListItem.builder()
+                .id(u.getId())
+                .name(u.getName())
+                .email(u.getEmail())
+                .phone(u.getPhone())
+                .storeId(u.getStore() != null ? u.getStore().getId() : null)
+                .storeName(u.getStore() != null ? u.getStore().getName() : null)
+                .status(u.getStatus())
+                .isLocked(u.isLocked())
+                .roleName(resolvePrimaryRoleName(u))
+                .createdAt(u.getCreatedAt())
+                .build());
+
+        return OwnerUserDto.ListResponse.builder().summary(summary).users(users).build();
+    }
+
+    @Override
+    @Transactional
+    public ServiceResult createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
+        User owner = requireOwnerWithStore(ownerUserId);
+
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new InoutException("비밀번호 확인이 일치하지 않습니다.", 400, "PASSWORD_CONFIRM_MISMATCH");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new InoutException("이미 사용 중인 이메일입니다.", 400, "DUPLICATE_EMAIL");
+        }
+
+        User employee = User.builder()
+                .email(request.getEmail())
+                .name(request.getName())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phone(request.getPhone())
+                .birthday(request.getBirthday())
+                .store(owner.getStore())
+                .status(UserStatus.ACTIVE)
+                .build();
+        userRepository.save(employee);
+
+        Role employeeRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
+                .orElseThrow(() -> new InoutException("기본 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
+        userRoleRepository.save(UserRole.builder().user(employee).role(employeeRole).build());
+
+        return ServiceResult.success("직원 계정이 생성되었습니다.");
+    }
+
+    @Override
+    @Transactional
+    public void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request) {
+        User owner = requireOwnerWithStore(ownerUserId);
+        User employee = requireSameStoreEmployee(owner, employeeUserId);
+        employee.updateStatusAndStore(request.getStatus(), owner.getStore());
+    }
+
+    @Override
+    @Transactional
+    public void unlockEmployeeByOwner(Long ownerUserId, Long employeeUserId) {
+        User owner = requireOwnerWithStore(ownerUserId);
+        User employee = requireSameStoreEmployee(owner, employeeUserId);
+        employee.resetLoginAttributes();
+    }
+
+    @Override
+    @Transactional
+    public void sendPasswordResetMailByOwner(Long ownerUserId, Long employeeUserId) {
+        User owner = requireOwnerWithStore(ownerUserId);
+        User employee = requireSameStoreEmployee(owner, employeeUserId);
+
+        UserPasswordResetInput input = new UserPasswordResetInput();
+        input.setEmail(employee.getEmail());
+        input.setName(employee.getName());
+        input.setPhone(employee.getPhone());
+        this.resetPassword(input);
+    }
+
+    private User requireOwnerWithStore(Long ownerUserId) {
+        User owner = userRepository.findById(ownerUserId)
+                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+        if (owner.getStore() == null) {
+            throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+        }
+        return owner;
+    }
+
+    private User requireSameStoreEmployee(User owner, Long employeeUserId) {
+        User employee = userRepository.findById(employeeUserId)
+                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+        if (employee.getStore() == null || !owner.getStore().getId().equals(employee.getStore().getId())) {
+            throw new InoutException("다른 매장 직원에는 접근할 수 없습니다.", 403, "CROSS_STORE_FORBIDDEN");
+        }
+        return employee;
+    }
+
+    private UserStatus parseUserStatus(String status) {
+        if (!StringUtils.hasText(status)) {
+            return null;
+        }
+        try {
+            return UserStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private String resolvePrimaryRoleName(User user) {
+        return user.getUserRoles().stream()
+                .map(ur -> ur.getRole().getRoleName())
+                .findFirst()
+                .orElse("ROLE_EMPLOYEE");
     }
 }

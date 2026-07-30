@@ -24,9 +24,10 @@ public class DepositController {
     private final DepositService depositService;
     private final DepositEmpService depositEmpService; 
 
-    @Operation(summary = "나의 예치금 및 거래 내역 조회 (직원용)")
+    @Operation(summary = "나의 예치금 및 거래 내역 조회 (직원용)",
+               description = "매장 단위 예치금 지갑 잔액·이력을 조회합니다. 충전은 점주 신청 후 본사 승인으로만 반영됩니다.")
     @GetMapping("/emp/deposit") 
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'USER')") 
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')") 
     public ResponseEntity<?> getMyDeposit(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             Pageable pageable) {
@@ -36,9 +37,11 @@ public class DepositController {
         return ResponseResult.success("예치금 내역 조회가 완료되었습니다.", response);
     }
 
-    @Operation(summary = "예치금 충전")
+    @Operation(summary = "예치금 충전 (관리자 전용·레거시)",
+               description = "즉시 잔액 반영 충전입니다. 가맹 충전은 OWNER 신청 → ADMIN 승인 흐름을 사용하세요. "
+                           + "신규 연동은 POST /api/admin/deposits/charge 를 권장합니다.")
     @PostMapping("/deposit/charge") 
-    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN', 'USER')") 
+    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<?> charge(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody DepositDto.ChargeRequest request) {

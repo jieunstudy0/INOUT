@@ -29,6 +29,8 @@ public interface UserRepository extends JpaRepository<User, Long>{
     
     long countByStatus(UserStatus status);
     long countByIsLockedTrue();
+    long countByStore_Id(Long storeId);
+    long countByStore_IdAndIsLockedTrue(Long storeId);
     
     
     @Query("SELECT u FROM User u WHERE " +
@@ -44,4 +46,30 @@ public interface UserRepository extends JpaRepository<User, Long>{
              @Param("status") UserStatus status,
              @Param("keyword") String keyword,
              Pageable pageable);
+
+    @Query("""
+            SELECT u
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE r.roleName = 'ROLE_ADMIN'
+            ORDER BY u.id ASC
+            """)
+    java.util.List<User> findAdminUsersSortedById(Pageable pageable);
+
+    @Query("""
+            SELECT u
+            FROM User u
+            WHERE u.store.id = :storeId
+              AND (:status IS NULL OR u.status = :status)
+              AND (:keyword IS NULL OR :keyword = ''
+                   OR u.name LIKE CONCAT('%', :keyword, '%')
+                   OR u.email LIKE CONCAT('%', :keyword, '%')
+                   OR REPLACE(u.phone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%'))
+            """)
+    Page<User> findOwnerUsersByFilters(
+            @Param("storeId") Long storeId,
+            @Param("status") UserStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
 }

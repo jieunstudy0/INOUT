@@ -17,6 +17,10 @@ public class InquiryDetailResponse {
     private String authorName;
     private Long authorId;
     private boolean isRead;
+    private String originalFileName;
+    private String savedFilePath;
+    private String aiCategory;
+    private String aiDraftAnswer;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> comments;
@@ -33,6 +37,10 @@ public class InquiryDetailResponse {
                 .authorName(inquiry.getAuthor().getName())
                 .authorId(inquiry.getAuthor().getId())
                 .isRead(inquiry.isRead())
+                .originalFileName(inquiry.getOriginalFileName())
+                .savedFilePath(inquiry.getSavedFilePath())
+                .aiCategory(inquiry.getAiCategory())
+                .aiDraftAnswer(inquiry.getAiDraftAnswer())
                 .createdAt(inquiry.getCreatedAt())
                 .updatedAt(inquiry.getUpdatedAt())
                 .comments(commentResponses)

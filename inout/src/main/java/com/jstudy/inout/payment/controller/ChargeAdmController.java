@@ -32,7 +32,7 @@ public class ChargeAdmController {
     @PatchMapping("/{chargeId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> approveCharge(
-            @PathVariable Long chargeId,
+            @PathVariable("chargeId") Long chargeId,
             @AuthenticationPrincipal CustomUserDetails principal) {
         
         chargeService.approveCharge(principal.getUser().getId(), chargeId);
@@ -43,7 +43,7 @@ public class ChargeAdmController {
     @PatchMapping("/{chargeId}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> rejectCharge(
-            @PathVariable Long chargeId,
+            @PathVariable("chargeId") Long chargeId,
             @RequestBody ChargeDto.RejectRequest request,
             @AuthenticationPrincipal CustomUserDetails principal) {
         

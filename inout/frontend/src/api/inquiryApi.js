@@ -33,3 +33,8 @@ export function updateComment(inquiryId, commentId, content) {
 export function deleteComment(inquiryId, commentId) {
   return unwrap(client.delete(`/inquiry/${inquiryId}/comments/${commentId}`));
 }
+
+/** 문의 첨부파일 다운로드 (blob) */
+export function downloadInquiryFile(inquiryId) {
+  return client.get(`/inquiry/${inquiryId}/download`, { responseType: 'blob' });
+}

@@ -13,7 +13,6 @@ import com.jstudy.inout.leave.entity.AnnualLeave;
 import com.jstudy.inout.leave.entity.LeaveStatus;
 import com.jstudy.inout.leave.entity.LeaveType;
 import com.jstudy.inout.leave.repository.AnnualLeaveRepository;
-import com.jstudy.inout.order.testsupport.OrderJpaTestApplication;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,12 +24,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
 @ActiveProfiles("jpa-slice")
-@ContextConfiguration(classes = OrderJpaTestApplication.class)
 @Import({JpaAuditConfig.class, AnnualLeaveService.class})
+@TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class AnnualLeaveServiceTest {
 
     @Autowired

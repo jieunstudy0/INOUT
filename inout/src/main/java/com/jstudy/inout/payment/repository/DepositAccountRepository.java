@@ -13,10 +13,15 @@ import org.springframework.data.repository.query.Param;
 public interface DepositAccountRepository extends JpaRepository<DepositAccount, Long> {
 
 	Optional<DepositAccount> findByUserId(Long userId);
+	Optional<DepositAccount> findByStoreId(Long storeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from DepositAccount a join fetch a.user u where u.id = :userId")
     Optional<DepositAccount> findByUserIdForUpdate(@Param("userId") Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from DepositAccount a join fetch a.store s where s.id = :storeId")
+    Optional<DepositAccount> findByStoreIdForUpdate(@Param("storeId") Long storeId);
     
     @Query("SELECT COALESCE(SUM(da.balance), 0) FROM DepositAccount da")
     long calculateTotalDepositBalance();

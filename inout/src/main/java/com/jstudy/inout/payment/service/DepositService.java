@@ -22,9 +22,9 @@ public class DepositService {
 
     @Transactional
     public DepositDto.Response chargeDeposit(Long targetUserId, Long processedBy, DepositDto.ChargeRequest request) {
-
         validateAmount(request.getAmount());
-        DepositAccount account = getOrCreateAccountForUpdate(targetUserId);
+        User targetUser = getUser(targetUserId);
+        DepositAccount account = getOrCreateAccountForUpdate(targetUser);
 
         account.addBalance(request.getAmount());
 
@@ -40,9 +40,9 @@ public class DepositService {
 
     @Transactional
     public DepositDto.Response refundDeposit(Long targetUserId, Long processedBy, DepositDto.RefundRequest request) {
-
         validateAmount(request.getAmount());
-        DepositAccount account = getOrCreateAccountForUpdate(targetUserId);
+        User targetUser = getUser(targetUserId);
+        DepositAccount account = getOrCreateAccountForUpdate(targetUser);
 
         account.addBalance(request.getAmount());
         saveHistory(account, TransactionType.REFUND, request.getAmount(), request.getDescription(), processedBy);
@@ -54,13 +54,21 @@ public class DepositService {
                 .build();
     }
 
-    private DepositAccount getOrCreateAccountForUpdate(Long userId) {
-        return accountRepository.findByUserIdForUpdate(userId)
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+    }
+
+    private DepositAccount getOrCreateAccountForUpdate(User user) {
+        if (user.getStore() == null) {
+            throw new InoutException("소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.", 403, "STORE_REQUIRED");
+        }
+
+        return accountRepository.findByStoreIdForUpdate(user.getStore().getId())
                 .orElseGet(() -> {
-                    User user = userRepository.findById(userId)
-                            .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
                     DepositAccount newAccount = DepositAccount.builder()
                             .user(user)
+                            .store(user.getStore())
                             .balance(0L)
                             .build();
                     return accountRepository.save(newAccount);
@@ -75,7 +83,8 @@ public class DepositService {
                 .type(type)
                 .amount(amount)
                 .description(desc)
-                .processedBy(processedBy) 
+                .processedBy(processedBy)
+                .balanceAfter(account.getBalance())
                 .build();
         historyRepository.save(history);
     }
@@ -88,17 +97,33 @@ public class DepositService {
     
     @Transactional
     public void deductDeposit(Long targetUserId, Long adminId, long amount, String description) {
-        DepositAccount account = accountRepository.findByUserIdForUpdate(targetUserId)
+        deductDeposit(targetUserId, adminId, amount, description, null);
+    }
+
+    @Transactional
+    public void deductDeposit(Long targetUserId, Long adminId, long amount, String description, Long orderId) {
+        User targetUser = getUser(targetUserId);
+        if (targetUser.getStore() == null) {
+            throw new InoutException("소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.", 403, "STORE_REQUIRED");
+        }
+
+        DepositAccount account = accountRepository.findByStoreIdForUpdate(targetUser.getStore().getId())
                 .orElseThrow(() -> new InoutException("예치금 계좌를 찾을 수 없습니다.", 404, "ACCOUNT_NOT_FOUND"));
 
-        account.deductBalance(amount);
+        try {
+            account.deductBalance(amount);
+        } catch (IllegalStateException e) {
+            throw new InoutException("예치금 잔액이 부족합니다.", 400, "INSUFFICIENT_BALANCE");
+        }
 
         DepositHistory history = DepositHistory.builder()
                 .depositAccount(account)
                 .type(TransactionType.PAYMENT) 
                 .amount(amount)
                 .description(description)
+                .relatedOrderId(orderId)
                 .processedBy(adminId)
+                .balanceAfter(account.getBalance())
                 .build();
         historyRepository.save(history);
     }

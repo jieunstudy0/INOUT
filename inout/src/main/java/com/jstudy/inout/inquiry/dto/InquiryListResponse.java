@@ -13,7 +13,9 @@ public class InquiryListResponse {
     private String title;
     private String authorName;  
     private boolean isRead;   
-    private int commentCount;  
+    private int commentCount;
+    private String aiCategory;
+    private boolean hasAiDraft;
     private LocalDateTime createdAt;
 
     public static InquiryListResponse from(Inquiry inquiry) {
@@ -23,6 +25,8 @@ public class InquiryListResponse {
                 .authorName(inquiry.getAuthor().getName())
                 .isRead(inquiry.isRead())
                 .commentCount(inquiry.getComments().size())
+                .aiCategory(inquiry.getAiCategory())
+                .hasAiDraft(inquiry.getAiDraftAnswer() != null && !inquiry.getAiDraftAnswer().isBlank())
                 .createdAt(inquiry.getCreatedAt())
                 .build();
     }

@@ -1,6 +1,8 @@
 package com.jstudy.inout.inquiry.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -124,4 +127,59 @@ public class InquiryService {
 
         inquiryRepository.delete(inquiry);
     }
+
+    /**
+     * 문의 첨부파일 다운로드용 리소스 조회.
+     * 작성자 본인 또는 관리자만 접근할 수 있습니다.
+     */
+    public InquiryFileResource getInquiryFileResource(Long inquiryId, Long userId, boolean isAdmin) {
+        Inquiry inquiry = inquiryRepository.findById(inquiryId)
+                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+
+        if (!isAdmin && !inquiry.getAuthor().getId().equals(userId)) {
+            throw new InoutException("다운로드 권한이 없습니다.", 403, "FORBIDDEN");
+        }
+
+        String savedFilePath = inquiry.getSavedFilePath();
+        String originalFileName = inquiry.getOriginalFileName();
+        if (savedFilePath == null || savedFilePath.isBlank()
+                || originalFileName == null || originalFileName.isBlank()) {
+            throw new InoutException("첨부파일이 존재하지 않습니다.", 404, "FILE_NOT_FOUND");
+        }
+
+        try {
+            Path filePath = resolveStoredFilePath(savedFilePath);
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                log.warn("첨부파일 리소스를 읽을 수 없음. inquiryId={}, path={}", inquiryId, filePath);
+                throw new InoutException("첨부파일을 찾을 수 없습니다.", 404, "FILE_NOT_FOUND");
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null || contentType.isBlank()) {
+                contentType = "application/octet-stream";
+            }
+
+            return new InquiryFileResource(resource, originalFileName, contentType);
+        } catch (MalformedURLException e) {
+            log.error("첨부파일 URL 생성 실패: {}", e.getMessage(), e);
+            throw new InoutException("첨부파일 다운로드 중 오류가 발생했습니다.", 500, "FILE_DOWNLOAD_ERROR");
+        } catch (IOException e) {
+            log.error("첨부파일 Content-Type 조회 실패: {}", e.getMessage(), e);
+            throw new InoutException("첨부파일 다운로드 중 오류가 발생했습니다.", 500, "FILE_DOWNLOAD_ERROR");
+        }
+    }
+
+    private Path resolveStoredFilePath(String savedFilePath) {
+        Path configuredUploadDir = Paths.get(uploadDir).toAbsolutePath().normalize();
+        String fileName = Paths.get(savedFilePath).getFileName().toString();
+        Path candidate = configuredUploadDir.resolve(fileName).normalize();
+
+        if (!candidate.startsWith(configuredUploadDir)) {
+            throw new InoutException("잘못된 파일 경로입니다.", 400, "INVALID_FILE_PATH");
+        }
+        return candidate;
+    }
+
+    public record InquiryFileResource(Resource resource, String originalFileName, String contentType) {}
 }

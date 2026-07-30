@@ -11,3 +11,7 @@ export function getMyLeaveList(params) {
 export function getMyLeaveDetail(leaveId) {
   return unwrap(client.get(`/emp/vacation/${leaveId}`));
 }
+
+export function getRemainingLeaveDays() {
+  return unwrap(client.get('/emp/vacation/remaining'));
+}

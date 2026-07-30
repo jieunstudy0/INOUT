@@ -5,12 +5,16 @@ import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.config.CacheConfig;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.stock.dto.admin.*;
 import com.jstudy.inout.stock.dto.emp.StockHistoryResponse;
@@ -33,6 +37,11 @@ public class StockAdmService {
 
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public Long registerStock(StockRegister stockRegister) {
         log.info("상품 등록 시도: name={}, categoryId={}", stockRegister.getName(), stockRegister.getCategoryId());
     
@@ -95,8 +104,13 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public Long receiveStock(Long itemId, int quantity, Long userId, String memo) {
-        Item item = itemRepository.findById(itemId)
+        Item item = itemRepository.findByIdWithLock(itemId)
                 .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         User user = userRepository.findById(userId)
@@ -137,12 +151,14 @@ public class StockAdmService {
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = CacheConfig.STOCK_ALERTS, key = "'lowStock'")
     public List<StockAdminResponse> getLowStockAlerts() {
         return itemRepository.findLowStockItems().stream()
                 .map(StockAdminResponse::from)
                 .collect(Collectors.toList());
     }
 
+    @Cacheable(value = CacheConfig.STOCK_ALERTS, key = "'outOfStock'")
     public List<StockAdminResponse> getOutOfStockItems() {
         return itemRepository.findOutOfStockItems().stream()
                 .map(StockAdminResponse::from)

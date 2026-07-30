@@ -11,12 +11,14 @@ public class ChargeDto {
 
     @Getter
     @NoArgsConstructor
+    @lombok.Setter
     public static class Request {
         private Long amount; 
     }
 
     @Getter
     @NoArgsConstructor
+    @lombok.Setter
     public static class RejectRequest {
         private String reason; 
     }

@@ -31,10 +31,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(DeliveryController.class)
+@WebMvcTest(DeliveryAdmController.class)
 @Import(GlobalExceptionHandler.class)
 @AutoConfigureMockMvc(addFilters = false)
-class DeliveryControllerTest {
+class DeliveryAdmControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

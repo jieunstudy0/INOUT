@@ -144,9 +144,9 @@ public class StockAdmController {
     @GetMapping("/{itemId}/history")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getStockHistory(
-            @Parameter(description = "이력 조회할 상품 ID") @PathVariable Long itemId,
-            @Parameter(description = "페이지 번호 (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
+            @Parameter(description = "이력 조회할 상품 ID") @PathVariable("itemId") Long itemId,
+            @Parameter(description = "페이지 번호 (0-based)") @RequestParam(name = "page", defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         List<StockHistoryResponse> history = stockAdmService.getUnifiedHistory(itemId, page, size);
         return ResponseResult.success("이력 조회가 완료되었습니다.", history);
@@ -172,9 +172,9 @@ public class StockAdmController {
     @GetMapping("/{itemId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<?> getStockDetail(
-            @Parameter(description = "조회할 상품 ID") @PathVariable Long itemId,
-            @Parameter(description = "페이지 번호 (0-based)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
+            @Parameter(description = "조회할 상품 ID") @PathVariable("itemId") Long itemId,
+            @Parameter(description = "페이지 번호 (0-based)") @RequestParam(name = "page", defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         StockDetailResponse detail = stockAdmService.getStockDetail(itemId, page, size);
         return ResponseResult.success("재고 상세 조회가 완료되었습니다.", detail);
@@ -196,7 +196,7 @@ public class StockAdmController {
     @PatchMapping("/{itemId}/adjust")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adjustStock(
-            @Parameter(description = "실사할 상품 ID") @PathVariable Long itemId,
+            @Parameter(description = "실사할 상품 ID") @PathVariable("itemId") Long itemId,
             @RequestBody @Valid StockAdjustRequest request,
             @AuthenticationPrincipal CustomUserDetails principal
     ) {

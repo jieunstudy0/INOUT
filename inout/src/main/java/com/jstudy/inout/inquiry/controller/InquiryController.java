@@ -7,8 +7,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +26,7 @@ import com.jstudy.inout.inquiry.dto.InquiryCreateRequest;
 import com.jstudy.inout.inquiry.dto.InquiryDetailResponse;
 import com.jstudy.inout.inquiry.dto.InquiryListResponse;
 import com.jstudy.inout.inquiry.service.InquiryService;
+import com.jstudy.inout.inquiry.service.InquiryService.InquiryFileResource;
 
 import lombok.RequiredArgsConstructor;
 
@@ -95,5 +101,33 @@ public class InquiryController {
             @AuthenticationPrincipal CustomUserDetails principal) {
         inquiryService.deleteInquiry(inquiryId, principal.getUser().getId());
         return ResponseResult.successWithMessage("문의글이 삭제되었습니다.");
+    }
+
+    @Operation(summary = "문의 첨부파일 다운로드",
+               description = "문의글에 첨부된 파일을 바이너리 스트림으로 다운로드합니다. 작성자 본인 또는 관리자만 가능합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "파일 다운로드 성공"),
+            @ApiResponse(responseCode = "403", description = "다운로드 권한 없음"),
+            @ApiResponse(responseCode = "404", description = "문의글 또는 첨부파일 없음")
+    })
+    @GetMapping("/{inquiryId}/download")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
+    public ResponseEntity<Resource> downloadInquiryFile(
+            @Parameter(description = "문의글 ID") @PathVariable("inquiryId") Long inquiryId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        InquiryFileResource file = inquiryService.getInquiryFileResource(
+                inquiryId, principal.getUser().getId(), isAdmin);
+
+        String encodedName = URLEncoder.encode(file.originalFileName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.originalFileName().replace("\"", "") + "\"; filename*=UTF-8''" + encodedName)
+                .body(file.resource());
     }
 }

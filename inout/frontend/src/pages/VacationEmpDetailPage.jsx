@@ -24,10 +24,11 @@ function LeaveStatusBadge({ status }) {
 }
 
 export default function VacationEmpDetailPage() {
-  const { leaveId } = useParams();
+  const { id, leaveId: leaveIdParam } = useParams();
+  const leaveId = id || leaveIdParam;
   const navigate = useNavigate();
   const base = useAppBasePath();
-  const leaveRoot = base === '/owner' ? '/owner/vacation/my' : '/emp/vacation';
+  const leaveRoot = base === '/owner' ? '/owner/leaves' : '/emp/leaves';
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
 

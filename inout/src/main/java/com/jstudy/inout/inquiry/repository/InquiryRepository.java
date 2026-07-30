@@ -14,7 +14,11 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     Page<Inquiry> findAllByIsReadFalseOrderByCreatedAtDesc(Pageable pageable);
 
+    java.util.List<Inquiry> findByIsReadFalseAndAiDraftAnswerIsNullOrderByCreatedAtAsc(Pageable pageable);
+
     long countByIsReadFalse();
+
+    long countByAiDraftAnswerIsNotNull();
 
     @Query("SELECT i FROM Inquiry i " +
            "JOIN FETCH i.author " +

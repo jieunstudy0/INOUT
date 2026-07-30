@@ -1,8 +1,11 @@
 package com.jstudy.inout.stock.service;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.exception.InoutException;
+import com.jstudy.inout.stock.dto.emp.AiStockSuggestionResponse;
 import com.jstudy.inout.stock.dto.emp.ItemResponse;
 import com.jstudy.inout.stock.dto.emp.StockHistoryResponse;
 import com.jstudy.inout.stock.dto.emp.StockUserDetailResponse;
@@ -116,5 +120,62 @@ public class StockEmpService {
                 .sorted(Comparator.comparing(StockHistoryResponse::getDate).reversed())
                 .collect(Collectors.toList());
     }
-    
+
+    /**
+     * 최근 7일 판매 속도와 안전재고를 기반으로 스마트 발주 추천 목록을 반환합니다.
+     * Gemini 호출 없이 휴리스틱으로 산출하여 장바구니 화면에서 즉시 사용할 수 있습니다.
+     */
+    @Transactional(readOnly = true)
+    public List<AiStockSuggestionResponse> getAiStockSuggestions(int limit) {
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        Map<Long, Long> salesMap = new HashMap<>();
+        for (Object[] row : usageHistoryRepository.sumRecentSalesByItem(sevenDaysAgo)) {
+            salesMap.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+        }
+
+        return itemRepository.findAllByDeletedFalse().stream()
+                .map(item -> {
+                    long recentSales = salesMap.getOrDefault(item.getItemId(), 0L);
+                    int stock = item.getCurrentStock() != null ? item.getCurrentStock() : 0;
+                    int min = item.getMinStockLevel() != null ? item.getMinStockLevel() : 0;
+                    double dailyVelocity = recentSales / 7.0;
+                    int daysLeft = dailyVelocity > 0 ? (int) Math.floor(stock / dailyVelocity) : (stock > min ? 99 : 0);
+
+                    boolean needsReorder = stock <= min || (dailyVelocity > 0 && daysLeft <= 3);
+                    if (!needsReorder) {
+                        return null;
+                    }
+
+                    int recommendQty = Math.max(min * 2 - stock, Math.max(min, (int) Math.ceil(dailyVelocity * 7)));
+                    if (recommendQty <= 0) {
+                        recommendQty = Math.max(min, 1);
+                    }
+
+                    String reason;
+                    if (stock <= 0) {
+                        reason = "품절 상태입니다. 즉시 보충이 필요합니다.";
+                    } else if (stock <= min) {
+                        reason = String.format("안전재고(%d) 미달 · 현재 %d", min, stock);
+                    } else {
+                        reason = String.format("최근 7일 판매 %d개 · 약 %d일 내 소진 예상", recentSales, daysLeft);
+                    }
+
+                    return AiStockSuggestionResponse.builder()
+                            .itemId(item.getItemId())
+                            .itemName(item.getName())
+                            .currentStock(stock)
+                            .minStockLevel(min)
+                            .recommendQty(recommendQty)
+                            .reason(reason)
+                            .unitPrice(item.getUnitPrice())
+                            .recentSalesQty(recentSales)
+                            .build();
+                })
+                .filter(s -> s != null)
+                .sorted(Comparator
+                        .comparingInt((AiStockSuggestionResponse s) -> s.getCurrentStock())
+                        .thenComparing(Comparator.comparingLong(AiStockSuggestionResponse::getRecentSalesQty).reversed()))
+                .limit(Math.max(1, limit))
+                .collect(Collectors.toList());
+    }
 }

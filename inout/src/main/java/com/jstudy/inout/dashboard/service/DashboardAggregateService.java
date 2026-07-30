@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -96,6 +97,10 @@ public class DashboardAggregateService {
                 .build();
     }
 
+    @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, key = "'admin'")
+    public void evictCachedAggregateSummary() {
+    }
+
     private List<ActivityItem> buildRecentActivities() {
         List<ActivityItem> activities = new ArrayList<>();
 
@@ -112,7 +117,9 @@ public class DashboardAggregateService {
                     .build());
         });
 
-        itemRepository.findOutOfStockItems(PageRequest.of(0, 3))
+        itemRepository.findOutOfStockItems()
+                .stream()
+                .limit(3)
                 .forEach(item -> activities.add(ActivityItem.builder()
                         .type("LOW_STOCK")
                         .message("'" + item.getName() + "' 상품이 품절 상태입니다.")
@@ -120,7 +127,9 @@ public class DashboardAggregateService {
                         .severity("warning")
                         .build()));
 
-        itemRepository.findLowStockItemsAboveZero(PageRequest.of(0, 2))
+        itemRepository.findLowStockItemsAboveZero()
+                .stream()
+                .limit(2)
                 .forEach(item -> activities.add(ActivityItem.builder()
                         .type("LOW_STOCK")
                         .message("'" + item.getName() + "' 재고가 안전 재고 미만입니다. (현재 "

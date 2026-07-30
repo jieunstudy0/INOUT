@@ -44,7 +44,13 @@ class InquiryDtoAndEntityTest {
     void inquiryDetailResponse_Mapping_FlatComments() {
         // given
         User author = User.builder().id(1L).name("김직원").build();
-        Inquiry inquiry = Inquiry.builder().id(100L).title("문의합니다").author(author).build();
+        Inquiry inquiry = Inquiry.builder()
+                .id(100L)
+                .title("문의합니다")
+                .author(author)
+                .originalFileName("증빙.png")
+                .savedFilePath("/uploads/inquiries/uuid.png")
+                .build();
 
         InquiryComment rootComment = InquiryComment.builder()
                 .id(10L)
@@ -67,6 +73,8 @@ class InquiryDtoAndEntityTest {
 
         // then
         assertThat(response.getComments()).hasSize(2);
+        assertThat(response.getOriginalFileName()).isEqualTo("증빙.png");
+        assertThat(response.getSavedFilePath()).isEqualTo("/uploads/inquiries/uuid.png");
 
         CommentResponse firstComment = response.getComments().get(0);
         assertThat(firstComment.getId()).isEqualTo(10L); 

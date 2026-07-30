@@ -1,31 +1,41 @@
 import axios from 'axios';
 import { Toast } from '../utils/toast';
 
-const client = axios.create({
-  baseURL: '/api', 
+const sharedConfig = {
+  baseURL: '/api',
   timeout: 15000,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
-});
+};
+
+function parseApiError(error) {
+  const status = error?.response?.status ?? null;
+  const message =
+    error?.response?.data?.header?.message
+    || error?.response?.data?.message
+    || error?.message
+    || '오류 발생';
+  return { status, message };
+}
+
+/** 인증 필요 API — Authorization 주입 + 401 시 로그인 리다이렉트 */
+const client = axios.create(sharedConfig);
 
 client.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      config.headers['Authorization'] = 'Bearer ' + token;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
-
 
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error?.response?.status ?? null;
-    const message = error?.response?.data?.header?.message || error?.response?.data?.message || '오류 발생';
-
+    const { status, message } = parseApiError(error);
 
     if (status === 401 && window.location.pathname !== '/login') {
       localStorage.removeItem('accessToken');
@@ -38,9 +48,23 @@ client.interceptors.response.use(
       Toast.error(message);
     }
     return Promise.reject({ status, message });
-  }
+  },
 );
 
+/**
+ * 비인증(공개) API — login / find / password reset 등.
+ * withCredentials 로 HttpOnly Refresh Token 쿠키를 크로스 도메인에서도 주고·전송한다.
+ * Authorization 주입·401 리다이렉트는 하지 않는다.
+ */
+export const publicClient = axios.create(sharedConfig);
+
+publicClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const { status, message } = parseApiError(error);
+    return Promise.reject({ status, message });
+  },
+);
 
 export function unwrap(responsePromise) {
   return responsePromise.then((response) => {

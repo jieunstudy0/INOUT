@@ -30,3 +30,16 @@ export function bulkApprove(orderIds) {
 export function processItems(orderId, items) {
   return unwrap(client.patch(`/admin/orders/${orderId}/process`, { items }));
 }
+
+/**
+ * AI 제안 품목 승인/반려.
+ * OrderAdmDetailPage는 { orderDetailId, approve, approvedQuantity } 형태를 넘기므로
+ * 백엔드 process API의 { orderDetailId, status }로 변환합니다.
+ */
+export function approveAiSuggestedItems(orderId, items) {
+  const payload = (items || []).map((item) => ({
+    orderDetailId: item.orderDetailId,
+    status: item.approve === false ? 'REJECTED' : (item.status || 'APPROVED'),
+  }));
+  return processItems(orderId, payload);
+}

@@ -38,8 +38,8 @@ export default function InquiryCreatePage() {
         formData.append('file', file);
       } 
       await createInquiry(formData);
-      Toast.success('문의가 정상적으로 등록되었습니다.');
-      navigate('/emp/inquiries', { replace: true }); // 등록 후 목록으로 이동
+      Toast.success('문의가 등록되었습니다. AI가 카테고리·답변 초안을 준비합니다.');
+      navigate('/emp/inquiries', { replace: true });
     } catch (err) {
     } finally {
       setSubmitting(false);
@@ -61,6 +61,17 @@ export default function InquiryCreatePage() {
         </button>
         <h2 className="text-2xl font-bold text-slate-800">1:1 문의 작성</h2>
         <p className="text-sm text-slate-500 mt-1">본사에 전달할 오류나 건의사항을 상세히 적어주세요. 필요한 경우 사진이나 문서를 첨부할 수 있습니다.</p>
+      </div>
+
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/60 px-5 py-4 flex items-start gap-3">
+        <span className="inline-flex w-8 h-8 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white text-xs font-bold">AI</span>
+        <div>
+          <p className="text-sm font-bold text-violet-800">AI 자동 카테고리 분류</p>
+          <p className="text-xs text-violet-600/90 mt-1 leading-relaxed">
+            문의 등록 후 Gemini가 내용을 분석해 추천 카테고리와 답변 초안을 생성합니다.
+            본사 관리자가 상세 화면에서 AI 초안을 확인하고 적용할 수 있습니다.
+          </p>
+        </div>
       </div>
 
       {/* 작성 폼 영역 */}

@@ -52,8 +52,8 @@ function Pagination({ page, totalPages, onPageChange }) {
 export default function VacationEmpPage() {
   const navigate = useNavigate();
   const base = useAppBasePath();
-  const leaveRoot = base === '/owner' ? '/owner/vacation/my' : '/emp/vacation';
-  const leaveNew = base === '/owner' ? '/owner/vacation/new' : '/emp/vacation/new';
+  const leaveRoot = base === '/owner' ? '/owner/leaves' : '/emp/leaves';
+  const leaveNew = base === '/owner' ? '/owner/leaves' : '/emp/leaves/register';
   const [leaves, setLeaves]         = useState([]);
   const [loading, setLoading]       = useState(true);
   const [page, setPage]             = useState(0);

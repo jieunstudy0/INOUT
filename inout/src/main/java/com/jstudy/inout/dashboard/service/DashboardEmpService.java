@@ -14,10 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.dashboard.dto.DashboardEmpResponse;
+import com.jstudy.inout.leave.service.AnnualLeaveService;
 import com.jstudy.inout.order.entity.OrderStatus;
 import com.jstudy.inout.order.repository.CartDetailRepository;
 import com.jstudy.inout.order.repository.OrderRequestRepository;
-import com.jstudy.inout.payment.repository.DepositAccountRepository;
+import com.jstudy.inout.payment.service.DepositEmpService;
 import com.jstudy.inout.stock.repository.ItemRepository;
 import com.jstudy.inout.stock.repository.StockUsageHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,8 @@ import lombok.RequiredArgsConstructor;
 public class DashboardEmpService {
     
     private final UserRepository userRepository;
-    private final DepositAccountRepository depositAccountRepository;
+    private final DepositEmpService depositEmpService;
+    private final AnnualLeaveService annualLeaveService;
     private final CartDetailRepository cartDetailRepository;
     private final OrderRequestRepository orderRequestRepository;
     private final StockUsageHistoryRepository usageRepository;
@@ -40,9 +42,10 @@ public class DashboardEmpService {
         User user = userRepository.findById(userId).orElseThrow();
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
 
-        long depositBalance = depositAccountRepository.findByUserId(userId)
-                .map(account -> account.getBalance())
-                .orElse(0L);
+        long depositBalance = depositEmpService
+                .getMyDepositHistory(userId, PageRequest.of(0, 1))
+                .getCurrentBalance();
+        int remainingLeaveDays = annualLeaveService.getRemainingLeaveDays(userId);
 
         int cartItemCount = cartDetailRepository.countCartItemsByUserId(userId);
         int inProgressOrderCount = (int) orderRequestRepository.countByRequestUser_IdAndStatusIn(
@@ -62,6 +65,7 @@ public class DashboardEmpService {
                 .userName(user.getName())             
                 .storeName(user.getStore() != null ? user.getStore().getName() : "본사")
                 .depositBalance(depositBalance)
+                .remainingLeaveDays(remainingLeaveDays)
                 .cartItemCount(cartItemCount)
                 .inProgressOrderCount(inProgressOrderCount)
                 .todayStockUseCount(todayStockUseCount)

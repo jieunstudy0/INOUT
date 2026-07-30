@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getListByStatuses, getDetail, bulkApprove, processItems } from '../api/orderAdmApi';
+import { useNavigate } from 'react-router-dom';
+import { getListByStatuses, bulkApprove } from '../api/orderAdmApi';
 import { getDashboardSummary } from '../api/dashboardApi';
+import { triggerAiAutoOrderAnalysis } from '../api/aiApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
-import client from '../api/apiClient'; 
+import client from '../api/apiClient';
 
 const TABS = [
   { key: 'ALL',       label: '전체',      statuses: [],                       accent: 'slate'   },
@@ -23,26 +25,10 @@ const ORDER_STATUS_MAP = {
   CANCELLED: { label: '취소됨',   cls: 'bg-slate-100 text-slate-500'    },
 };
 
-const DETAIL_STATUS_MAP = {
-  WAITING:  { label: '대기 중', cls: 'bg-slate-100 text-slate-600'    },
-  APPROVED: { label: '승인',   cls: 'bg-emerald-100 text-emerald-700' },
-  DELAYED:  { label: '지연',   cls: 'bg-amber-100 text-amber-700'     },
-  REJECTED: { label: '반려',   cls: 'bg-rose-100 text-rose-700'       },
-};
-
 function OrderStatusBadge({ status }) {
   const cfg = ORDER_STATUS_MAP[status] || { label: status || '-', cls: 'bg-slate-100 text-slate-600' };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cfg.cls}`}>
-      {cfg.label}
-    </span>
-  );
-}
-
-function DetailStatusBadge({ status }) {
-  const cfg = DETAIL_STATUS_MAP[status] || { label: status || '-', cls: 'bg-slate-100 text-slate-600' };
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cfg.cls}`}>
       {cfg.label}
     </span>
   );
@@ -125,194 +111,8 @@ function BulkResultPanel({ result, onClose }) {
   );
 }
 
-function OrderDetailModal({ orderId, onClose, onRefreshList }) {
-  const [detail, setDetail]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [processing, setProc] = useState(null);
-
-  const loadDetail = useCallback(() => {
-    setLoading(true);
-    getDetail(orderId)
-      .then((data) => setDetail(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [orderId]);
-
-  useEffect(() => { loadDetail(); }, [loadDetail]);
-
-  const formatDate = (val) => {
-    if (!val) return '-';
-    const d = new Date(val);
-    return isNaN(d) ? val : d.toLocaleString('ko-KR');
-  };
-  const formatCurrency = (val) =>
-    val != null ? `${Number(val).toLocaleString('ko-KR')}원` : '-';
-
-  const handleProcessItem = async (orderDetailId, status) => {
-    setProc(orderDetailId);
-    try {
-      await processItems(orderId, [{ orderDetailId, status }]);
-      const label = status === 'APPROVED' ? '승인' : status === 'REJECTED' ? '반려' : '대기';
-      Toast.success(`품목이 ${label} 처리되었습니다.`);
-      loadDetail();
-      onRefreshList?.();
-    } catch { /* api client already toasted */ }
-    finally { setProc(null); }
-  };
-
-  const handleApproveAll = async () => {
-    if (!detail?.items) return;
-    const waitingItems = detail.items.filter((i) => i.status === 'WAITING' || i.status === 'DELAYED');
-    if (waitingItems.length === 0) { Toast.info('처리 가능한 대기 중 품목이 없습니다.'); return; }
-    setProc('ALL');
-    try {
-      await processItems(orderId, waitingItems.map((i) => ({ orderDetailId: i.orderDetailId, status: 'APPROVED' })));
-      Toast.success(`${waitingItems.length}개 품목이 모두 승인 처리되었습니다.`);
-      loadDetail();
-      onRefreshList?.();
-    } catch { /* toasted */ }
-    finally { setProc(null); }
-  };
-
-  const waitingCount = detail?.items?.filter((i) => i.status === 'WAITING' || i.status === 'DELAYED').length ?? 0;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-200 shrink-0">
-          <div>
-            <h2 className="text-base font-semibold text-slate-800">
-              발주 상세 {detail ? `— #${detail.orderRequestId}` : ''}
-            </h2>
-            {detail && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                {detail.storeName} · {detail.employeeName} · {formatDate(detail.requestDate)}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {detail && <OrderStatusBadge status={detail.status} />}
-            <button onClick={onClose}
-              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors -mt-1 -mr-1">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
-              <Spinner size="lg" /><span className="text-sm">발주 정보를 불러오는 중...</span>
-            </div>
-          ) : !detail ? (
-            <EmptyState message="발주 정보를 불러올 수 없습니다." />
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-px bg-slate-100 border-b border-slate-100">
-                {[
-                  { label: '매장명',   value: detail.storeName },
-                  { label: '신청자',   value: detail.employeeName },
-                  { label: '신청일시', value: formatDate(detail.requestDate) },
-                  { label: '총 금액',  value: formatCurrency(detail.totalPrice) },
-                ].map((row) => (
-                  <div key={row.label} className="bg-white px-5 py-3">
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{row.label}</span>
-                    <p className="text-sm font-medium text-slate-700 mt-0.5">{row.value}</p>
-                  </div>
-                ))}
-              </div>
-              {detail.rejectReason && (
-                <div className="px-5 py-3 bg-rose-50 border-b border-rose-100 flex items-start gap-2">
-                  <svg className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                  </svg>
-                  <p className="text-xs text-rose-700"><span className="font-semibold">반려 사유: </span>{detail.rejectReason}</p>
-                </div>
-              )}
-              <table className="min-w-full divide-y divide-slate-100">
-                <thead className="bg-slate-50 sticky top-0">
-                  <tr>
-                    {['상품명', '수량', '단가', '소계', '상태', '처리'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 bg-white">
-                  {detail.items?.map((item) => {
-                    const isThis = processing === item.orderDetailId;
-                    return (
-                      <tr key={item.orderDetailId} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-medium text-slate-800">{item.itemName}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{(item.quantity ?? 0).toLocaleString()}</td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{formatCurrency(item.priceSnapshot)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-700">{formatCurrency(item.subTotal)}</td>
-                        <td className="px-4 py-3"><DetailStatusBadge status={item.status} /></td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button disabled={!!processing || item.status === 'APPROVED'}
-                              onClick={() => handleProcessItem(item.orderDetailId, 'APPROVED')}
-                              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 transition-colors">
-                              {isThis ? '...' : '승인'}
-                            </button>
-                            <button disabled={!!processing || item.status === 'REJECTED'}
-                              onClick={() => handleProcessItem(item.orderDetailId, 'REJECTED')}
-                              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50 transition-colors">
-                              {isThis ? '...' : '반려'}
-                            </button>
-                            {/* 💡 Undo(대기로 되돌리기) 버튼 추가 */}
-                            <button disabled={!!processing || item.status === 'WAITING'}
-                              onClick={() => handleProcessItem(item.orderDetailId, 'WAITING')}
-                              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 disabled:opacity-50 transition-colors">
-                              {isThis ? '...' : '대기'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </>
-          )}
-        </div>
-
-        {!loading && detail && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between shrink-0">
-            <p className="text-xs text-slate-400">
-              대기 중 품목 <span className="font-semibold text-slate-600">{waitingCount}건</span>
-            </p>
-            <div className="flex gap-2">
-              {waitingCount > 0 && (
-                <button disabled={!!processing} onClick={handleApproveAll}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 active:scale-[0.98] transition-all shadow-sm">
-                  {processing === 'ALL'
-                    ? <><Spinner size="sm" className="text-white" /> 처리 중...</>
-                    : <>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        대기 품목 전체 승인 ({waitingCount}건)
-                      </>
-                  }
-                </button>
-              )}
-              <button onClick={onClose}
-                className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                닫기
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onOpenDetail }) {
+function OrderTable({ orders, checkedIds, onCheckAll, onCheck }) {
+  const navigate = useNavigate();
   const allChecked  = orders.length > 0 && checkedIds.size === orders.length;
   const someChecked = checkedIds.size > 0 && !allChecked;
 
@@ -369,7 +169,8 @@ function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onOpenDetail }) {
                   <td className="px-4 py-3.5 text-xs text-slate-500 whitespace-nowrap">{formatDate(order.requestDate)}</td>
                   <td className="px-4 py-3.5"><OrderStatusBadge status={order.status} /></td>
                   <td className="px-4 py-3.5">
-                    <button onClick={() => onOpenDetail(order.orderRequestId)}
+                    <button
+                      onClick={() => navigate(`/admin/orders/${order.orderRequestId}`)}
                       className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-50 border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all whitespace-nowrap">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -393,12 +194,11 @@ export default function OrderAdmPage() {
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState('ALL');
   const [checkedIds, setCheckedIds]   = useState(new Set());
-  const [detailOrderId, setDetailId]  = useState(null);
   const [bulkProcessing, setBulkProc] = useState(false);
   const [bulkResult, setBulkResult]   = useState(null);
   const [summaryData, setSummaryData] = useState(null);
-  
   const [isDownloading, setIsDownloading] = useState(false);
+  const [aiOrderRunning, setAiOrderRunning] = useState(false);
 
   const loadOrders = useCallback((tab) => {
     const tabCfg = TABS.find((t) => t.key === tab) || TABS[0];
@@ -452,6 +252,19 @@ export default function OrderAdmPage() {
     Toast.info('발주 현황을 새로고침했습니다.');
   };
 
+  const handleAiAutoOrderDraft = async () => {
+    setAiOrderRunning(true);
+    try {
+      const data = await triggerAiAutoOrderAnalysis();
+      Toast.success(data?.message || 'AI 발주 초안 생성이 완료되었습니다.');
+      loadOrders(activeTab);
+      loadSummary();
+    } catch {
+      /* interceptor */
+    } finally {
+      setAiOrderRunning(false);
+    }
+  };
 
   const handleExcelDownload = async () => {
     setIsDownloading(true);
@@ -501,7 +314,19 @@ export default function OrderAdmPage() {
             결제 완료 발주 승인·반려 처리
           </p>
         </div>
-        <div className="flex items-center gap-2">     
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleAiAutoOrderDraft}
+            disabled={aiOrderRunning}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60 shadow-sm transition-all"
+          >
+            {aiOrderRunning ? (
+              <><Spinner size="sm" className="text-white" /> 초안 생성 중…</>
+            ) : (
+              <>AI 발주 초안 생성</>
+            )}
+          </button>
           <button 
             onClick={handleExcelDownload} 
             disabled={isDownloading}
@@ -608,15 +433,9 @@ export default function OrderAdmPage() {
       )}
       {!loading && orders.length > 0 && (
         <OrderTable orders={orders} checkedIds={checkedIds}
-          onCheckAll={handleCheckAll} onCheck={handleCheck}
-          onOpenDetail={(id) => setDetailId(id)} />
+          onCheckAll={handleCheckAll} onCheck={handleCheck} />
       )}
 
-      {detailOrderId && (
-        <OrderDetailModal orderId={detailOrderId}
-          onClose={() => setDetailId(null)}
-          onRefreshList={() => loadOrders(activeTab)} />
-      )}
       {bulkResult && (
         <BulkResultPanel result={bulkResult} onClose={() => setBulkResult(null)} />
       )}

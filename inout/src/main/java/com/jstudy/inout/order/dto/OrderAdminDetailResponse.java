@@ -29,5 +29,7 @@ public class OrderAdminDetailResponse {
         private Long priceSnapshot;
         private Long subTotal;
         private OrderDetailStatus status;
+        private boolean isAiSuggested;
+        private String aiReason;
     }
 }

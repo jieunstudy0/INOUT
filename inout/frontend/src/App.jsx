@@ -1,13 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
-import LoginPage     from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import DashboardEmpPage from './pages/DashboardEmpPage';
-import OrderAdmPage  from './pages/OrderAdmPage';
-import StockPage     from './pages/StockPage';
-import StockEmpPage  from './pages/StockEmpPage'; 
-import CartEmpPage   from './pages/CartEmpPage';
-import OrderEmpPage  from './pages/OrderEmpPage';
+import OwnerLayout from './components/layout/OwnerLayout';
+import RoleGuard from './components/auth/RoleGuard';
+import LoginPage from './pages/LoginPage';
+import FindAccountPage from './pages/FindAccountPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import OAuth2CallbackPage from './pages/OAuth2CallbackPage';
+import DashboardPage from './pages/admin/AdminDashboard';
+import DashboardEmpPage from './pages/emp/EmpDashboard';
+import OrderAdmPage from './pages/OrderAdmPage';
+import StockPage from './pages/StockPage';
+import StockEmpPage from './pages/StockEmpPage';
+import CartEmpPage from './pages/CartEmpPage';
+import OrderEmpPage from './pages/OrderEmpPage';
 import ToastContainer from './components/common/ToastContainer';
 import InquiryAdmPage from './pages/InquiryAdmPage';
 import InquiryEmpPage from './pages/InquiryEmpPage';
@@ -21,6 +26,17 @@ import UserAdmPage from './pages/UserAdmPage';
 import InquiryDetailAdmPage from './pages/InquiryDetailAdmPage';
 import DepositAdmPage from './pages/DepositAdmPage';
 import DeliveryAdmPage from './pages/DeliveryAdmPage';
+import VacationEmpPage from './pages/VacationEmpPage';
+import VacationRegisterEmpPage from './pages/VacationRegisterEmpPage';
+import VacationEmpDetailPage from './pages/VacationEmpDetailPage';
+import VacationAdmPage from './pages/VacationAdmPage';
+import OwnerDashboard from './pages/owner/OwnerDashboard';
+import OwnerUserManagement from './pages/OwnerUserManagement';
+import OwnerDepositManagement from './pages/OwnerDepositManagement';
+import OwnerOrderList from './pages/OwnerOrderList';
+import OwnerLeaveApproval from './pages/OwnerLeaveApproval';
+import OrderAdmDetailPage from './pages/OrderAdmDetailPage';
+import { resolveHomeFromToken } from './utils/roleUtils';
 
 function NotFound() {
   return (
@@ -31,42 +47,78 @@ function NotFound() {
   );
 }
 
+function HomeRedirect() {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return <Navigate to="/login" replace />;
+  return <Navigate to={resolveHomeFromToken(token)} replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ToastContainer />
       <Routes>
-
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
+        <Route path="/find-account" element={<FindAccountPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        <Route element={<Layout />}>
-           {/* 관리자 경로 */}
-           <Route path="/admin/dashboard" element={<DashboardPage />} />
-           <Route path="/admin/orders"    element={<OrderAdmPage />} />
-           <Route path="/admin/stock"     element={<StockPage />} />
-           <Route path="/admin/inquiries" element={<InquiryAdmPage />} />
-           <Route path="/admin/users"     element={<UserAdmPage />} />
-           <Route path="/admin/inquiries" element={<InquiryAdmPage />} />
-           <Route path="/admin/inquiries/:inquiryId" element={<InquiryDetailAdmPage />} />
-           <Route path="/admin/deposit"   element={<DepositAdmPage />} />
-           <Route path="/admin/delivery"  element={<DeliveryAdmPage />} />
-           
-           
-           {/* 직원 경로 */}
-           <Route path="/emp/dashboard"   element={<DashboardEmpPage />} />
-           <Route path="/emp/stocks"      element={<StockEmpPage />} />
-           <Route path="/emp/stock-use"   element={<StockUseEmpPage />} />
-           <Route path="/emp/cart"        element={<CartEmpPage />} />
-           <Route path="/emp/orders"      element={<OrderEmpPage />} />
-           <Route path="/emp/inquiries"   element={<InquiryEmpPage />} />
-           <Route path="/emp/inquiries/new" element={<InquiryCreatePage />} />
-           <Route path="/emp/inquiries/:inquiryId" element={<InquiryDetailEmpPage />} />
-           <Route path="/emp/profile"     element={<ProfileEmpPage />} />  
-           <Route path="/emp/deposit"     element={<DepositEmpPage />} />  
-           <Route path="/emp/payment/:orderId" element={<PaymentEmpPage />} />   
+        {/* 관리자 / 직원 — 기존 Layout */}
+        <Route
+          element={(
+            <RoleGuard>
+              <Layout />
+            </RoleGuard>
+          )}
+        >
+          <Route path="/admin/dashboard" element={<DashboardPage />} />
+          <Route path="/admin/orders" element={<OrderAdmPage />} />
+          <Route path="/admin/orders/:orderId" element={<OrderAdmDetailPage />} />
+          <Route path="/admin/stock" element={<StockPage />} />
+          <Route path="/admin/inquiries" element={<InquiryAdmPage />} />
+          <Route path="/admin/users" element={<UserAdmPage />} />
+          <Route path="/admin/inquiries/:inquiryId" element={<InquiryDetailAdmPage />} />
+          <Route path="/admin/deposit" element={<DepositAdmPage />} />
+          <Route path="/admin/delivery" element={<DeliveryAdmPage />} />
+          <Route path="/admin/leaves" element={<VacationAdmPage />} />
+
+          <Route path="/emp/dashboard" element={<DashboardEmpPage />} />
+          <Route path="/emp/stocks" element={<StockEmpPage />} />
+          <Route path="/emp/stock-use" element={<StockUseEmpPage />} />
+          <Route path="/emp/cart" element={<CartEmpPage />} />
+          <Route path="/emp/orders" element={<OrderEmpPage />} />
+          <Route path="/emp/inquiries" element={<InquiryEmpPage />} />
+          <Route path="/emp/inquiries/new" element={<InquiryCreatePage />} />
+          <Route path="/emp/inquiries/:inquiryId" element={<InquiryDetailEmpPage />} />
+          <Route path="/emp/leaves" element={<VacationEmpPage />} />
+          <Route path="/emp/leaves/register" element={<VacationRegisterEmpPage />} />
+          <Route path="/emp/leaves/:id" element={<VacationEmpDetailPage />} />
+          <Route path="/emp/profile" element={<ProfileEmpPage />} />
+          <Route path="/emp/deposit" element={<DepositEmpPage />} />
+          <Route path="/emp/payment/:orderId" element={<PaymentEmpPage />} />
         </Route>
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* 가맹점주 — OwnerLayout + ROLE_OWNER 가드 */}
+        <Route
+          path="/owner"
+          element={(
+            <RoleGuard allow="OWNER">
+              <OwnerLayout />
+            </RoleGuard>
+          )}
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<OwnerDashboard />} />
+          <Route path="users" element={<OwnerUserManagement />} />
+          <Route path="deposit" element={<OwnerDepositManagement />} />
+          <Route path="orders" element={<OwnerOrderList />} />
+          <Route path="leaves" element={<OwnerLeaveApproval />} />
+          {/* 하위 호환 별칭 */}
+          <Route path="vacation" element={<Navigate to="/owner/leaves" replace />} />
+          <Route path="delivery" element={<Navigate to="/owner/orders" replace />} />
+        </Route>
+
+        <Route path="/" element={<HomeRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

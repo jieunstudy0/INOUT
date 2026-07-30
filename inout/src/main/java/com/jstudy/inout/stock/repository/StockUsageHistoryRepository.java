@@ -26,6 +26,12 @@ public interface StockUsageHistoryRepository extends JpaRepository<StockUsageHis
            "GROUP BY i.name " +
            "ORDER BY totalConsumed DESC")
     List<Object[]> findTopConsumedItems(@Param("startDate") LocalDateTime startDate, Pageable pageable);
+
+    @Query("SELECT i.itemId, COALESCE(SUM(s.usageQuantity), 0) " +
+           "FROM StockUsageHistory s JOIN s.item i " +
+           "WHERE s.processDate >= :startDate " +
+           "GROUP BY i.itemId")
+    List<Object[]> sumRecentSalesByItem(@Param("startDate") LocalDateTime startDate);
     
     
 int countByUserIdAndProcessDateAfter(Long userId, LocalDateTime processDate);

@@ -75,6 +75,17 @@ public class StockEmpController {
         return ResponseResult.success("상품 목록 조회가 완료되었습니다.", pageResult);
     }
 
+    @Operation(summary = "AI 스마트 발주 추천",
+               description = "최근 7일 판매 속도와 안전재고를 분석하여 발주가 시급한 상품과 추천 수량을 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "추천 목록 반환")
+    @GetMapping("/ai-suggestions")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
+    public ResponseEntity<?> getAiStockSuggestions(
+            @RequestParam(name = "limit", defaultValue = "8") int limit) {
+        return ResponseResult.success("AI 스마트 발주 추천을 불러왔습니다.",
+                stockEmpService.getAiStockSuggestions(limit));
+    }
+
     @Operation(summary = "직원용 상품 상세 조회",
                description = "상품의 기본 정보와 현재 재고를 반환합니다. 삭제된 상품은 조회되지 않습니다.")
     @ApiResponses({

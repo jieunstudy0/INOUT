@@ -39,10 +39,13 @@ public class DepositHistory extends BaseTimeEntity {
     @Column(name = "admin_memo", length = 500)
     private String adminMemo;
 
+    @Column(name = "balance_after")
+    private Long balanceAfter;
+
     @Builder
     public DepositHistory(DepositAccount depositAccount, TransactionType type, 
                           Long amount, String description, 
-                          Long relatedOrderId, Long processedBy, String adminMemo) {
+                          Long relatedOrderId, Long processedBy, String adminMemo, Long balanceAfter) {
         this.depositAccount = depositAccount;
         this.type = type;
         this.amount = amount;
@@ -50,6 +53,7 @@ public class DepositHistory extends BaseTimeEntity {
         this.relatedOrderId = relatedOrderId;
         this.processedBy = processedBy;
         this.adminMemo = adminMemo;
+        this.balanceAfter = balanceAfter;
     }
 
     public void updateAdminMemo(String adminMemo) {

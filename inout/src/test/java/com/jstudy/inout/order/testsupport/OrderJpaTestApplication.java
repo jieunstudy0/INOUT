@@ -22,13 +22,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = {
         "com.jstudy.inout.order.repository",
         "com.jstudy.inout.delivery.repository",
-        "com.jstudy.inout.common.auth.repository"
+        "com.jstudy.inout.common.auth.repository",
+        "com.jstudy.inout.leave.repository"
 })
 @EntityScan(basePackages = {
         "com.jstudy.inout.order.entity",
         "com.jstudy.inout.common.auth.entity",
         "com.jstudy.inout.stock.entity",
-        "com.jstudy.inout.delivery.entity"
+        "com.jstudy.inout.delivery.entity",
+        "com.jstudy.inout.leave.entity"
 })
 @ImportAutoConfiguration({
         TransactionAutoConfiguration.class,

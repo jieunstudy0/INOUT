@@ -24,6 +24,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
-    @Value("${app.oauth2.authorized-redirect-uri}")
+    @Value("${app.oauth2.authorized-redirect-uri:http://localhost:5173/oauth2/callback}")
     private String authorizedRedirectUri;
 
     @Override
@@ -66,9 +67,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         JwtToken jwtToken = jwtTokenProvider.generateToken(jwtAuthentication);
 
         refreshTokenRepository.save(RefreshToken.builder()
-                .id(String.valueOf(user.getId()))
-                .userId(user.getId())
+                .user(user)
                 .token(jwtToken.getRefreshToken())
+                .expiresAt(LocalDateTime.now().plus(REFRESH_TOKEN_COOKIE_MAX_AGE))
                 .build());
 
         String role = authorities.stream()

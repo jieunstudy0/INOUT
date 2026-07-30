@@ -55,6 +55,9 @@ public class OrderRequest {
     
     private String rejectReason;
 
+    @Column(length = 255)
+    private String memo;
+
     @Column(length = 100)
     private String receiverName;
 

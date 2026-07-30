@@ -117,7 +117,7 @@ class StockAdmServiceTest {
         Item item = Item.builder().itemId(1L).currentStock(10).build();
         User admin = User.builder().id(1L).build();
 
-        given(itemRepository.findById(1L)).willReturn(Optional.of(item));
+        given(itemRepository.findByIdWithLock(1L)).willReturn(Optional.of(item));
         given(userRepository.findById(1L)).willReturn(Optional.of(admin));
 
         // when

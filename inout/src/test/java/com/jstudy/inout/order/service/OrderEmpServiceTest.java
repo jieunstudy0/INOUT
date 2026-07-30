@@ -159,7 +159,7 @@ class OrderEmpServiceTest {
                 .id(100L)
                 .requestUser(user)
                 .orderDetails(List.of(d1, d2, d3))
-                .status(OrderStatus.REQUESTED)
+                .status(OrderStatus.PAID)
                 .build();
 
         given(orderRequestRepository.findAllByRequestUser_IdOrderByRequestDateDesc(1L))

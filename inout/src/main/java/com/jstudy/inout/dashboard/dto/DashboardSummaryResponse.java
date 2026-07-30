@@ -37,6 +37,9 @@ public class DashboardSummaryResponse {
     private int todayOutCount;         
 
     private long unreadInquiryCount;
+    private long waitingCsInquiryCount;
+    private long aiDraftCompletedCount;
+    private long aiSuggestedPendingOrderCount;
 
     private List<ActivityItem> recentActivities;
 

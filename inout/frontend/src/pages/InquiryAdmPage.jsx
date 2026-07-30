@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getInquiryList } from '../api/inquiryApi';
+import { triggerAiCsClassification } from '../api/aiApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
@@ -33,11 +34,12 @@ function Pagination({ page, totalPages, onPageChange }) {
 
 export default function InquiryAdmPage() {
   const navigate = useNavigate();
-  
+
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [aiRunning, setAiRunning] = useState(false);
 
   const loadInquiries = useCallback((pg) => {
     setLoading(true);
@@ -52,35 +54,85 @@ export default function InquiryAdmPage() {
 
   useEffect(() => { loadInquiries(page); }, [page, loadInquiries]);
 
+  const handleAiCsDraft = async () => {
+    setAiRunning(true);
+    try {
+      const data = await triggerAiCsClassification();
+      Toast.success(data?.message || 'AI 문의 초안 생성이 완료되었습니다.');
+      loadInquiries(page);
+    } catch {
+      /* interceptor */
+    } finally {
+      setAiRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
-      <div>
-        <h2 className="text-xl font-bold text-slate-800">가맹점 문의 관리</h2>
-        <p className="text-sm text-slate-500 mt-0.5">전체 가맹점의 문의사항을 확인하고 답변을 작성합니다.</p>
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">가맹점 문의 관리</h2>
+          <p className="text-sm text-slate-500 mt-0.5">전체 가맹점의 문의사항을 확인하고 AI 초안을 참고해 답변합니다.</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleAiCsDraft}
+          disabled={aiRunning}
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-60 shadow-sm transition-all"
+        >
+          {aiRunning ? (
+            <><Spinner size="sm" className="text-white" /> 초안 생성 중…</>
+          ) : (
+            <>AI 문의 초안 생성</>
+          )}
+        </button>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
+            <Spinner size="lg" />
+          </div>
+        )}
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
-            <tr>{['번호', '상태', '제목', '작성자(가맹점)', '등록일'].map(h => <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500">{h}</th>)}</tr>
+            <tr>{['번호', '상태', '제목', 'AI 분류', '작성자(가맹점)', '등록일'].map(h => <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500">{h}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
             {inquiries.length === 0 && !loading && (
-              <tr><td colSpan="5" className="py-10"><EmptyState message="등록된 문의 내역이 없습니다." /></td></tr>
+              <tr><td colSpan="6" className="py-10"><EmptyState message="등록된 문의 내역이 없습니다." /></td></tr>
             )}
             {inquiries.map((item, index) => {
               const validId = item.id || item.inquiryId;
-              const rowKey = validId || `inquiry-${index}`; 
-              
+              const rowKey = validId || `inquiry-${index}`;
+
               return (
-                <tr 
-                  key={rowKey} 
-                  onClick={() => navigate(`/admin/inquiries/${validId}`)} 
+                <tr
+                  key={rowKey}
+                  onClick={() => navigate(`/admin/inquiries/${validId}`)}
                   className="hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <td className="px-5 py-4 text-sm text-slate-400">{validId}</td>
                   <td className="px-5 py-4"><InquiryStatusBadge isRead={item.isRead} /></td>
                   <td className={`px-5 py-4 text-sm ${!item.isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>{item.title}</td>
+                  <td className="px-5 py-4">
+                    {item.aiCategory || item.hasAiDraft ? (
+                      <div className="flex flex-col gap-1">
+                        {item.aiCategory && (
+                          <span className="inline-flex w-fit px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700">
+                            {item.aiCategory}
+                          </span>
+                        )}
+                        {item.hasAiDraft && (
+                          <span className="inline-flex w-fit px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700">
+                            AI 초안
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-4 text-sm text-slate-600">{item.authorName}</td>
                   <td className="px-5 py-4 text-sm text-slate-500">{new Date(item.createdAt).toLocaleDateString('ko-KR')}</td>
                 </tr>

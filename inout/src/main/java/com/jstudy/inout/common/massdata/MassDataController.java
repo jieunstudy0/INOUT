@@ -40,7 +40,7 @@ public class MassDataController {
     @PostMapping("/generate-dummy")
     public ResponseEntity<?> generateDummyData(
             @Parameter(description = "기본 생성 건수에 곱할 배율 (1~20)", example = "1")
-            @RequestParam(defaultValue = "1") int scale) {
+            @RequestParam(name = "scale", defaultValue = "1") int scale) {
         log.info("[대량 더미 데이터] 생성 요청 수신 (scale={})", scale);
         MassDataGenerationResponse response = massDataGeneratorService.generate(scale);
         return ResponseResult.successWithData(response);
