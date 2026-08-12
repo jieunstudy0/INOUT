@@ -54,4 +54,3 @@ application-secret.properties
 # 로컬 에이전트/업로드 산출물 (실수로 git add . 되어도 제외)
 uploads/
 .cursorrules
-CLAUDE.md

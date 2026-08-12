@@ -6,7 +6,7 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com/)
-[![Tests](https://img.shields.io/badge/Tests-228%20Passed-success)](#5-테스트-자산--품질-검증-testing-assets)
+[![Tests](https://img.shields.io/badge/Tests-236%20Passed-success)](#5-테스트-자산--품질-검증-testing-assets)
 [![License](https://img.shields.io/badge/License-Private-lightgrey)](#)
 
 > 본사 · 가맹점주 · 현장 직원이 **역할(Role)과 매장(Store) 단위로 격리된 데이터** 위에서  
@@ -93,7 +93,7 @@ INOUT은 **경로 ACL + 서비스 레이어 Store Guard + FE RoleGuard** 3단으
 | **Frontend** | React 19 · Vite 8 · React Router 7 · Tailwind CSS 4 · Axios |
 | **Database & Infra** | MySQL 8.0 · Redis · Docker / Docker Compose · Nginx · AWS EC2 |
 | **Testing & Quality** | JUnit 5 · Mockito · Spring Security Test · MockMvc · H2 (test profile) |
-| **CI 검증 지표** | **228 Unit/Integration 테스트 · 0 failures · 100% Pass** |
+| **CI 검증 지표** | **236 Unit/Integration 테스트 · 0 failures · 100% Pass** |
 
 > 배포 구성은 `inout/docker-compose.yml` 기준입니다.  
 > `mysql` → `redis` → `backend` → `frontend(Nginx)` 순으로 기동하며, 외부 노출은 Nginx 포트에 집중합니다.
@@ -192,7 +192,7 @@ ADMIN  Read-Only 모니터링  (승인 권한 없음)
 
 | 지표 | 값 |
 |------|-----|
-| **총 테스트 수** | **228** |
+| **총 테스트 수** | **236** |
 | **실패** | **0** |
 | **통과율** | **100%** |
 
@@ -232,10 +232,14 @@ INOUT/
     │   ├── common/
     │   │   ├── auth/         # 사용자·역할·점주 직원관리·JWT 필터
     │   │   ├── config/       # Security, Redis, Cache, Dummy seed
+    │   │   ├── dto/          # 공통 API 응답 래핑 (ResponseResult/ResponseMessage)
+    │   │   ├── exception/
+    │   │   ├── extra/        # 부가 에러 응답 포맷
     │   │   ├── jwt/
     │   │   ├── mail/
+    │   │   ├── massdata/     # 대량 더미 데이터 생성 (부하 테스트용)
     │   │   ├── oauth2/
-    │   │   └── exception/
+    │   │   └── util/         # 파일 저장 등 공통 유틸
     │   ├── dashboard/        # 본사·점주 KPI
     │   ├── delivery/         # 배송 (Admin mutate / Owner·Emp read)
     │   ├── inquiry/          # 문의·댓글
@@ -243,7 +247,7 @@ INOUT/
     │   ├── order/            # 장바구니·발주·승인 트랜잭션·이벤트
     │   ├── payment/          # 예치금·충전·결제
     │   └── stock/            # 상품·재고·이미지
-    ├── src/test/java/...     # 228 tests
+    ├── src/test/java/...     # 236 tests
     └── frontend/
         ├── src/
         │   ├── api/          # 역할별 API 클라이언트
@@ -321,7 +325,7 @@ docker compose --env-file .env up -d --build
 | **Cross-Store Isolation** | Store Scope Filtering & Guard → `CROSS_STORE_FORBIDDEN` |
 | **동시성** | 주문/예치금/재고 `FOR UPDATE` 락 · 승인 `REQUIRES_NEW` |
 | **도메인 이벤트** | 발주 승인 → 배송 생성 등 후속 처리 분리 |
-| **품질 자산** | 228 tests · ACL 스모크 · 잔액/재고 예외 케이스 |
+| **품질 자산** | 236 tests · ACL 스모크 · 잔액/재고 예외 케이스 |
 
 ---
 
@@ -332,7 +336,7 @@ docker compose --env-file .env up -d --build
 | [`inout/docs/ARCHITECTURE.md`](inout/docs/ARCHITECTURE.md) | 도메인 경계 · 발주~배송 흐름 · 락 설계 |
 | [`inout/docs/TROUBLESHOOTING.md`](inout/docs/TROUBLESHOOTING.md) | 로컬/배포 트러블슈팅 |
 | [`inout/DEPLOY.md`](inout/DEPLOY.md) | EC2 · Docker 배포 가이드 |
-| [`inout/CLAUDE.md`](inout/CLAUDE.md) | 에이전트/개발 컨벤션 |
+| [`inout/CLAUDE.md`](inout/CLAUDE.md) | AI 에이전트 개발 컨벤션 가이드 |
 
 ---
 
