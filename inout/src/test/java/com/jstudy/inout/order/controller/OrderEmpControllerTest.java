@@ -96,7 +96,7 @@ class OrderEmpControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.header.message").value("주문서가 생성되었습니다."))
+                .andExpect(jsonPath("$.header.message").value("발주 기안이 등록되었습니다. 점주 승인 대기 중입니다."))
                 .andExpect(jsonPath("$.body").isNumber());
     }
 
