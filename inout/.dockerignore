@@ -1,0 +1,49 @@
+# ──────────────────────────────────────────
+# .dockerignore — Docker 빌드 컨텍스트 제외 목록
+# ──────────────────────────────────────────
+
+# Gradle 빌드 산출물 (Docker 내에서 재빌드)
+.gradle/
+build/
+
+# IDE 설정 파일
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.classpath
+*.project
+*.factorypath
+
+# 민감 정보 — 컨테이너에 절대 포함 금지
+src/main/resources/application-secret.properties
+
+# 테스트 관련
+src/test/
+
+# 프론트엔드 소스는 별도 컨테이너(frontend/Dockerfile)로 빌드되지만,
+# docker-compose 빌드 컨텍스트를 이 폴더(inout/) 하나로 공유하므로 완전히 제외하지 않고
+# 무거운 산출물/의존성 디렉터리만 제외한다 (build.gradle 빌드 컨텍스트 용량 절감 목적).
+frontend/node_modules/
+frontend/dist/
+
+# 문서
+*.md
+docs/
+
+# 로컬 업로드 파일 (볼륨 마운트로 대체)
+uploads/
+
+# 로컬 로그
+logs/
+*.log
+
+# OS 메타데이터
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
