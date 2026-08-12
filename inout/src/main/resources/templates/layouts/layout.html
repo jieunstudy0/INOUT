@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <title>INOUT 관리 시스템</title>
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <th:block layout:fragment="css"></th:block>
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo" onclick="location.href='/admin/dashboard'">INOUT LOGO</div>
+            <div class="user-info">
+                <span id="headerBranch" th:text="${#authentication.principal.user.branchName}">지점명</span> | 
+                <span id="headerUser" th:text="${#authentication.principal.user.name}">관리자</span>님
+                <button class="edit-info-btn">정보 수정</button>
+                <button class="logout-btn" onclick="location.href='/logout'">로그아웃</button>
+            </div>
+        </div>
+    </header>
+
+    <main layout:fragment="content">
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-links">
+            <a href="#">공지사항</a>
+            <a href="#">이용약관</a>
+            <a href="#">개인정보취급방침</a>
+        </div>
+        <p>&copy; 2026 INOUT System. All rights reserved.</p>
+    </footer>
+
+    <script th:src="@{/js/common.js}"></script>
+    <th:block layout:fragment="script"></th:block>
+</body>
+</html>

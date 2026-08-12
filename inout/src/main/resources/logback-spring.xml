@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Spring Boot 기본 색상·패턴 변수 로드 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="APP_NAME"  source="spring.application.name" defaultValue="inout"/>
+    <springProperty scope="context" name="LOG_PATH"  source="logging.file.path"       defaultValue="logs"/>
+
+    <!-- ────────────────────────────────────────────────
+         개발 환경 (dev / local / 프로파일 미지정)
+         - 컬러 콘솔 출력만 사용
+         ──────────────────────────────────────────────── -->
+    <springProfile name="!prod">
+
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <!-- application.properties의 logging.pattern.console 값 활용 -->
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+
+        <!-- 개발 시 SQL 파라미터 바인딩 확인 -->
+        <logger name="org.hibernate.type.descriptor.sql" level="TRACE"/>
+
+    </springProfile>
+
+
+    <!-- ────────────────────────────────────────────────
+         운영 환경 (prod)
+         - 컬러 없는 콘솔 (Docker stdout → 수집 시스템)
+         - 일별 롤링 파일 (50 MB 단위 분할, 30일 보관)
+         ──────────────────────────────────────────────── -->
+    <springProfile name="prod">
+
+        <!-- 1. 콘솔 (구조화된 텍스트, 색상 없음) -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%15.15t] [%X{traceId}] %-40.40logger{39}: %m%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <!-- 2. 일별 롤링 파일 -->
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${APP_NAME}.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%15.15t] [%X{traceId}] %-40.40logger{39}: %m%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <!-- 일별 회전 + 50 MB 초과 시 번호 추가 -->
+                <fileNamePattern>${LOG_PATH}/${APP_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>3GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <!-- 에러 전용 별도 파일 (운영자 알림용) -->
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${APP_NAME}-error.log</file>
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>ERROR</level>
+            </filter>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%15.15t] [%X{traceId}] %-40.40logger{39}: %m%n</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/${APP_NAME}-error-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                <maxFileSize>20MB</maxFileSize>
+                <maxHistory>60</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <!-- 운영 로그 레벨: 애플리케이션은 INFO, 프레임워크는 WARN -->
+        <logger name="com.jstudy.inout"                level="INFO"/>
+        <logger name="org.springframework.web"         level="WARN"/>
+        <logger name="org.springframework.security"    level="WARN"/>
+        <logger name="org.hibernate"                   level="WARN"/>
+        <logger name="org.apache.http"                 level="WARN"/>
+        <logger name="io.lettuce"                      level="WARN"/>
+
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+
+    </springProfile>
+
+</configuration>

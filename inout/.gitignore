@@ -1,0 +1,57 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+# Eclipse project files
+.project
+.classpath
+.settings/
+/bin/
+
+# Gradle build output
+/build/
+
+# IDE specific files (Optional, but good practice)
+*.iml
+.idea/
+
+application-secret.properties
+
+# 로컬 에이전트/업로드 산출물 (실수로 git add . 되어도 제외)
+uploads/
+.cursorrules
+CLAUDE.md

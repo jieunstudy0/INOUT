@@ -1,0 +1,15 @@
+# 로컬 개발 프로필 (spring.profiles.active=local)
+# Gemini 등 AI 스케줄러는 기본 OFF — 필요 시 true 로 켠다.
+ai:
+  scheduler:
+    enabled: false
+
+deposit:
+  scheduler:
+    enabled: false
+
+# 배송조회 — 로컬은 Mock Fallback 사용
+delivery:
+  api:
+    key: ""
+    base-url: https://info.sweettracker.co.kr/api/v1

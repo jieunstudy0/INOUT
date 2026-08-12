@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <title>로그인 | INOUT SYSTEM</title>
+</head>
+
+<th:block layout:fragment="css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</th:block>
+
+<main layout:fragment="content" class="bg-slate-50 min-h-screen flex items-center justify-center font-sans">
+    <div id="login-root"></div>
+</main>
+
+<th:block layout:fragment="script">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel" data-presets="react" th:src="@{/js/user/loginApp.js}"></script>
+</th:block>
+</html>
