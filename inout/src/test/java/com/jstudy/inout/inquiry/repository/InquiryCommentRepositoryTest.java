@@ -44,6 +44,7 @@ class InquiryCommentRepositoryTest {
                     "content" CLOB NOT NULL,
                     "user_id" BIGINT NOT NULL,
                     "is_read" BOOLEAN NOT NULL,
+                    "target_type" VARCHAR(10) NOT NULL,
                     "original_file_name" VARCHAR(255),
                     "saved_file_path" VARCHAR(255),
                     "ai_category" VARCHAR(50),
