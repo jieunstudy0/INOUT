@@ -17,6 +17,9 @@ import com.jstudy.inout.common.auth.filter.JwtAuthenticationFilter;
 import com.jstudy.inout.common.config.handler.CustomAccessDeniedHandler;
 import com.jstudy.inout.common.config.handler.CustomAuthenticationEntryPoint;
 import com.jstudy.inout.common.jwt.JwtTokenProvider;
+import com.jstudy.inout.common.oauth2.CustomOAuth2UserService;
+import com.jstudy.inout.common.oauth2.OAuth2AuthenticationFailureHandler;
+import com.jstudy.inout.common.oauth2.OAuth2AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +32,9 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -54,6 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).permitAll()
                         .requestMatchers("/.well-known/**", "/error").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -71,7 +78,15 @@ public class SecurityConfig {
                                 "/api/user/resetPassword",
                                 "/user/login"
                         ).permitAll()
-                      
+                        // Spring Security OAuth2 Client의 기본 진입점(인가 요청)과 콜백 엔드포인트.
+                        // JWT가 없는 최초 요청이므로 반드시 permitAll 이어야 하며, 그렇지 않으면
+                        // JwtAuthenticationFilter 통과 후 anyRequest().authenticated()에 걸려
+                        // CustomAuthenticationEntryPoint가 401(AUTH_401)을 즉시 반환한다.
+                        .requestMatchers(
+                                "/oauth2/**",
+                                "/login/oauth2/**"
+                        ).permitAll()
+
                         .requestMatchers("/admin/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/owner/**").hasRole("OWNER")
@@ -88,6 +103,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/deliveries/**").authenticated()
                         .anyRequest().authenticated()
+                )
+                // 카카오/네이버/구글 소셜 로그인 — 이전에는 CustomOAuth2UserService /
+                // OAuth2AuthenticationSuccessHandler 구현체만 존재하고 실제로 필터체인에
+                // 등록되어 있지 않아 "/oauth2/authorization/{provider}" 요청이 그대로
+                // anyRequest().authenticated() 규칙에 걸려 401(AUTH_401)로 막혔었다.
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler)
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(authenticationEntryPoint)
