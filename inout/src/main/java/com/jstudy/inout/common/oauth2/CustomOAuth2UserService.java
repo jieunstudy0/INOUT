@@ -66,16 +66,20 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     private User createSocialUser(OAuthAttributes attrs) {
         User newUser = userRepository.save(attrs.toEntity());
 
-        Role defaultRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
-                .orElseThrow(() -> new IllegalStateException(
-                        "기본 권한 ROLE_EMPLOYEE가 존재하지 않습니다. 초기 데이터를 확인해 주세요."));
+        // 신규 소셜 사용자는 온보딩이 끝나기 전까지 ROLE_GUEST로 임시 등록한다.
+        // Runner가 미처 실행되기 전이거나 DB 초기화 직후 상황을 대비해 없으면 즉시 생성한다.
+        Role guestRole = roleRepository.findByRoleName("ROLE_GUEST")
+                .orElseGet(() -> {
+                    log.warn("[CustomOAuth2UserService] ROLE_GUEST 행이 없어 즉석 생성합니다.");
+                    return roleRepository.save(Role.builder().roleName("ROLE_GUEST").build());
+                });
 
         userRoleRepository.save(UserRole.builder()
                 .user(newUser)
-                .role(defaultRole)
+                .role(guestRole)
                 .build());
 
-        log.info("신규 소셜 사용자 등록: email={}, provider={}", newUser.getEmail(), newUser.getProvider());
+        log.info("신규 소셜 사용자 임시 등록(ROLE_GUEST): email={}, provider={}", newUser.getEmail(), newUser.getProvider());
         return newUser;
     }
 }

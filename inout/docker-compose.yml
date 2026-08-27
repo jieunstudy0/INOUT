@@ -87,7 +87,9 @@ services:
     # ports:
     #   - "8080:8080"   # frontend(Nginx)를 거치지 않고 직접 API를 테스트해야 할 때만 임시로 해제
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      # /actuator/health 는 readiness(외부 의존성 포함) 상태에 따라 503을 반환할 수 있으므로
+      # 컨테이너 생존 확인은 liveness 엔드포인트로 수행한다.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health/liveness"]
       interval: 15s
       timeout: 5s
       retries: 6

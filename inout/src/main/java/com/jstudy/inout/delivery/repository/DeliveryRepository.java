@@ -18,6 +18,15 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     Optional<Delivery> findByOrderRequest_Id(Long orderId);
 
+    @Query("""
+            SELECT d
+            FROM Delivery d
+            JOIN FETCH d.orderRequest o
+            WHERE d.trackingNumber = :trackingNumber
+            ORDER BY d.id DESC
+            """)
+    List<Delivery> findAllByTrackingNumberWithOrder(@Param("trackingNumber") String trackingNumber);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from Delivery d where d.orderRequest.id = :orderId")
     Optional<Delivery> findByOrderIdForUpdate(@Param("orderId") Long orderId);

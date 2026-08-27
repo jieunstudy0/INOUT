@@ -51,7 +51,7 @@ public class Delivery extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String destinationAddress;
 
-    @Column(length = 100)
+    @Column(length = 100, unique = true)
     private String trackingNumber;
 
     /** 택배사명 (예: CJ대한통운) */

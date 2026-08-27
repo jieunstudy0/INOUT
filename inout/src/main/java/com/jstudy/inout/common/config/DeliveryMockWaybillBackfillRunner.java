@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @Order(100)
-@Profile({"local", "demo", "secret", "dev"})
+@Profile({"local", "demo", "dev"})
 @RequiredArgsConstructor
 public class DeliveryMockWaybillBackfillRunner implements ApplicationRunner {
 

@@ -33,6 +33,20 @@ public interface OrderRequestRepository extends JpaRepository<OrderRequest, Long
 	        "ORDER BY o.requestDate DESC")
 	 List<OrderRequest> findAllWithDetailsOrderByDateDesc();
 
+	 /**
+	  * AI 자동 발주로 생성된 REQUESTED 초안만 반환.
+	  * (isAiSuggested=true 인 OrderDetail이 1개 이상 존재하는 OrderRequest)
+	  */
+	 @Query("SELECT DISTINCT o FROM OrderRequest o " +
+	        "JOIN FETCH o.requestUser u " +
+	        "LEFT JOIN FETCH u.store " +
+	        "LEFT JOIN FETCH o.orderDetails d " +
+	        "LEFT JOIN FETCH d.item " +
+	        "WHERE o.status = 'REQUESTED' " +
+	        "AND EXISTS (SELECT 1 FROM OrderDetail d2 WHERE d2.orderRequest = o AND d2.isAiSuggested = true) " +
+	        "ORDER BY o.requestDate DESC")
+	 List<OrderRequest> findAllAiProposedOrderByDateDesc();
+
 	 /** 본사 목록: 직원 미결제 기안(REQUESTED) 제외 */
 	 @Query("SELECT DISTINCT o FROM OrderRequest o " +
 	        "JOIN FETCH o.requestUser u " +

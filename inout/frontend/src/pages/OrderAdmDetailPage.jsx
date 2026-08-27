@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDetail, processItems, approveAiSuggestedItems } from '../api/orderAdmApi.js';
 import { getDeliveryByOrder, generateWaybill, startShipping } from '../api/deliveryApi';
@@ -54,6 +54,8 @@ export default function OrderAdmDetailPage() {
   const [issuing, setIssuing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [trackOpen, setTrackOpen] = useState(false);
+  // 백엔드 직렬화 형태(isAiSuggested/aiSuggested) 차이를 모두 허용
+  const isAiSuggestedItem = (item) => (item?.isAiSuggested ?? item?.aiSuggested ?? false);
 
   const loadDelivery = useCallback(() => {
     if (!orderId) return;
@@ -116,19 +118,21 @@ export default function OrderAdmDetailPage() {
       const label = status === 'APPROVED' ? '승인' : status === 'REJECTED' ? '반려' : '대기';
       Toast.success(`품목이 ${label} 처리되었습니다.`);
       loadDetail();
+      loadDelivery();
     } catch { /* api client already toasted */ }
     finally { setProc(null); }
   };
 
   const handleApproveAll = async () => {
     if (!detail?.items) return;
-    const waitingItems = detail.items.filter((i) => !i.isAiSuggested && (i.status === 'WAITING' || i.status === 'DELAYED'));
+    const waitingItems = detail.items.filter((i) => !isAiSuggestedItem(i) && (i.status === 'WAITING' || i.status === 'DELAYED'));
     if (waitingItems.length === 0) { Toast.info('처리 가능한 대기 중 품목이 없습니다.'); return; }
     setProc('ALL');
     try {
       await processItems(orderId, waitingItems.map((i) => ({ orderDetailId: i.orderDetailId, status: 'APPROVED' })));
       Toast.success(`${waitingItems.length}개 품목이 모두 승인 처리되었습니다.`);
       loadDetail();
+      loadDelivery();
     } catch { /* toasted */ }
     finally { setProc(null); }
   };
@@ -139,13 +143,14 @@ export default function OrderAdmDetailPage() {
       await approveAiSuggestedItems(orderId, [{ orderDetailId, approve }]);
       Toast.success(approve ? 'AI 제안 품목이 승인되었습니다.' : 'AI 제안 품목이 반려되었습니다.');
       loadDetail();
+      loadDelivery();
     } catch { /* api client already toasted */ }
     finally { setProc(null); }
   };
 
   const handleAiApproveAll = async () => {
     if (!detail?.items) return;
-    const aiWaitingItems = detail.items.filter((i) => i.isAiSuggested && (i.status === 'WAITING' || i.status === 'DELAYED'));
+    const aiWaitingItems = detail.items.filter((i) => isAiSuggestedItem(i) && (i.status === 'WAITING' || i.status === 'DELAYED'));
     if (aiWaitingItems.length === 0) { Toast.info('처리 가능한 AI 제안 품목이 없습니다.'); return; }
     setProc('AI_ALL');
     try {
@@ -155,6 +160,7 @@ export default function OrderAdmDetailPage() {
       );
       Toast.success(`AI 제안 품목 ${aiWaitingItems.length}건이 모두 승인되었습니다.`);
       loadDetail();
+      loadDelivery();
     } catch { /* toasted */ }
     finally { setProc(null); }
   };
@@ -162,8 +168,9 @@ export default function OrderAdmDetailPage() {
   if (loading) return <div className="flex justify-center py-32"><Spinner size="lg" /></div>;
   if (!detail) return <EmptyState message="발주 정보를 찾을 수 없습니다." />;
 
-  const waitingCount = detail.items?.filter((i) => !i.isAiSuggested && (i.status === 'WAITING' || i.status === 'DELAYED')).length ?? 0;
-  const aiWaitingCount = detail.items?.filter((i) => i.isAiSuggested && (i.status === 'WAITING' || i.status === 'DELAYED')).length ?? 0;
+  const waitingCount = detail.items?.filter((i) => !isAiSuggestedItem(i) && (i.status === 'WAITING' || i.status === 'DELAYED')).length ?? 0;
+  const aiWaitingCount = detail.items?.filter((i) => isAiSuggestedItem(i) && (i.status === 'WAITING' || i.status === 'DELAYED')).length ?? 0;
+  const hasAiSuggestedOrder = detail.items?.some((i) => isAiSuggestedItem(i)) ?? false;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -179,6 +186,16 @@ export default function OrderAdmDetailPage() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {hasAiSuggestedOrder && (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+              ✦ AI 추천 발주
+            </span>
+          )}
+          {detail.inboundStatusLabel && (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
+              {detail.inboundStatusLabel}
+            </span>
+          )}
           {aiWaitingCount > 0 && (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-100 text-teal-700 border border-teal-200">
               AI 제안 대기 {aiWaitingCount}건
@@ -202,6 +219,18 @@ export default function OrderAdmDetailPage() {
             </div>
           ))}
         </div>
+        {detail.aiSuggestedOrder && (
+          <div className="px-6 py-3 bg-indigo-50/70 border-t border-indigo-100">
+            <p className="text-xs text-indigo-800">
+              <span className="font-semibold text-indigo-600 mr-2">공급처</span>
+              {detail.vendorName || '(주)본사지정협력사'}
+            </p>
+            <p className="text-xs text-indigo-800 mt-1">
+              <span className="font-semibold text-indigo-600 mr-2">예상 입고일</span>
+              {detail.expectedInboundAt ? formatDate(detail.expectedInboundAt) : '-'}
+            </p>
+          </div>
+        )}
         {detail.rejectReason && (
           <div className="px-6 py-3 bg-rose-50 border-t border-rose-100 flex items-start gap-2">
             <svg className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
@@ -308,47 +337,53 @@ export default function OrderAdmDetailPage() {
             <tbody className="divide-y divide-slate-50 bg-white">
               {detail.items?.map((item) => {
                 const isThis = processing === item.orderDetailId;
-                const aiEditable = item.isAiSuggested && (item.status === 'WAITING' || item.status === 'DELAYED');
+                const isAiSuggested = isAiSuggestedItem(item);
+                const aiEditable = isAiSuggested && (item.status === 'WAITING' || item.status === 'DELAYED');
 
-                if (item.isAiSuggested) {
+                if (isAiSuggested) {
                   return (
-                    <tr key={item.orderDetailId} className="hover:bg-teal-50/40 transition-colors bg-teal-50/20">
-                      <td className="px-6 py-4 text-sm font-medium text-slate-800 align-top">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-700 border border-teal-200">
-                            AI 제안
-                          </span>
-                          <span>{item.itemName}</span>
-                        </div>
-                        {item.aiReason && (
-                          <p className="text-xs text-teal-700/80 mt-1.5 max-w-sm leading-relaxed" title={item.aiReason}>
-                            {item.aiReason}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 align-top">{(item.quantity ?? 0).toLocaleString()}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600 align-top">{formatCurrency(item.priceSnapshot)}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700 align-top">{formatCurrency(item.subTotal)}</td>
-                      <td className="px-6 py-4 align-top"><DetailStatusBadge status={item.status} /></td>
-                      <td className="px-6 py-4 align-top">
-                        {aiEditable ? (
+                    <Fragment key={item.orderDetailId}>
+                      <tr className="hover:bg-teal-50/40 transition-colors bg-teal-50/20">
+                        <td className="px-6 py-4 text-sm font-medium text-slate-800 align-top">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <button disabled={!!processing}
-                              onClick={() => handleAiDecision(item.orderDetailId, true)}
-                              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition-colors">
-                              {isThis ? '...' : '승인'}
-                            </button>
-                            <button disabled={!!processing}
-                              onClick={() => handleAiDecision(item.orderDetailId, false)}
-                              className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50 transition-colors">
-                              {isThis ? '...' : '반려'}
-                            </button>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-teal-100 text-teal-700 border border-teal-200">
+                              AI 제안
+                            </span>
+                            <span>{item.itemName}</span>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">처리 완료</span>
-                        )}
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 align-top">{(item.quantity ?? 0).toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-slate-600 align-top">{formatCurrency(item.priceSnapshot)}</td>
+                        <td className="px-6 py-4 text-sm font-semibold text-slate-700 align-top">{formatCurrency(item.subTotal)}</td>
+                        <td className="px-6 py-4 align-top"><DetailStatusBadge status={item.status} /></td>
+                        <td className="px-6 py-4 align-top">
+                          {aiEditable ? (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button disabled={!!processing}
+                                onClick={() => handleAiDecision(item.orderDetailId, true)}
+                                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition-colors">
+                                {isThis ? '...' : '승인'}
+                              </button>
+                              <button disabled={!!processing}
+                                onClick={() => handleAiDecision(item.orderDetailId, false)}
+                                className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50 transition-colors">
+                                {isThis ? '...' : '반려'}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">처리 완료</span>
+                          )}
+                        </td>
+                      </tr>
+                      {!!item.aiReason?.trim() && (
+                        <tr className="bg-indigo-50/50">
+                          <td colSpan={6} className="py-2 px-4 text-xs text-indigo-900 border-b border-indigo-100">
+                            <span className="font-semibold text-indigo-600 mr-2">✦ AI 제안 근거:</span>
+                            {item.aiReason}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 }
 

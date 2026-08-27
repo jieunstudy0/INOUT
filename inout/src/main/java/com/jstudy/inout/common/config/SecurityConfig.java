@@ -78,6 +78,9 @@ public class SecurityConfig {
                                 "/api/user/resetPassword",
                                 "/user/login"
                         ).permitAll()
+                        // ROLE_GUEST 전용: 소셜 온보딩 완료 API만 접근 허용.
+                        // 나머지 업무 API(/api/emp/**, /api/owner/** 등)는 아래 역할 규칙에서 차단된다.
+                        .requestMatchers("/api/auth/social/complete-profile").hasRole("GUEST")
                         // Spring Security OAuth2 Client의 기본 진입점(인가 요청)과 콜백 엔드포인트.
                         // JWT가 없는 최초 요청이므로 반드시 permitAll 이어야 하며, 그렇지 않으면
                         // JwtAuthenticationFilter 통과 후 anyRequest().authenticated()에 걸려

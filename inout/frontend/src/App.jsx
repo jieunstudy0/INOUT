@@ -39,6 +39,7 @@ import OwnerOrderList from './pages/OwnerOrderList';
 import OwnerLeaveApproval from './pages/OwnerLeaveApproval';
 import OrderAdmDetailPage from './pages/OrderAdmDetailPage';
 import { resolveHomeFromToken } from './utils/roleUtils';
+import SocialOnboardingPage from './pages/SocialOnboardingPage';
 
 function NotFound() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
+        <Route path="/onboarding/complete-profile" element={<SocialOnboardingPage />} />
         <Route path="/find-account" element={<FindAccountPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getList, getHistory, getLowStockAlerts, adjustStock, registerStock } from '../api/stockApi';
 import { getDashboardSummary } from '../api/dashboardApi';
+import { triggerAiAutoOrderAnalysis } from '../api/aiApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
@@ -458,20 +460,73 @@ function StockTable({ items, onHistoryClick, onAdjustClick }) {
   );
 }
 
-function LowStockBanner({ count }) {
+/** AI 발주 초안 생성 완료 후 발주 관리 이동 확인 모달 */
+function AiDraftResultModal({ savedCount, onNavigate, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+        <div className="px-6 py-5 bg-teal-600">
+          <div className="flex items-center gap-3">
+            <span className="text-white text-2xl">✦</span>
+            <div>
+              <h3 className="text-base font-bold text-white">AI 발주 초안 생성 완료</h3>
+              <p className="text-sm text-white/80 mt-0.5">
+                {savedCount > 0
+                  ? `안전재고 부족 품목에 대한 발주 초안 ${savedCount}건이 생성되었습니다.`
+                  : '현재 재고 보충이 필요한 품목이 없습니다.'}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="px-6 py-5 space-y-3">
+          {savedCount > 0 && (
+            <button
+              onClick={onNavigate}
+              className="w-full py-2.5 text-sm font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition"
+            >
+              발주 관리 → AI 발주 제안 탭으로 이동
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 text-sm font-medium rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+          >
+            현재 페이지 유지
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LowStockBanner({ count, onAiClick, aiRunning }) {
   if (!count) return null;
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-      <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-      </svg>
-      <span>재고 보충이 필요한 상품이 <strong>{count}건</strong> 있습니다.</span>
+    <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+      <div className="flex items-center gap-2.5 text-sm text-amber-800">
+        <svg className="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+        <span>재고 보충이 필요한 상품이 <strong>{count}건</strong> 있습니다.</span>
+      </div>
+      <button
+        onClick={onAiClick}
+        disabled={aiRunning}
+        className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60 transition-all shrink-0"
+      >
+        {aiRunning
+          ? <><Spinner size="sm" className="text-white" /> 분석 중…</>
+          : <>✦ AI 발주 추천 분석</>}
+      </button>
     </div>
   );
 }
 
 
 export default function StockPage() {
+  const navigate = useNavigate();
+
   const [items, setItems]               = useState([]);
   const [loading, setLoading]           = useState(true);
   const [page, setPage]                 = useState(0);
@@ -481,12 +536,16 @@ export default function StockPage() {
   const [inputName, setInputName]       = useState('');
   const [showDeleted, setShowDeleted]   = useState(false);
   const [lowCount, setLowCount]         = useState(0);
-  
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [adjustItem, setAdjustItem]     = useState(null);
   const [isRegisterOpen, setRegisterOpen] = useState(false);
 
   const [summaryData, setSummaryData]   = useState(null);
+
+  // AI 발주 초안 생성
+  const [aiRunning, setAiRunning]           = useState(false);
+  const [aiDraftResult, setAiDraftResult]   = useState(null); // { savedCount }|null
 
   const loadItems = useCallback((pg, name, deleted) => {
     setLoading(true);
@@ -526,11 +585,23 @@ export default function StockPage() {
   const handleSearch = (e) => { e.preventDefault(); setPage(0); setSearchName(inputName.trim()); };
   const handleReset  = () => { setInputName(''); setSearchName(''); setShowDeleted(false); setPage(0); };
   
-  const handleRefresh = () => { 
-    loadItems(page, searchName, showDeleted); 
-    loadAlerts(); 
-    loadSummary(); 
-    Toast.info('목록을 새로고침했습니다.'); 
+  const handleRefresh = () => {
+    loadItems(page, searchName, showDeleted);
+    loadAlerts();
+    loadSummary();
+    Toast.info('목록을 새로고침했습니다.');
+  };
+
+  const handleAiAnalyze = async () => {
+    setAiRunning(true);
+    try {
+      const data = await triggerAiAutoOrderAnalysis();
+      setAiDraftResult({ savedCount: data?.savedCount ?? 0 });
+    } catch {
+      /* toasted by interceptor */
+    } finally {
+      setAiRunning(false);
+    }
   };
 
   return (
@@ -584,7 +655,7 @@ export default function StockPage() {
         </div>
       )}
 
-      <LowStockBanner count={lowCount} />
+      <LowStockBanner count={lowCount} onAiClick={handleAiAnalyze} aiRunning={aiRunning} />
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4">
         <form onSubmit={handleSearch} className="flex flex-wrap items-end gap-3">
@@ -631,6 +702,18 @@ export default function StockPage() {
           <Pagination page={page} totalPages={totalPages}
             onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />
         </div>
+      )}
+
+      {/* AI 발주 초안 결과 모달 */}
+      {aiDraftResult && (
+        <AiDraftResultModal
+          savedCount={aiDraftResult.savedCount}
+          onNavigate={() => {
+            setAiDraftResult(null);
+            navigate('/admin/orders', { state: { activeTab: 'AI_PROPOSED' } });
+          }}
+          onClose={() => setAiDraftResult(null)}
+        />
       )}
 
       {/* 모달 영역 */}

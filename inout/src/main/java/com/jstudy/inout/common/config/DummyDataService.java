@@ -30,7 +30,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 @Service
-@Profile({"local", "demo", "secret"})
+@Profile({"local", "demo", "dev"})
 @RequiredArgsConstructor
 public class DummyDataService {
 

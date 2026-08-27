@@ -54,7 +54,10 @@ public class User extends BaseTimeEntity {
     private UserStatus status = UserStatus.ACTIVE;
     
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    // UserRole은 항상 UserRoleRepository로 직접 저장/삭제한다 (User 그래프를 통한 cascade 저장은 사용하지 않음).
+    // cascade=ALL로 두면 로그인 시 userRoles 지연 로딩 과정에서 Hibernate가 flush-time cascade로
+    // User 자신을 detached 상태로 오인해 재저장을 시도하다 PersistentObjectException을 던지는 문제가 있었다.
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
     private List<UserRole> userRoles = new ArrayList<>();
 
@@ -157,6 +160,13 @@ public class User extends BaseTimeEntity {
     public void updateSocialProfile(String provider, String providerId) {
         this.provider = provider;
         this.providerId = providerId;
+    }
+
+    /** 소셜 온보딩 완료 시 실명·전화·생년월일을 확정한다. */
+    public void completeSocialOnboarding(String name, String phone, LocalDate birthday) {
+        this.name = name;
+        this.phone = phone;
+        this.birthday = birthday;
     }
 
     /** 1일 한도 설정. null이면 무제한. */

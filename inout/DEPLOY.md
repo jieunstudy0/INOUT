@@ -142,9 +142,13 @@ docker compose up -d backend
 ### 3.5 배포 확인
 
 ```bash
-curl -i http://<EC2 퍼블릭 IP>/actuator/health
-# {"status":"UP"} 이 보이면 정상
+curl -i http://<EC2 퍼블릭 IP>/actuator/health/liveness
+# HTTP 200 + {"status":"UP"} 이 보이면 정상
 ```
+
+`docker-compose.yml`의 backend 헬스체크 설정은 아래와 동일한 기준을 사용한다.
+`test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health/liveness"]`
+(`/actuator/health`는 readiness 그룹 상태에 따라 503(DOWN)를 반환할 수 있으므로 컨테이너 생존 확인용으로는 부적합)
 
 브라우저로 `http://<EC2 퍼블릭 IP>/` 접속 후 로그인/상품목록/이미지 로딩까지 확인한다.
 
@@ -174,6 +178,7 @@ docker stats                          # 컨테이너별 실시간 CPU/메모리 
 
 | 증상 | 확인 방법 | 원인/조치 |
 |---|---|---|
+| `backend`가 `unhealthy`인데 앱 로그는 정상처럼 보임 | `docker compose ps` + `docker compose logs backend` + `docker compose exec backend wget -qO- http://localhost:8080/actuator/health/liveness` | 헬스체크 기준은 `/actuator/health/liveness`가 맞다. (`docker-compose.yml`과 동일: `test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health/liveness"]`) `/actuator/health`는 readiness 의존성(DB/Redis 등) 상태에 따라 503을 반환할 수 있으므로 생존 확인 기준으로 사용하지 않는다. |
 | `backend`가 계속 재시작(`Restarting`) | `docker compose logs backend` 에서 `PlaceholderResolutionException` 또는 `Unsatisfied dependency` 검색 | `.env`에 필수 값(JWT_SECRET, SPRING_DATASOURCE_* 등) 누락 — §5 표 재확인 |
 | `backend`가 `Schema-validation` 에러로 재시작 | 로그에 `Missing table` 문구 | §3.4(최초 스키마 생성)를 아직 안 함 |
 | 이미지가 안 뜸(404) | 브라우저 개발자도구 Network 탭에서 `/uploads/...` 응답 코드 확인 | `nginx/default.conf`의 `/uploads/` 프록시 설정과 `WebConfig`의 `permitAll()` 매핑이 맞는지 확인 |
@@ -214,8 +219,8 @@ docker compose down -v                # ⚠️ 전체 중지 + 볼륨 삭제 (DB
 | `SPRING_MAIL_PASSWORD` | 필수 (기본값 없음) | 카카오 SMTP 앱 비밀번호 | change-me |
 | `GEMINI_API_KEY` | 선택 | Gemini AI API 키 — AI 인사이트 리포트 / AI CS 자동 분류·답변 초안 / AI 지능형 재고 분석·자동 발주 3개 기능이 공유 (미설정 시 3개 기능만 비활성화, 나머지 서비스는 정상 동작) | 미설정 가능 |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | 필수 (기본값 없음) | Google OAuth2 앱 키 | 콘솔에서 발급 |
-| `KAKAO_CLIENT_ID` / `KAKAO_CLIENT_SECRET` | 필수 (기본값 없음) | Kakao OAuth2 앱 키 | 콘솔에서 발급 |
-| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 필수 (기본값 없음) | Naver OAuth2 앱 키 | 콘솔에서 발급 |
+| `KAKAO_CLIENT_ID` / `KAKAO_CLIENT_SECRET` | 선택 (`:not-configured` 기본값 있음) | Kakao OAuth2 앱 키 — 프론트에서 "준비중" 배지로 막아둔 동안은 비워둬도 기동됨. 사업자등록(이메일 동의항목) 후 채우고 `LoginPage.jsx`의 enabled를 true로 전환 | 콘솔에서 발급 |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 선택 (`:not-configured` 기본값 있음) | Naver OAuth2 앱 키 — 검수 통과 전까지는 비워둬도 기동됨. 검수 통과 후 채우고 `LoginPage.jsx`의 enabled를 true로 전환 | 콘솔에서 발급 |
 | `UPLOAD_PATH` | 선택 | 컨테이너 내부 업로드 경로 (볼륨 마운트 대상, 변경 불필요) | `/app/uploads` |
 
 > "필수 (기본값 없음)"으로 표시된 변수는 `.env`에서 누락되면 컨테이너가 기동 즉시 에러를 내며 재시작을 반복한다 (§4.2 참고). 이는 의도된 동작이다 — 값이 없는 채로 조용히 잘못된 기본값(예: `localhost`)으로 기동되는 것을 막기 위함이다.

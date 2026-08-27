@@ -1,5 +1,7 @@
 package com.jstudy.inout.order.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -144,5 +146,120 @@ class OrderAdmServiceTest {
                 .hasMessageContaining("대기 상태로 되돌릴 수 없습니다.");
 
         verify(eventPublisher, never()).publishEvent(org.mockito.ArgumentMatchers.any(OrderStateChangedEvent.class));
+    }
+
+    @Test
+    @DisplayName("AI 발주(모든 품목 AI) REQUESTED는 결제 검증을 우회하고 승인 완료된다")
+    void processOrderItems_AiRequestedBypassNotPaidOrder() {
+        Long orderId = 200L;
+        Long adminId = 1L;
+        Long orderDetailId = 20L;
+
+        OrderDetail aiDetail = OrderDetail.builder()
+                .orderDetailId(orderDetailId)
+                .status(OrderDetailStatus.WAITING)
+                .isAiSuggested(true)
+                .build();
+
+        OrderRequest aiOrder = OrderRequest.builder()
+                .id(orderId)
+                .status(OrderStatus.REQUESTED)
+                .receiverName("미정")
+                .receiverPhone("미정")
+                .destinationAddress("미정 - 발주 확정 전 수정 필요")
+                .orderDetails(new java.util.ArrayList<>(List.of(aiDetail)))
+                .build();
+
+        User admin = User.builder().id(adminId).build();
+        OrderProcessRequest request = new OrderProcessRequest(
+                List.of(new ItemStatusUpdate(orderDetailId, OrderDetailStatus.APPROVED)));
+
+        given(orderRequestRepository.findByIdForUpdate(orderId)).willReturn(Optional.of(aiOrder));
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+        given(orderDetailRepository.findByOrderDetailIdAndOrderRequest_Id(orderDetailId, orderId))
+                .willReturn(Optional.of(aiDetail));
+
+        assertThatCode(() -> orderAdmService.processOrderItems(orderId, request, adminId))
+                .doesNotThrowAnyException();
+
+        assertThat(aiOrder.getStatus()).isEqualTo(OrderStatus.APPROVED);
+        assertThat(aiDetail.getStatus()).isEqualTo(OrderDetailStatus.APPROVED);
+        assertThat(aiOrder.getReceiverName()).isEqualTo("(주)본사지정협력사");
+        verify(deliveryService).createDeliveryIfAbsentForCompletedOrder(aiOrder);
+        verify(deliveryService).markAiInboundWaiting(orderId);
+    }
+
+    @Test
+    @DisplayName("일반 발주(일부/전체 비AI) REQUESTED는 기존처럼 NOT_PAID_ORDER 예외가 발생한다")
+    void processOrderItems_NormalRequestedStillFailsNotPaidOrder() {
+        Long orderId = 201L;
+        Long adminId = 1L;
+        Long orderDetailId = 21L;
+
+        OrderDetail normalDetail = OrderDetail.builder()
+                .orderDetailId(orderDetailId)
+                .status(OrderDetailStatus.WAITING)
+                .isAiSuggested(false)
+                .build();
+
+        OrderRequest normalOrder = OrderRequest.builder()
+                .id(orderId)
+                .status(OrderStatus.REQUESTED)
+                .orderDetails(new java.util.ArrayList<>(List.of(normalDetail)))
+                .build();
+
+        User admin = User.builder().id(adminId).build();
+        OrderProcessRequest request = new OrderProcessRequest(
+                List.of(new ItemStatusUpdate(orderDetailId, OrderDetailStatus.APPROVED)));
+
+        given(orderRequestRepository.findByIdForUpdate(orderId)).willReturn(Optional.of(normalOrder));
+        given(userRepository.findById(adminId)).willReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> orderAdmService.processOrderItems(orderId, request, adminId))
+                .isInstanceOf(InoutException.class)
+                .hasMessageContaining("결제가 완료되지 않은 발주 건입니다.");
+    }
+
+    @Test
+    @DisplayName("AI 발주 상세 조회 시 공급처/입고 연동 필드가 채워진다")
+    void getOrderDetail_AiOrderContainsVendorAndInboundFields() {
+        Long orderId = 202L;
+        com.jstudy.inout.stock.entity.Item item = com.jstudy.inout.stock.entity.Item.builder()
+                .itemId(300L)
+                .name("테이크아웃 컵")
+                .build();
+
+        OrderDetail aiDetail = OrderDetail.builder()
+                .orderDetailId(22L)
+                .item(item)
+                .status(OrderDetailStatus.APPROVED)
+                .isAiSuggested(true)
+                .aiReason("실재고 부족으로 자동 제안")
+                .requestQuantity(5)
+                .itemPriceSnapshot(1000L)
+                .build();
+
+        OrderRequest aiOrder = OrderRequest.builder()
+                .id(orderId)
+                .status(OrderStatus.APPROVED)
+                .receiverName("미정")
+                .receiverPhone("미정")
+                .destinationAddress("미정")
+                .requestDate(java.time.LocalDateTime.now().minusHours(2))
+                .processDate(java.time.LocalDateTime.now().minusHours(1))
+                .requestUser(User.builder().id(10L).name("관리자").build())
+                .orderDetails(new java.util.ArrayList<>(List.of(aiDetail)))
+                .build();
+
+        given(orderRequestRepository.findByIdWithDetails(orderId)).willReturn(Optional.of(aiOrder));
+
+        var detail = orderAdmService.getOrderDetail(orderId);
+
+        assertThat(detail.isAiSuggestedOrder()).isTrue();
+        assertThat(detail.getVendorName()).isEqualTo("(주)본사지정협력사");
+        assertThat(detail.getInboundStatusLabel()).isEqualTo("승인 완료");
+        assertThat(detail.getExpectedInboundAt()).isNotNull();
+        assertThat(detail.getItems()).hasSize(1);
+        assertThat(detail.getItems().get(0).getAiReason()).isEqualTo("실재고 부족으로 자동 제안");
     }
 }

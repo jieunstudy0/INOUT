@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@Profile({"local", "demo", "secret"})
+@Profile({"local", "demo", "dev"})
 @RequiredArgsConstructor
 public class DummyDataScheduler {
 

@@ -1,7 +1,11 @@
 package com.jstudy.inout.delivery.service;
 
 import com.jstudy.inout.delivery.dto.DeliveryTrackingDto;
+import com.jstudy.inout.delivery.entity.Delivery;
+import com.jstudy.inout.delivery.repository.DeliveryRepository;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +24,16 @@ import org.springframework.web.client.RestClientException;
 @Service
 public class DeliveryTrackingService {
 
+    private final DeliveryRepository deliveryRepository;
     private final RestClient restClient;
     private final String apiKey;
     private final String apiBaseUrl;
 
     public DeliveryTrackingService(
+            DeliveryRepository deliveryRepository,
             @Value("${delivery.api.key:}") String apiKey,
             @Value("${delivery.api.base-url:https://info.sweettracker.co.kr/api/v1}") String apiBaseUrl) {
+        this.deliveryRepository = deliveryRepository;
         this.apiKey = apiKey;
         this.apiBaseUrl = apiBaseUrl;
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -125,44 +132,97 @@ public class DeliveryTrackingService {
     }
 
     /**
-     * 집화처리 → 옥천HUB 간선하차 → 배송출발 → 배송완료
+     * 승인/배송 시작 시각 기준으로 3일(72시간) 경과에 따라
+     * 집화처리 → 간선수송 → 배송출발 → 배송완료 단계로 동적으로 노출한다.
      */
     private DeliveryTrackingDto.TrackingResponse buildMockTimeline(
             String carrier, String trackingNumber, String note) {
         LocalDateTime now = LocalDateTime.now();
-        List<DeliveryTrackingDto.TrackingEvent> events = List.of(
-                DeliveryTrackingDto.TrackingEvent.builder()
-                        .time(now.minusHours(30))
-                        .location("서울특별시 송파구 집화센터")
-                        .status("집화처리")
-                        .description("상품이 집화되었습니다." + (note != null ? " (" + note + ")" : ""))
-                        .build(),
-                DeliveryTrackingDto.TrackingEvent.builder()
-                        .time(now.minusHours(18))
-                        .location("옥천HUB")
-                        .status("옥천HUB 간선하차")
-                        .description("옥천HUB에 도착하여 간선하차 처리되었습니다.")
-                        .build(),
-                DeliveryTrackingDto.TrackingEvent.builder()
-                        .time(now.minusHours(6))
-                        .location("경기광주 배송점")
-                        .status("배송출발")
-                        .description("배송 기사가 배송을 시작했습니다.")
-                        .build(),
-                DeliveryTrackingDto.TrackingEvent.builder()
-                        .time(now.minusHours(1))
-                        .location("수령지 인근")
-                        .status("배송완료")
-                        .description("고객님께 배송이 완료되었습니다.")
-                        .build()
-        );
+        LocalDateTime startAt = resolveMockStartAt(trackingNumber, now);
+        long elapsedHours = Math.max(0L, Duration.between(startAt, now).toHours());
+
+        int stage;
+        String currentStatus;
+        if (elapsedHours < 24) {
+            stage = 1;
+            currentStatus = "집화처리";
+        } else if (elapsedHours < 48) {
+            stage = 2;
+            currentStatus = "간선수송";
+        } else if (elapsedHours < 72) {
+            stage = 3;
+            currentStatus = "배송출발";
+        } else {
+            stage = 4;
+            currentStatus = "배송완료";
+        }
+
+        List<DeliveryTrackingDto.TrackingEvent> events = new ArrayList<>();
+        events.add(DeliveryTrackingDto.TrackingEvent.builder()
+                .time(startAt)
+                .location("서울특별시 송파구 집화센터")
+                .status("집화처리")
+                .description("상품이 집화센터에 등록되었습니다." + (note != null ? " (" + note + ")" : ""))
+                .build());
+        if (stage >= 2) {
+            events.add(DeliveryTrackingDto.TrackingEvent.builder()
+                    .time(startAt.plusHours(24))
+                    .location("옥천HUB")
+                    .status("간선수송")
+                    .description("옥천HUB로 이동 후 간선하차 처리되었습니다.")
+                    .build());
+        }
+        if (stage >= 3) {
+            events.add(DeliveryTrackingDto.TrackingEvent.builder()
+                    .time(startAt.plusHours(48))
+                    .location("배송지 관할 지점")
+                    .status("배송출발")
+                    .description("배송지 관할 지점에서 입고/배송 출발 처리되었습니다.")
+                    .build());
+        }
+        if (stage >= 4) {
+            events.add(DeliveryTrackingDto.TrackingEvent.builder()
+                    .time(startAt.plusHours(72))
+                    .location("본사 중앙창고")
+                    .status("배송완료")
+                    .description("가상 공급처 발주 건이 창고에 입고 완료되었습니다.")
+                    .build());
+        }
 
         return DeliveryTrackingDto.TrackingResponse.builder()
                 .carrier(carrier)
                 .trackingNumber(trackingNumber)
-                .currentStatus("배송완료")
+                .currentStatus(currentStatus)
                 .mockFallback(true)
                 .events(events)
                 .build();
+    }
+
+    private LocalDateTime resolveMockStartAt(String trackingNumber, LocalDateTime fallbackNow) {
+        if (!StringUtils.hasText(trackingNumber)) {
+            return fallbackNow;
+        }
+        List<Delivery> matched = deliveryRepository.findAllByTrackingNumberWithOrder(trackingNumber.trim());
+        if (matched == null || matched.isEmpty()) {
+            return fallbackNow;
+        }
+        // 혹시 과거 데이터에 중복 송장이 있어도 최신 건 기준으로 타임라인을 계산한다.
+        return resolveStartFromDelivery(matched.get(0));
+    }
+
+    private LocalDateTime resolveStartFromDelivery(Delivery delivery) {
+        LocalDateTime approvedAt = delivery.getOrderRequest() != null
+                ? delivery.getOrderRequest().getProcessDate()
+                : null;
+        if (approvedAt != null) {
+            return approvedAt;
+        }
+        if (delivery.getShippedAt() != null) {
+            return delivery.getShippedAt();
+        }
+        if (delivery.getCreatedAt() != null) {
+            return delivery.getCreatedAt();
+        }
+        return LocalDateTime.now();
     }
 }

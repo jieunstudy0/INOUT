@@ -13,4 +13,6 @@ import com.jstudy.inout.common.auth.entity.UserRoleId;
 public interface UserRoleRepository extends JpaRepository<UserRole, UserRoleId> {
 
 	void deleteByUserAndRole(User user, Role adminRole);
+
+    void deleteByUser(User user);
 }

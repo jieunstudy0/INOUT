@@ -9,6 +9,7 @@ import com.jstudy.inout.delivery.entity.Delivery;
 import com.jstudy.inout.delivery.entity.DeliveryStatus;
 import com.jstudy.inout.delivery.repository.DeliveryRepository;
 import com.jstudy.inout.order.entity.OrderRequest;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -49,16 +50,46 @@ class DeliveryWaybillAndTrackingTest {
     }
 
     @Test
-    @DisplayName("배송조회 — Mock 송장/키 미설정 시 Fallback 타임라인")
-    void track_returnsMockTimelineForCjMockNumber() {
-        DeliveryTrackingService service = new DeliveryTrackingService("", "https://example.invalid");
+    @DisplayName("배송조회 — Mock 송장(초기 경과) 시 집화처리 1단계 타임라인")
+    void track_returnsInitialMockTimelineForCjMockNumber() {
+        DeliveryTrackingService service = new DeliveryTrackingService(deliveryRepository, "", "https://example.invalid");
+        given(deliveryRepository.findAllByTrackingNumberWithOrder("561234567890"))
+                .willReturn(List.of());
 
         DeliveryTrackingDto.TrackingResponse res = service.track("CJ대한통운", "561234567890");
 
         assertThat(res.isMockFallback()).isTrue();
+        assertThat(res.getCurrentStatus()).isEqualTo("집화처리");
+        assertThat(res.getEvents()).hasSize(1);
+        assertThat(res.getEvents().get(0).getStatus()).isEqualTo("집화처리");
+    }
+
+    @Test
+    @DisplayName("배송조회 — Mock 송장(승인 72시간 경과) 시 4단계 전체 타임라인")
+    void track_returnsCompletedMockTimelineWhenElapsedOver72Hours() {
+        DeliveryTrackingService service = new DeliveryTrackingService(deliveryRepository, "", "https://example.invalid");
+
+        OrderRequest order = OrderRequest.builder().id(30L).build();
+        order.updateProcessDate(LocalDateTime.now().minusHours(73));
+        Delivery delivery = Delivery.builder()
+                .orderRequest(order)
+                .status(DeliveryStatus.SHIPPING)
+                .receiverName("홍길동")
+                .receiverPhone("010")
+                .destinationAddress("서울")
+                .trackingNumber("561234567891")
+                .build();
+
+        given(deliveryRepository.findAllByTrackingNumberWithOrder("561234567891"))
+                .willReturn(List.of(delivery));
+
+        DeliveryTrackingDto.TrackingResponse res = service.track("CJ대한통운", "561234567891");
+
+        assertThat(res.isMockFallback()).isTrue();
+        assertThat(res.getCurrentStatus()).isEqualTo("배송완료");
         assertThat(res.getEvents()).hasSize(4);
         assertThat(res.getEvents().get(0).getStatus()).isEqualTo("집화처리");
-        assertThat(res.getEvents().get(1).getStatus()).contains("간선");
+        assertThat(res.getEvents().get(1).getStatus()).isEqualTo("간선수송");
         assertThat(res.getEvents().get(2).getStatus()).isEqualTo("배송출발");
         assertThat(res.getEvents().get(3).getStatus()).isEqualTo("배송완료");
     }

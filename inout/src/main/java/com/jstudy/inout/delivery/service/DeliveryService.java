@@ -116,6 +116,21 @@ public class DeliveryService {
     }
 
     /**
+     * AI 본사 자동발주 승인 직후 배송/입고 대기 상태를 명시하기 위해
+     * 가상 송장과 함께 SHIPPING 상태로 전환한다.
+     */
+    @Transactional
+    public void markAiInboundWaiting(Long orderId) {
+        Delivery delivery = deliveryRepository.findByOrderIdForUpdate(orderId)
+                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+        if (delivery.getStatus() != DeliveryStatus.READY) {
+            return;
+        }
+        String trackingNumber = generateCjStyleTrackingNumber();
+        delivery.startShipping("가상 공급처 운송", trackingNumber, LocalDateTime.now());
+    }
+
+    /**
      * 기존 SHIPPING/COMPLETED 배송의 구형 송장(CJ…)·미설정 택배사를
      * CJ대한통운 + 56xxxxxxxxxx Mock 형식으로 일괄 정규화한다.
      */

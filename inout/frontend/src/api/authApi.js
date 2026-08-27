@@ -26,3 +26,13 @@ export function resetPasswordComplete(resetKey, newPassword, confirmPassword) {
     }),
   );
 }
+
+/**
+ * 소셜 온보딩 완료 — ROLE_GUEST 사용자가 실명·역할·전화·생년월일을 제출.
+ * 응답: { accessToken, refreshToken, role }
+ */
+export function completeSocialOnboarding(role, phone, birthday, name) {
+  return unwrap(
+    client.post('/auth/social/complete-profile', { name, role, phone, birthday }),
+  );
+}

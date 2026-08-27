@@ -24,6 +24,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# WSL2/Docker Desktop 환경에서 IPv6 경로가 응답 없이 멈추는 경우가 있어(연결 자체가
+# 타임아웃 없이 hang) Node가 IPv4를 우선 사용하도록 강제한다.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
+
 # package*.json 먼저 복사해 의존성 레이어 캐시 활용 (소스만 바뀌면 npm ci 재실행 안 함)
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci

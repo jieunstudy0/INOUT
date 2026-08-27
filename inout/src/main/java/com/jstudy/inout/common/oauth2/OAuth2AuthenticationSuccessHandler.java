@@ -43,6 +43,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Value("${app.oauth2.authorized-redirect-uri:http://localhost:5173/oauth2/callback}")
     private String authorizedRedirectUri;
 
+    /** GUEST 사용자를 온보딩 페이지로 리다이렉트하는 URI (프론트엔드 경로) */
+    @Value("${app.oauth2.onboarding-redirect-uri:http://localhost:5173/onboarding/complete-profile}")
+    private String onboardingRedirectUri;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
@@ -86,13 +90,19 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-        String targetUrl = UriComponentsBuilder.fromUriString(authorizedRedirectUri)
+        // ROLE_GUEST(소셜 신규 가입) → 온보딩 페이지로 분기
+        boolean isGuest = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_GUEST"::equals);
+
+        String baseUri = isGuest ? onboardingRedirectUri : authorizedRedirectUri;
+        String targetUrl = UriComponentsBuilder.fromUriString(baseUri)
                 .queryParam("accessToken", jwtToken.getAccessToken())
                 .queryParam("role", role)
                 .build().toUriString();
 
-        log.info("OAuth2 로그인 성공 — email={}, provider={}, role={}",
-                user.getEmail(), user.getProvider(), role);
+        log.info("OAuth2 로그인 성공 — email={}, provider={}, role={}, onboarding={}",
+                user.getEmail(), user.getProvider(), role, isGuest);
 
         clearAuthenticationAttributes(request);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

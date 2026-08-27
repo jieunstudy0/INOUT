@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getListByStatuses, bulkApprove, approveOrder, rejectOrder } from '../api/orderAdmApi';
 import { getDashboardSummary } from '../api/dashboardApi';
 import { triggerAiAutoOrderAnalysis } from '../api/aiApi';
@@ -10,22 +10,23 @@ import PersonName from '../components/common/PersonName';
 import client from '../api/apiClient';
 
 const TABS = [
-  { key: 'ALL',       label: '전체',      statuses: [],                       accent: 'slate'   },
-  { key: 'ORDERED',   label: '본사 승인 대기', statuses: ['ORDERED'],         accent: 'blue'    },
-  { key: 'APPROVED',  label: '최종 승인', statuses: ['APPROVED'],             accent: 'emerald' },
-  { key: 'PARTIAL',   label: '부분 처리', statuses: ['PARTIAL'],              accent: 'amber'   },
-  { key: 'CLOSED',    label: '취소/반려', statuses: ['REJECTED', 'CANCELLED'], accent: 'rose'   },
+  { key: 'ALL',          label: '전체',        statuses: [],                        accent: 'slate'  },
+  { key: 'AI_PROPOSED',  label: 'AI 발주 제안', statuses: ['REQUESTED'],             accent: 'teal'   },
+  { key: 'ORDERED',      label: '본사 승인 대기', statuses: ['ORDERED'],             accent: 'blue'   },
+  { key: 'APPROVED',     label: '최종 승인',   statuses: ['APPROVED'],              accent: 'emerald'},
+  { key: 'PARTIAL',      label: '부분 처리',   statuses: ['PARTIAL'],               accent: 'amber'  },
+  { key: 'CLOSED',       label: '취소/반려',   statuses: ['REJECTED', 'CANCELLED'], accent: 'rose'   },
 ];
 
 const ORDER_STATUS_MAP = {
-  REQUESTED: { label: '직원 기안', cls: 'bg-slate-100 text-slate-600'    },
-  ORDERED:   { label: '본사 승인 대기', cls: 'bg-blue-100 text-blue-700' },
-  APPROVED:  { label: '최종 승인', cls: 'bg-emerald-100 text-emerald-700'},
-  PAID:      { label: '본사 승인 대기', cls: 'bg-blue-100 text-blue-700' },
-  PARTIAL:   { label: '부분 처리', cls: 'bg-amber-100 text-amber-700'    },
-  COMPLETED: { label: '최종 승인', cls: 'bg-emerald-100 text-emerald-700'},
-  REJECTED:  { label: '반려됨',   cls: 'bg-rose-100 text-rose-700'      },
-  CANCELLED: { label: '취소됨',   cls: 'bg-slate-100 text-slate-500'    },
+  REQUESTED: { label: 'AI 발주 제안', cls: 'bg-teal-100 text-teal-700'        },
+  ORDERED:   { label: '본사 승인 대기', cls: 'bg-blue-100 text-blue-700'      },
+  APPROVED:  { label: '최종 승인',   cls: 'bg-emerald-100 text-emerald-700'   },
+  PAID:      { label: '본사 승인 대기', cls: 'bg-blue-100 text-blue-700'      },
+  PARTIAL:   { label: '부분 처리',   cls: 'bg-amber-100 text-amber-700'       },
+  COMPLETED: { label: '최종 승인',   cls: 'bg-emerald-100 text-emerald-700'   },
+  REJECTED:  { label: '반려됨',     cls: 'bg-rose-100 text-rose-700'          },
+  CANCELLED: { label: '취소됨',     cls: 'bg-slate-100 text-slate-500'        },
 };
 
 function OrderStatusBadge({ status }) {
@@ -114,6 +115,14 @@ function BulkResultPanel({ result, onClose }) {
   );
 }
 
+function AiBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-700 border border-teal-200">
+      ✦ AI 제안
+    </span>
+  );
+}
+
 function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onApprove, onReject, actionBusyId }) {
   const navigate = useNavigate();
   const allChecked  = orders.length > 0 && checkedIds.size === orders.length;
@@ -144,6 +153,7 @@ function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onApprove, onReje
               {['주문번호', '요청자', '대표 품목', '총 금액', '주문일시', '상태', '처리'].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
               ))}
+              <th className="px-4 py-3 w-20" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -174,6 +184,7 @@ function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onApprove, onReje
                   </td>
                   <td className="px-4 py-3.5 text-xs text-slate-500 whitespace-nowrap">{formatDate(order.requestDate)}</td>
                   <td className="px-4 py-3.5"><OrderStatusBadge status={order.status} /></td>
+                  <td className="px-4 py-3.5">{order.aiSuggested && <AiBadge />}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
                       {isAwaitingHq(order.status) && (
@@ -214,9 +225,12 @@ function OrderTable({ orders, checkedIds, onCheckAll, onCheck, onApprove, onReje
 }
 
 export default function OrderAdmPage() {
+  const location = useLocation();
+
   const [orders, setOrders]           = useState([]);
   const [loading, setLoading]         = useState(true);
-  const [activeTab, setActiveTab]     = useState('ALL');
+  // 재고 관리 페이지에서 'AI 발주 제안' 탭 바로 열기 지원 (navigate state)
+  const [activeTab, setActiveTab]     = useState(location.state?.activeTab || 'ALL');
   const [checkedIds, setCheckedIds]   = useState(new Set());
   const [bulkProcessing, setBulkProc] = useState(false);
   const [bulkResult, setBulkResult]   = useState(null);
@@ -305,7 +319,12 @@ export default function OrderAdmPage() {
     try {
       const data = await triggerAiAutoOrderAnalysis();
       Toast.success(data?.message || 'AI 발주 초안 생성이 완료되었습니다.');
-      loadOrders(activeTab);
+      if ((data?.savedCount ?? 0) > 0) {
+        // 초안이 생성되면 'AI 발주 제안' 탭으로 자동 이동하여 결과를 바로 확인
+        setActiveTab('AI_PROPOSED');
+      } else {
+        loadOrders(activeTab);
+      }
       loadSummary();
     } catch {
       /* interceptor */
@@ -461,10 +480,14 @@ export default function OrderAdmPage() {
           <button key={tab.key} onClick={() => handleTabChange(tab.key)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
               tab.key === activeTab
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                ? tab.key === 'AI_PROPOSED'
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-white shadow-sm'
+                : tab.key === 'AI_PROPOSED'
+                  ? 'text-teal-600 hover:bg-teal-50 hover:text-teal-700'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
             }`}>
-            {tab.label}
+            {tab.key === 'AI_PROPOSED' ? '✦ ' : ''}{tab.label}
           </button>
         ))}
       </div>

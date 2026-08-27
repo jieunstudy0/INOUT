@@ -32,6 +32,9 @@ import com.jstudy.inout.stock.exception.NotEnoughStockException;
 @Service
 @RequiredArgsConstructor
 public class OrderApprovalTxService {
+    private static final String AI_VENDOR_NAME = "(주)본사지정협력사";
+    private static final String AI_VENDOR_PHONE = "02-0000-0000";
+    private static final String AI_INBOUND_ADDRESS = "본사 중앙창고 (AI 자동발주 입고)";
 
     private final OrderRequestRepository orderRequestRepository;
     private final StockUsageHistoryRepository usageHistoryRepository;
@@ -49,10 +52,24 @@ public class OrderApprovalTxService {
                 .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
         User adminUser = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
+        boolean aiSuggestedOrder = isAiSuggestedOrder(order);
 
         List<OrderDetail> waitingDetails = order.getOrderDetails().stream()
                 .filter(detail -> detail.getStatus().isWaiting())
                 .toList();
+
+        if (aiSuggestedOrder) {
+            ensureAiProcurementSnapshot(order);
+            for (OrderDetail detail : waitingDetails) {
+                detail.updateStatus(OrderDetailStatus.APPROVED);
+            }
+            order.updateStatus(OrderStatus.APPROVED);
+            order.updateProcessDate(LocalDateTime.now());
+            deliveryService.createDeliveryIfAbsentForCompletedOrder(order);
+            deliveryService.markAiInboundWaiting(order.getId());
+            publishOrderStateChanged(order);
+            return true;
+        }
 
         try {
             Map<Long, Item> lockedItems = new LinkedHashMap<>();
@@ -145,5 +162,32 @@ public class OrderApprovalTxService {
 
     private void publishOrderStateChanged(OrderRequest order) {
         eventPublisher.publishEvent(new OrderStateChangedEvent(order.getId()));
+    }
+
+    private static boolean isAiSuggestedOrder(OrderRequest order) {
+        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+            return false;
+        }
+        // 결제/재고 차감 우회는 모든 품목이 AI 제안인 경우에만 허용.
+        return order.getOrderDetails().stream().allMatch(OrderDetail::isAiSuggested);
+    }
+
+    private static void ensureAiProcurementSnapshot(OrderRequest order) {
+        String name = order.getReceiverName();
+        String phone = order.getReceiverPhone();
+        String address = order.getDestinationAddress();
+        boolean missing = name == null || name.isBlank()
+                || phone == null || phone.isBlank()
+                || address == null || address.isBlank()
+                || "미정".equals(name)
+                || "미정".equals(phone)
+                || (address != null && address.startsWith("미정"));
+        if (missing) {
+            order.updateReceiverSnapshot(AI_VENDOR_NAME, AI_VENDOR_PHONE, AI_INBOUND_ADDRESS);
+        }
+        String memo = order.getMemo();
+        if (memo == null || !memo.contains("가상공급처")) {
+            order.updateMemo((memo == null ? "" : memo + " ") + "[가상공급처:" + AI_VENDOR_NAME + "]");
+        }
     }
 }

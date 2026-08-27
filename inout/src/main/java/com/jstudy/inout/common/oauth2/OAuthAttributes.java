@@ -4,6 +4,7 @@ import com.jstudy.inout.common.auth.entity.User;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -80,7 +81,9 @@ public class OAuthAttributes {
         return User.builder()
                 .email(email)
                 .name(name != null ? name : "소셜사용자")
-                .password(UUID.randomUUID().toString())  
+                .password(UUID.randomUUID().toString())
+                .phone("")
+                .birthday(LocalDate.of(1970, 1, 1))
                 .provider(provider)
                 .providerId(providerId)
                 .build();

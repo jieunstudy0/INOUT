@@ -4,11 +4,32 @@ import { login } from '../api/authApi';
 import { Toast } from '../utils/toast';
 import { resolveHomeFromToken } from '../utils/roleUtils';
 
-const OAUTH_PROVIDERS = {
-  카카오: 'kakao',
-  Google: 'google',
-  네이버: 'naver',
-};
+// enabled: false 인 provider는 버튼에 "준비중" 배지가 붙고 클릭해도 이동하지 않는다.
+// 콘솔 등록/검수/사업자등록 등이 끝나 실제로 로그인이 가능해지면 enabled만 true로 바꾸면 된다.
+// (Kakao: 사업자등록번호로 비즈 앱 전환 후 이메일 동의항목 활성화 시 / Naver: 검수 통과 시)
+const OAUTH_PROVIDERS = [
+  {
+    id: 'kakao',
+    label: '카카오로 시작하기',
+    enabled: false,
+    className: 'bg-[#FEE500] text-[#000000] hover:bg-[#FADA0A]',
+    disabledClassName: 'bg-[#FEE500]/50 text-[#3c3527]/60 cursor-not-allowed',
+  },
+  {
+    id: 'google',
+    label: 'Google로 시작하기',
+    enabled: true,
+    className: 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50',
+    disabledClassName: 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed',
+  },
+  {
+    id: 'naver',
+    label: '네이버로 시작하기',
+    enabled: false,
+    className: 'bg-[#03C75A] text-white hover:bg-[#02b351]',
+    disabledClassName: 'bg-[#03C75A]/40 text-white/70 cursor-not-allowed',
+  },
+];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -52,14 +73,14 @@ export default function LoginPage() {
     if (e.key === 'Enter') handleLogin();
   };
 
-  const handleSocialLogin = (label) => {
-    const providerId = OAUTH_PROVIDERS[label];
-    if (!providerId) {
-      Toast.error('지원하지 않는 소셜 로그인입니다.');
+  const handleSocialLogin = (provider) => {
+    if (!provider.enabled) {
+      const name = provider.label.replace('로 시작하기', '');
+      Toast.info(`${name} 로그인은 현재 준비 중입니다. 곧 지원할 예정이에요.`);
       return;
     }
     // Spring Security OAuth2 진입점 — 백엔드가 인가 후 /oauth2/callback 으로 리다이렉트
-    window.location.href = `/oauth2/authorization/${providerId}`;
+    window.location.href = `/oauth2/authorization/${provider.id}`;
   };
 
   return (
@@ -135,27 +156,24 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2.5">
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('카카오')}
-            className="w-full flex items-center justify-center gap-2 bg-[#FEE500] text-[#000000] py-3.5 rounded-xl font-bold hover:bg-[#FADA0A] active:scale-[0.98] transition-all"
-          >
-            카카오로 시작하기
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('Google')}
-            className="w-full flex items-center justify-center gap-2 bg-white text-slate-700 py-3.5 rounded-xl font-bold border border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition-all"
-          >
-            Google로 시작하기
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSocialLogin('네이버')}
-            className="w-full flex items-center justify-center gap-2 bg-[#03C75A] text-white py-3.5 rounded-xl font-bold hover:bg-[#02b351] active:scale-[0.98] transition-all"
-          >
-            네이버로 시작하기
-          </button>
+          {OAUTH_PROVIDERS.map((provider) => (
+            <button
+              key={provider.id}
+              type="button"
+              onClick={() => handleSocialLogin(provider)}
+              aria-disabled={!provider.enabled}
+              className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold active:scale-[0.98] transition-all ${
+                provider.enabled ? provider.className : provider.disabledClassName
+              }`}
+            >
+              <span>{provider.label}</span>
+              {!provider.enabled && (
+                <span className="text-[10px] font-semibold bg-black/10 px-2 py-0.5 rounded-full">
+                  준비중
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         <div className="mt-7 mb-5 text-center">

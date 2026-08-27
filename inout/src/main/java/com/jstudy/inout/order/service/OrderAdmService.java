@@ -35,6 +35,9 @@ import java.time.format.DateTimeFormatter;
 @Service
 @RequiredArgsConstructor
 public class OrderAdmService {
+    private static final String AI_VENDOR_NAME = "(주)본사지정협력사";
+    private static final String AI_VENDOR_PHONE = "02-0000-0000";
+    private static final String AI_INBOUND_ADDRESS = "본사 중앙창고 (AI 자동발주 입고)";
 
     private final OrderRequestRepository orderRequestRepository;
     private final OrderDetailRepository orderDetailRepository;
@@ -50,10 +53,12 @@ public class OrderAdmService {
     public List<OrderAdminResponse> getAllOrders(OrderStatus status) {
         List<OrderRequest> orders;
         if (status == null) {
-            // 본사: 직원 기안(REQUESTED) 제외 — 점주 결제 완료(ORDERED) 이상만
+            // 본사: 일반 직원 기안(REQUESTED) 제외 — 점주 결제 완료(ORDERED) 이상만
             orders = orderRequestRepository.findAllHqVisibleWithDetailsOrderByDateDesc(OrderStatus.REQUESTED);
         } else if (status == OrderStatus.REQUESTED) {
-            orders = List.of();
+            // REQUESTED 요청 = AI 자동 발주 초안 조회 전용
+            // (일반 직원 기안은 관리자 목록에서 제외, AI 제안 초안만 표시)
+            orders = orderRequestRepository.findAllAiProposedOrderByDateDesc();
         } else {
             orders = orderRequestRepository.findAllWithDetailsByStatusOrderByDateDesc(status);
         }
@@ -61,9 +66,24 @@ public class OrderAdmService {
         return orders.stream().map(order -> {
             String repItemName = "상품 없음";
             int itemCount = 0;
+            boolean aiSuggested = false;
+            List<OrderAdminResponse.AiReasonItem> aiReasonItems = List.of();
+
             if (order.getOrderDetails() != null && !order.getOrderDetails().isEmpty()) {
                 repItemName = order.getOrderDetails().get(0).getItem().getName();
                 itemCount = order.getOrderDetails().size();
+                aiSuggested = order.getOrderDetails().stream().anyMatch(OrderDetail::isAiSuggested);
+
+                if (aiSuggested) {
+                    // 품목별 AI 추천 근거를 목록 뷰에도 전달해 근거 콜아웃을 렌더링한다.
+                    aiReasonItems = order.getOrderDetails().stream()
+                            .filter(d -> d.isAiSuggested()
+                                    && d.getAiReason() != null
+                                    && !d.getAiReason().isBlank())
+                            .map(d -> new OrderAdminResponse.AiReasonItem(
+                                    d.getItem().getName(), d.getAiReason()))
+                            .collect(Collectors.toList());
+                }
             }
             return OrderAdminResponse.builder()
                     .orderRequestId(order.getId())
@@ -74,6 +94,8 @@ public class OrderAdmService {
                     .totalPrice(order.getTotalPrice())
                     .representativeItemName(repItemName)
                     .itemCount(itemCount)
+                    .aiSuggested(aiSuggested)
+                    .aiReasonItems(aiReasonItems)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -82,6 +104,7 @@ public class OrderAdmService {
     public OrderAdminDetailResponse getOrderDetail(Long orderId) {
         OrderRequest order = orderRequestRepository.findByIdWithDetails(orderId)
                 .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+        boolean aiSuggestedOrder = isAiSuggestedOrder(order);
 
         List<OrderAdminDetailResponse.ItemDto> items =
                 (order.getOrderDetails() == null ? List.<OrderDetail>of() : order.getOrderDetails())
@@ -106,6 +129,16 @@ public class OrderAdmService {
                 .employeeName(UserDisplayNames.displayName(order.getRequestUser()))
                 .totalPrice(order.getTotalPrice())
                 .rejectReason(order.getRejectReason())
+                .aiSuggestedOrder(aiSuggestedOrder)
+                .vendorName(aiSuggestedOrder ? resolveVendorName(order) : null)
+                .expectedInboundAt(aiSuggestedOrder
+                        ? resolveExpectedInboundAt(order)
+                        : null)
+                .inboundStatusLabel(aiSuggestedOrder
+                        ? (order.getStatus() == OrderStatus.APPROVED || order.getStatus() == OrderStatus.PARTIAL
+                                ? "승인 완료"
+                                : "입고/배송 대기")
+                        : null)
                 .items(items)
                 .build();
     }
@@ -116,9 +149,14 @@ public class OrderAdmService {
                 .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
         User adminUser = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
+        boolean aiOrder = isAiSuggestedOrder(order);
 
         if (order.getStatus() == OrderStatus.REQUESTED) {
-            throw new InoutException("결제가 완료되지 않은 발주 건입니다.", 400, "NOT_PAID_ORDER");
+            if (!aiOrder) {
+                throw new InoutException("결제가 완료되지 않은 발주 건입니다.", 400, "NOT_PAID_ORDER");
+            }
+            // AI 자동발주 초안은 HQ 구매발주이므로 결제 없이 승인 처리 가능
+            ensureAiProcurementSnapshot(order);
         }
         if (request == null || request.items() == null || request.items().isEmpty()) {
             throw new InoutException("처리할 발주 상세 항목이 없습니다.", 400, "EMPTY_ORDER_ITEMS");
@@ -143,16 +181,20 @@ public class OrderAdmService {
                 throw new InoutException("대기 상태로 되돌릴 수 없습니다.", 400, "WAITING_ROLLBACK_FORBIDDEN");
             }
 
-            if (current == OrderDetailStatus.APPROVED) {
+            if (current == OrderDetailStatus.APPROVED && !aiOrder) {
                 restoreItemStock(detail, adminUser, orderId);
-            } else if (current == OrderDetailStatus.REJECTED) {
+            } else if (current == OrderDetailStatus.REJECTED && !aiOrder) {
                 reclaimRefundedDeposit(order, detail, adminId); 
             }
 
             if (target == OrderDetailStatus.APPROVED) {
-                approveItemStock(detail, adminUser, orderId);
+                if (!aiOrder) {
+                    approveItemStock(detail, adminUser, orderId);
+                }
             } else if (target == OrderDetailStatus.REJECTED) {
-                issuePartialRefund(order, detail, adminId);
+                if (!aiOrder) {
+                    issuePartialRefund(order, detail, adminId);
+                }
             } else if (target == OrderDetailStatus.WAITING) {
                 log.info("주문 상세 {}번 항목이 대기(WAITING) 상태로 복구되었습니다.", detail.getOrderDetailId());
             }
@@ -189,11 +231,12 @@ public class OrderAdmService {
     /**
      * 본사 최종 승인 — ORDERED → APPROVED (재고 차감·배송 생성)
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public void approveOrder(Long orderId, Long adminId) {
         OrderRequest order = orderRequestRepository.findById(orderId)
                 .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
-        if (!order.getStatus().isAwaitingHq()) {
+        boolean aiDraftBypass = isAiSuggestedOrder(order) && order.getStatus() == OrderStatus.REQUESTED;
+        if (!(order.getStatus().isAwaitingHq() || aiDraftBypass)) {
             throw new InoutException("본사 승인 대기(ORDERED) 상태의 발주만 승인할 수 있습니다.", 400, "INVALID_ORDER_STATUS");
         }
         boolean ok = orderApprovalTxService.processSingleOrderApproval(orderId, adminId);
@@ -284,12 +327,18 @@ public class OrderAdmService {
         if (allApproved) {
             order.updateStatus(OrderStatus.APPROVED);
             deliveryService.createDeliveryIfAbsentForCompletedOrder(order);
+            if (isAiSuggestedOrder(order)) {
+                deliveryService.markAiInboundWaiting(order.getId());
+            }
         } else if (allRejected) {
             order.updateStatus(OrderStatus.REJECTED);
         } else {
             order.updateStatus(OrderStatus.PARTIAL);
             if (!hasWaitingOrDelayed) {
                 deliveryService.createDeliveryIfAbsentForCompletedOrder(order);
+                if (isAiSuggestedOrder(order)) {
+                    deliveryService.markAiInboundWaiting(order.getId());
+                }
             }
         }
         order.updateProcessDate(LocalDateTime.now());
@@ -297,6 +346,48 @@ public class OrderAdmService {
 
     private void publishOrderStateChanged(OrderRequest order) {
         eventPublisher.publishEvent(new OrderStateChangedEvent(order.getId()));
+    }
+
+    private static boolean isAiSuggestedOrder(OrderRequest order) {
+        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+            return false;
+        }
+        // 결제/승인 우회는 "주문 내 모든 품목이 AI 제안인 순수 AI 발주"일 때만 허용한다.
+        return order.getOrderDetails().stream().allMatch(OrderDetail::isAiSuggested);
+    }
+
+    private static void ensureAiProcurementSnapshot(OrderRequest order) {
+        String name = order.getReceiverName();
+        String phone = order.getReceiverPhone();
+        String address = order.getDestinationAddress();
+        boolean missing = name == null || name.isBlank()
+                || phone == null || phone.isBlank()
+                || address == null || address.isBlank()
+                || "미정".equals(name)
+                || "미정".equals(phone)
+                || (address != null && address.startsWith("미정"));
+        if (missing) {
+            order.updateReceiverSnapshot(AI_VENDOR_NAME, AI_VENDOR_PHONE, AI_INBOUND_ADDRESS);
+        }
+        String memo = order.getMemo();
+        if (memo == null || !memo.contains("가상공급처")) {
+            order.updateMemo((memo == null ? "" : memo + " ") + "[가상공급처:" + AI_VENDOR_NAME + "]");
+        }
+    }
+
+    private static String resolveVendorName(OrderRequest order) {
+        String receiverName = order.getReceiverName();
+        if (receiverName == null || receiverName.isBlank() || "미정".equals(receiverName)) {
+            return AI_VENDOR_NAME;
+        }
+        return receiverName;
+    }
+
+    private static LocalDateTime resolveExpectedInboundAt(OrderRequest order) {
+        LocalDateTime base = order.getProcessDate() != null
+                ? order.getProcessDate()
+                : (order.getRequestDate() != null ? order.getRequestDate() : LocalDateTime.now());
+        return base.plusDays(3);
     }
 
     @Transactional(readOnly = true)

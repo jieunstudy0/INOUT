@@ -27,12 +27,14 @@ COPY gradlew gradlew
 COPY gradle/ gradle/
 COPY build.gradle settings.gradle ./
 
+# WSL2/Docker Desktop 환경에서 IPv6 경로가 응답 없이 멈추는 경우가 있어(연결 자체가
+# 타임아웃 없이 hang) Gradle JVM이 IPv4를 우선 사용하도록 강제한다.
 RUN chmod +x gradlew \
-    && ./gradlew dependencies --no-daemon --quiet
+    && ./gradlew dependencies --no-daemon --quiet -Djava.net.preferIPv4Stack=true
 
 # 소스 복사 및 빌드 (-x test: 테스트는 CI에서 별도 수행)
 COPY src/ src/
-RUN ./gradlew bootJar --no-daemon -x test --quiet
+RUN ./gradlew bootJar --no-daemon -x test --quiet -Djava.net.preferIPv4Stack=true
 
 # ────────────────────────────────────────────────
 # Stage 2: Extract layered JAR (Spring Boot Layertools)

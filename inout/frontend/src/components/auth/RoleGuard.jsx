@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { getPrimaryRole, homePathByRole } from '../../utils/roleUtils';
+import { getPrimaryRole, homePathByRole, isGuestToken } from '../../utils/roleUtils';
 
 function parseRoleFromToken() {
   try {
@@ -30,6 +30,11 @@ export default function RoleGuard({ children, allow }) {
 
   if (!role) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  // GUEST 토큰 → 온보딩 완료 전이므로 업무 페이지 접근 차단
+  if (role === 'GUEST') {
+    return <Navigate to="/onboarding/complete-profile" replace />;
   }
 
   const required = allow || expectedRoleForPath(location.pathname);

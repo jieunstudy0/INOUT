@@ -84,6 +84,17 @@ public class OrderRequest {
         this.rejectReason = rejectReason;
     }
 
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
+
+    /** 발주 승인/물류 처리 전 스냅샷(공급처/연락처/주소) 정보를 갱신한다. */
+    public void updateReceiverSnapshot(String receiverName, String receiverPhone, String destinationAddress) {
+        this.receiverName = receiverName;
+        this.receiverPhone = receiverPhone;
+        this.destinationAddress = destinationAddress;
+    }
+
     public void updateTotalPrice(Long totalPrice) {
         this.totalPrice = totalPrice;
     }
