@@ -1,6 +1,8 @@
 package com.jstudy.inout.common.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,6 +65,39 @@ class SecurityPathAclSmokeTest {
     @WithMockUser(roles = "EMPLOYEE")
     void employeeCannotAccessAdminVacation() throws Exception {
         mockMvc.perform(get("/api/admin/vacation"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.header.resultCode").value("AUTH_403"));
+    }
+
+    @Test
+    @DisplayName("ACL - URL 규칙은 통과하고 @PreAuthorize에서 거부되면 500이 아닌 403 AUTH_403")
+    @WithMockUser(roles = "ADMIN")
+    void methodSecurityDenialReturns403() throws Exception {
+        // /api/emp/** 는 ADMIN 허용, 메서드는 EMPLOYEE 전용
+        mockMvc.perform(get("/api/emp/inquiries/to-admin"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.header.resultCode").value("AUTH_403"));
+    }
+
+    @Test
+    @DisplayName("ACL - ADMIN이 문의글 작성 시 메서드 보안 거부 403 AUTH_403")
+    @WithMockUser(roles = "ADMIN")
+    void adminCannotCreateInquiry() throws Exception {
+        // 바인딩·@Valid 검증이 권한 검사보다 먼저 일어나므로, 400에 걸리지 않게 유효한 값을 넣는다
+        mockMvc.perform(multipart("/api/inquiry")
+                        .param("title", "제목")
+                        .param("content", "내용"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.header.resultCode").value("AUTH_403"));
+    }
+
+    @Test
+    @DisplayName("ACL - OWNER가 문의 댓글 작성 시 메서드 보안 거부 403 AUTH_403")
+    @WithMockUser(roles = "OWNER")
+    void ownerCannotCreateInquiryComment() throws Exception {
+        mockMvc.perform(post("/api/inquiry/1/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"test\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.header.resultCode").value("AUTH_403"));
     }
