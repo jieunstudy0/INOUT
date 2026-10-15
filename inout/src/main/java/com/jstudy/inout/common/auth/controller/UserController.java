@@ -83,32 +83,14 @@ public class UserController {
 	}
 
 	@PostMapping("/public/password/reset")
-	public ResponseEntity<?> resetPassword(@RequestBody @Valid UserPasswordResetInput userPasswordResetInput, Errors errors) {
+	public ResponseEntity<?> resetPassword(@RequestBody @Valid UserPasswordResetInput userPasswordResetInput) {
 	    log.info("📩 비밀번호 초기화 요청 이메일: {}", userPasswordResetInput.getEmail());
 
-	    if (errors.hasErrors()) {
-	        return ResponseResult.fail("입력값이 정확하지 않습니다.", ResponseError.of(errors.getAllErrors()));
-	    }
+	    // 실패(회원 없음·템플릿 없음·메일 오류)는 예외로 던져 GlobalExceptionHandler가 상태 코드·resultCode를 그대로 응답한다.
+	    authService.resetPassword(userPasswordResetInput);
 
-	    try {
-	        ServiceResult result = authService.resetPassword(userPasswordResetInput);
-
-	        if (result.isFail()) {
-	            log.warn("❌ 비밀번호 초기화 실패: {}", result.getMessage());
-	            return ResponseResult.fail(result.getMessage()); // 서비스에서 "사용자 정보를 찾을 수 없습니다" 등을 리턴하도록 설계
-	        } 
-	        
-	        log.info("✅ 비밀번호 초기화 이메일 전송 완료: {}", userPasswordResetInput.getEmail());
-	        return ResponseResult.successWithMessage("비밀번호 초기화 이메일이 전송되었습니다.");
-
-	    } catch (InoutException e) {
-	        log.error("🚨 비밀번호 초기화 중 커스텀 예외 발생: {}", e.getMessage());
-	        return ResponseResult.fail(e.getMessage());
-	    } catch (Exception e) {
-	
-	        log.error("🚨 시스템 에러 발생: ", e);
-	        return ResponseResult.fail("서버 내부에서 예상치 못한 오류가 발생했습니다.");
-	    }
+	    log.info("✅ 비밀번호 초기화 이메일 전송 완료: {}", userPasswordResetInput.getEmail());
+	    return ResponseResult.successWithMessage("비밀번호 초기화 이메일이 전송되었습니다.");
 	}
 	
 
@@ -119,14 +101,10 @@ public class UserController {
 	        @RequestParam("confirmPassword") String confirmPassword) {
 	   
 	    if (!newPassword.equals(confirmPassword)) {
-	        return ResponseResult.fail("비밀번호가 일치하지 않습니다.");
+	        return ResponseResult.fail("비밀번호가 일치하지 않습니다.", "PASSWORD_MISMATCH", 400);
 	    }
 	    
 	    ServiceResult result = authService.completePasswordReset(resetKey, newPassword);
-
-	    if (result.isFail()) {
-	        return ResponseResult.fail(result.getMessage());
-	    }
 
 	    Map<String, String> data = Map.of("redirectUrl", "/user/login");
 	    return ResponseResult.success(result.getMessage(), data);
@@ -139,11 +117,7 @@ public class UserController {
 	    User user = userRepository.findByPasswordResetKey(passwordResetKey)
 	            .orElseThrow(() -> new InoutException("유효하지 않은 재설정 링크입니다.", 400, "INVALID_LINK"));
 
-	    LocalDateTime now = LocalDateTime.now();
-	    if (user.getUpdatedAt().plusMinutes(30).isBefore(now)) {
-
-	    	user.clearPasswordResetInfo();
-	        userRepository.save(user);
+	    if (user.isPasswordResetExpired(LocalDateTime.now())) {
 	        return ResponseResult.fail("링크 유효 시간이 만료되었습니다.", "EXPIRED_LINK", 400);
 	    }
 	    return ResponseResult.success("유효한 접근입니다.", Map.of("resetKey", passwordResetKey));

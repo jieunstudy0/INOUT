@@ -91,7 +91,7 @@ public class DepositService {
 
     private void validateAmount(Long amount) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
+            throw new InoutException("금액은 0보다 커야 합니다.", 400, "INVALID_AMOUNT");
         }
     }
     

@@ -139,11 +139,8 @@ public class AuthServiceImpl implements AuthService {
             userInput.getEmail(), userInput.getName(), userInput.getPhone()
         );
 
-        if (!optionalUser.isPresent()) {
-            return ServiceResult.fail("사용자 정보를 찾을 수 없습니다.");
-        }
-
-        User user = optionalUser.get();
+        User user = optionalUser
+            .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         String passwordResetKey = UUID.randomUUID().toString();
         user.setPasswordResetInfo(passwordResetKey);
         userRepository.save(user);
@@ -166,14 +163,12 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ServiceResult completePasswordReset(String uuid, String newPassword) {
         User user = userRepository.findByPasswordResetKey(uuid)
-                .orElseThrow(() -> new InoutException("유효하지 않은 재설정 링크입니다."));
+                .orElseThrow(() -> new InoutException("유효하지 않은 재설정 링크입니다.", 400, "INVALID_LINK"));
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime requestTime = user.getUpdatedAt(); 
-
-        if (requestTime.plusMinutes(30).isBefore(now)) {
-            user.clearPasswordResetInfo();
-            return ServiceResult.fail("링크 유효 시간(30분)이 만료되었습니다. 다시 시도해 주세요.");
+        // 만료된 링크는 passwordResetLimit이 과거로 남아 있으므로 키를 지우지 않아도 다시 쓸 수 없다.
+        // (예외를 던지면 트랜잭션이 롤백되므로 여기서 clear해도 반영되지 않는다)
+        if (user.isPasswordResetExpired(LocalDateTime.now())) {
+            throw new InoutException("링크 유효 시간(30분)이 만료되었습니다. 다시 시도해 주세요.", 400, "EXPIRED_LINK");
         }
 
         user.changePassword(passwordEncoder.encode(newPassword));
