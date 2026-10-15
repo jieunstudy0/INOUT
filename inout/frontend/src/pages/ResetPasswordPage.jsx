@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPasswordComplete } from '../api/authApi';
+import { isUnusableResetLink } from '../utils/resultCodes';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function ResetPasswordPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [linkUnusable, setLinkUnusable] = useState(false);
   const [formData, setFormData] = useState({
     password: '',
     passwordConfirm: ''
@@ -34,6 +36,7 @@ export default function ResetPasswordPage() {
     } catch (err) {
       console.error("비밀번호 재설정 에러:", err);
       setError(err.message || '비밀번호 변경에 실패했습니다.');
+      setLinkUnusable(isUnusableResetLink(err));
     } finally {
       setLoading(false);
     }
@@ -88,6 +91,12 @@ export default function ResetPasswordPage() {
             <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2 mt-2">
               {error}
             </p>
+          )}
+          {linkUnusable && (
+            <button type="button" onClick={() => navigate('/find-account')}
+              className="w-full mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
+              재설정 메일 다시 받기
+            </button>
           )}
 
           <button type="submit" disabled={loading}

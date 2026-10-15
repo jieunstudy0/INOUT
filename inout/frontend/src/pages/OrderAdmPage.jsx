@@ -4,6 +4,7 @@ import { getListByStatuses, bulkApprove, approveOrder, rejectOrder } from '../ap
 import { getDashboardSummary } from '../api/dashboardApi';
 import { triggerAiAutoOrderAnalysis } from '../api/aiApi';
 import { Toast } from '../utils/toast';
+import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import PersonName from '../components/common/PersonName';
@@ -281,7 +282,9 @@ export default function OrderAdmPage() {
       setBulkResult(result);
       loadOrders(activeTab);
       loadSummary();
-    } catch { /* toasted */ }
+    } catch (err) {
+      if (isStaleDataError(err)) { loadOrders(activeTab); loadSummary(); }
+    }
     finally { setBulkProc(false); }
   };
 
@@ -292,7 +295,10 @@ export default function OrderAdmPage() {
       Toast.success(`발주 #${orderId} 최종 승인 완료`);
       loadOrders(activeTab);
       loadSummary();
-    } catch { /* interceptor */ }
+    } catch (err) {
+      // 재고 부족으로 자동 반려·환불됐거나 다른 관리자가 먼저 처리한 발주면 목록을 다시 불러온다
+      if (isStaleDataError(err)) { loadOrders(activeTab); loadSummary(); }
+    }
     finally { setActionBusyId(null); }
   };
 
@@ -304,7 +310,10 @@ export default function OrderAdmPage() {
       Toast.success(`발주 #${orderId} 반려 및 예치금 환불 완료`);
       loadOrders(activeTab);
       loadSummary();
-    } catch { /* interceptor */ }
+    } catch (err) {
+      // 재고 부족으로 자동 반려·환불됐거나 다른 관리자가 먼저 처리한 발주면 목록을 다시 불러온다
+      if (isStaleDataError(err)) { loadOrders(activeTab); loadSummary(); }
+    }
     finally { setActionBusyId(null); }
   };
 

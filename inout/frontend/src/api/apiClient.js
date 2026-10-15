@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Toast } from '../utils/toast';
+import { navigateTo } from '../utils/navigation';
 
 const sharedConfig = {
   baseURL: '/api',
@@ -27,13 +28,22 @@ async function parseApiError(error) {
       : '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.');
   // 검증 오류(@Valid 실패)일 때만 body가 [{ field, message }] 배열로 온다
   const errors = Array.isArray(data?.body) ? data.body : [];
-  return { status, message, errors };
+  const resultCode = data?.header?.resultCode || null;
+  return { status, message, errors, resultCode };
 }
 
 /** 서버 검증 오류 목록을 { 필드이름: 문구 } 형태로 바꾼다 (입력칸별 오류 표시용) */
 export function toFieldErrors(errors = []) {
   return Object.fromEntries(errors.map((e) => [e.field, e.message]));
 }
+
+/**
+ * 어느 화면에서 나든 대응이 같은 resultCode는 토스트에 다음 행동 버튼을 붙인다.
+ * (화면마다 다르게 대응하는 코드는 utils/resultCodes.js를 쓴다)
+ */
+const RESULT_CODE_ACTIONS = {
+  INSUFFICIENT_BALANCE: { label: '예치금 충전하러 가기', onClick: () => navigateTo('/owner/deposit') },
+};
 
 /**
  * 인증 필요 API — Authorization 주입 + 401 시 로그인 리다이렉트.
@@ -56,7 +66,7 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const { status, message, errors } = await parseApiError(error);
+    const { status, message, errors, resultCode } = await parseApiError(error);
 
     if (status === 401 && window.location.pathname !== '/login') {
       localStorage.removeItem('accessToken');
@@ -70,9 +80,9 @@ client.interceptors.response.use(
       // 4xx는 서버 문구가 이미 구체적이라 그대로 쓰고, 검증 오류면 첫 번째 필드 오류를 보여 준다.
       const context = error?.config?.errorContext;
       const withContext = context && (status == null || status >= 500) ? `${context} ${message}` : message;
-      Toast.error(errors[0]?.message || withContext);
+      Toast.error(errors[0]?.message || withContext, undefined, RESULT_CODE_ACTIONS[resultCode]);
     }
-    return Promise.reject({ status, message, errors });
+    return Promise.reject({ status, message, errors, resultCode });
   },
 );
 
@@ -86,8 +96,8 @@ export const publicClient = axios.create(sharedConfig);
 publicClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const { status, message, errors } = await parseApiError(error);
-    return Promise.reject({ status, message, errors });
+    const { status, message, errors, resultCode } = await parseApiError(error);
+    return Promise.reject({ status, message, errors, resultCode });
   },
 );
 

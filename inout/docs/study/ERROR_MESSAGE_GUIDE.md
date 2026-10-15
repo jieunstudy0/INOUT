@@ -43,15 +43,16 @@ throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 댓글만 삭
 
 ## 3. 화면이 직접 대응해야 하는 코드
 
-토스트만으로는 다음 행동을 할 수 없는 경우 화면에서 resultCode로 분기한다.
+토스트만으로는 다음 행동을 할 수 없는 경우 resultCode로 분기한다. 문구가 아니라 코드로 분기하므로 백엔드 문구가 바뀌어도 동작이 유지된다.
 
-| resultCode | 화면 대응 |
-|------------|-----------|
-| `STOCK_SHORTAGE` | 장바구니·재고 목록 새로고침 |
-| `INSUFFICIENT_BALANCE` | 예치금 충전 화면으로 이동 버튼 |
-| `DAILY_DEPOSIT_LIMIT_EXCEEDED` | 남은 한도 안내 |
-| `CONCURRENCY_ERROR`, `ALREADY_PROCESSED` | 상세 데이터 다시 불러오기 |
-| `EXPIRED_LINK`, `INVALID_LINK` | 비밀번호 찾기 화면으로 이동 |
+| resultCode | 대응 | 위치 |
+|------------|------|------|
+| `INSUFFICIENT_BALANCE` | 토스트에 "예치금 충전하러 가기" 버튼 → `/owner/deposit` | 인터셉터 `RESULT_CODE_ACTIONS` (어느 화면이든 같은 대응) |
+| `STOCK_SHORTAGE`, `CONCURRENCY_ERROR`, `ALREADY_PROCESSED(_DETAIL)`, `INVALID_ORDER_STATUS` | 화면 데이터 다시 불러오기 (`isStaleDataError`) | 장바구니 발주, 본사 승인·반려·일괄 승인, 품목 처리, 충전 승인·반려, 연차 처리, 점주 기안 결재 |
+| `EXPIRED_LINK`, `INVALID_LINK` | "재설정 메일 다시 받기" 버튼 → `/find-account` (`isUnusableResetLink`) | 비밀번호 재설정 화면 |
+
+- 인터셉터는 React 밖이라 `useNavigate`를 쓸 수 없어, `NavigationBridge`가 Router 안에서 navigate 함수를 `utils/navigation`에 등록한다.
+- 화면별 판단 함수는 `frontend/src/utils/resultCodes.js`에 모은다.
 
 ## 4. 목록·상세 조회 실패 (5xx·네트워크)
 
