@@ -89,7 +89,7 @@ class OrderAdmServiceTest {
 
         assertThatThrownBy(() -> orderAdmService.processOrderItems(orderId, request, adminId))
                 .isInstanceOf(InoutException.class)
-                .hasMessageContaining("해당 주문에 속한 발주 상세 항목을 찾을 수 없습니다.");
+                .hasMessageContaining("해당 발주에 속한 상세 항목을 찾을 수 없습니다.");
 
         verify(eventPublisher, never()).publishEvent(org.mockito.ArgumentMatchers.any(OrderStateChangedEvent.class));
     }

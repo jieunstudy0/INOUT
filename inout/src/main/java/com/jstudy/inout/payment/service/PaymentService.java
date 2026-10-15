@@ -23,10 +23,10 @@ public class PaymentService {
     public PaymentDto.Response processDepositPayment(Long userId, PaymentDto.Request request) {
 
         OrderRequest order = orderRequestRepository.findByIdForUpdate(request.getOrderId())
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
 
         if (!order.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("본인의 주문만 결제할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인의 발주만 결제할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         if (order.getStatus() == OrderStatus.REQUESTED) {
@@ -37,7 +37,7 @@ public class PaymentService {
         }
 
         throw new InoutException(
-                "결제 대기 상태의 주문이 아닙니다. (현재 상태: " + order.getStatus() + ")",
+                "결제 대기 상태의 발주가 아닙니다.",
                 400,
                 "INVALID_ORDER_STATUS");
     }

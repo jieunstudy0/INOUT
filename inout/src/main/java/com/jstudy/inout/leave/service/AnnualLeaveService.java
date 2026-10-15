@@ -35,12 +35,12 @@ public class AnnualLeaveService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         boolean overlapping = annualLeaveRepository.existsOverlapping(
                 userId, request.getStartDate(), request.getEndDate(), LeaveStatus.REJECTED);
         if (overlapping) {
-            throw new InoutException("이미 신청된 연차 기간과 겹칩니다.", 400, "LEAVE_PERIOD_OVERLAP");
+            throw new InoutException("이미 신청된 연차 기간과 겹칩니다.", 409, "LEAVE_PERIOD_OVERLAP");
         }
 
         AnnualLeave leave = AnnualLeave.builder()
@@ -63,7 +63,7 @@ public class AnnualLeaveService {
                 .orElseThrow(() -> new InoutException("연차 신청 정보를 찾을 수 없습니다.", 404, "LEAVE_NOT_FOUND"));
 
         if (!leave.getUser().getId().equals(userId)) {
-            throw new InoutException("본인의 연차 신청만 조회할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인의 연차 신청만 조회할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         return AnnualLeaveDto.toDetail(leave);
@@ -112,7 +112,7 @@ public class AnnualLeaveService {
         assertSameStore(processor.getStore().getId(), leave.getUser());
 
         if (!leave.getStatus().isProcessable()) {
-            throw new InoutException("이미 처리된 연차 신청입니다.", 400, "ALREADY_PROCESSED");
+            throw new InoutException("이미 처리된 연차 신청입니다.", 409, "ALREADY_PROCESSED");
         }
 
         LeaveStatus newStatus = request.getStatus();

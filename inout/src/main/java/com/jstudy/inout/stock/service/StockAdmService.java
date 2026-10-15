@@ -49,7 +49,7 @@ public class StockAdmService {
                 .orElseThrow(() -> new InoutException("해당 카테고리를 찾을 수 없습니다.", 404, "CATEGORY_NOT_FOUND"));
 
         if (itemRepository.existsByName(stockRegister.getName())) {
-            throw new InoutException("이미 등록된 상품명입니다.", 400, "DUPLICATE_ITEM_NAME");
+            throw new InoutException("이미 등록된 상품명입니다.", 409, "DUPLICATE_ITEM_NAME");
         }
 
         Item item = stockRegister.toEntity(category);
@@ -62,7 +62,7 @@ public class StockAdmService {
     @Transactional
     public void updateStock(Long itemId, StockUpdate stockUpdate, Long userId) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         ItemCategory category = itemCategoryRepository.findById(stockUpdate.getCategoryId())
                 .orElseThrow(() -> new InoutException("카테고리를 찾을 수 없습니다.", 404, "CATEGORY_NOT_FOUND"));
@@ -80,10 +80,10 @@ public class StockAdmService {
     @Transactional
     public void deleteStock(Long itemId) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("삭제하려는 상품이 존재하지 않습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         if (item.getDeleted()) {
-            throw new InoutException("이미 삭제된 상품입니다.", 400, "ALREADY_DELETED");
+            throw new InoutException("이미 삭제된 상품입니다.", 409, "ALREADY_DELETED");
         }
 
         item.delete();
@@ -111,10 +111,10 @@ public class StockAdmService {
     })
     public Long receiveStock(Long itemId, int quantity, Long userId, String memo) {
         Item item = itemRepository.findByIdWithLock(itemId)
-                .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         item.addStock(quantity);
 
@@ -168,7 +168,7 @@ public class StockAdmService {
     @Transactional(readOnly = true)
     public StockDetailResponse getStockDetail(Long itemId, int page, int size) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         List<StockHistoryResponse> allHistory = getAllHistoryForStats(itemId);
 

@@ -72,9 +72,10 @@ public class AiAutoOrderService {
 
     public int createAutoOrderDraft() {
         if (!StringUtils.hasText(apiKey)) {
+            log.error("[AI 자동 발주] gemini.api-key 미설정 — application-secret.properties를 확인하세요.");
             throw new InoutException(
-                    "Gemini API 키가 설정되지 않았습니다. application-secret.properties에 gemini.api-key를 설정해 주세요.",
-                    503, "GEMINI_NOT_CONFIGURED");
+                    "AI 서비스가 설정되지 않아 사용할 수 없습니다. 관리자에게 문의해 주세요.",
+                    503, "AI_NOT_CONFIGURED");
         }
 
         List<Item> activeItems = itemRepository.findAllByDeletedFalse();
@@ -164,7 +165,8 @@ public class AiAutoOrderService {
                 JsonNode root = objectMapper.readTree(responseBody);
                 JsonNode candidates = root.path("candidates");
                 if (candidates.isEmpty()) {
-                    throw new InoutException("Gemini 응답에 candidates 필드가 없습니다.", 500, "AI_INVALID_RESPONSE");
+                    log.error("[AI 자동 발주] Gemini 응답에 candidates 없음: {}", responseBody);
+                    throw new InoutException("AI 응답 형식이 올바르지 않습니다. 잠시 후 다시 시도해 주세요.", 500, "AI_INVALID_RESPONSE");
                 }
                 return candidates.get(0).path("content").path("parts").get(0).path("text").asText();
 
@@ -179,7 +181,7 @@ public class AiAutoOrderService {
                     sleep(backoff);
                 } else {
                     log.error("[AI 자동 발주] Gemini API {} 에러 (최종 실패)", status, e);
-                    throw new InoutException("Gemini API 서비스 오류(" + status + ")", 503, "AI_API_ERROR");
+                    throw new InoutException("AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
                 }
 
             } catch (RestClientException e) {
@@ -188,19 +190,20 @@ public class AiAutoOrderService {
                 if (attempt < MAX_RETRY_ATTEMPTS) {
                     sleep(RETRY_BASE_BACKOFF_MS * attempt);
                 } else {
-                    throw new InoutException("Gemini API 서비스 연결에 실패했습니다.", 503, "AI_API_ERROR");
+                    throw new InoutException("AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
                 }
 
             } catch (InoutException e) {
                 throw e;
             } catch (Exception e) {
                 log.error("[AI 자동 발주] Gemini 응답 파싱 실패", e);
-                throw new InoutException("Gemini 응답 처리 중 오류가 발생했습니다.", 500, "AI_PARSE_ERROR");
+                throw new InoutException("AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.", 500, "AI_PARSE_ERROR");
             }
         }
 
         // 루프를 모두 소진한 경우 (이론상 도달하지 않지만 컴파일러를 위해)
-        throw new InoutException("Gemini API 재시도 횟수 초과", 503, "AI_API_ERROR");
+        log.error("[AI 자동 발주] Gemini API 재시도 횟수 초과", lastException);
+        throw new InoutException("AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -287,7 +290,7 @@ public class AiAutoOrderService {
         if (start == -1 || end == -1 || start > end) {
             log.error("[AI 자동 발주] JSON 배열 추출 실패. 원본: {}", rawText);
             throw new InoutException(
-                    "AI 응답에서 JSON 배열을 찾을 수 없습니다. AI가 잘못된 형식을 반환했습니다.",
+                    "AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
                     500, "AI_PARSE_ERROR");
         }
         String jsonArray = cleaned.substring(start, end + 1);

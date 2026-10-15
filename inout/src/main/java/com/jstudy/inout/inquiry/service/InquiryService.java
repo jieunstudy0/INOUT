@@ -41,7 +41,7 @@ public class InquiryService {
     @Transactional
     public Long createInquiry(Long userId, InquiryCreateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         String originalFileName = null;
         String savedFilePath = null;
@@ -165,7 +165,7 @@ public class InquiryService {
                 .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
 
         if (!inquiry.getAuthor().getId().equals(userId)) {
-            throw new InoutException("삭제 권한이 없습니다. 작성자 본인만 삭제할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인이 작성한 문의글만 삭제할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         inquiryRepository.delete(inquiry);

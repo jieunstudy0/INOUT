@@ -45,7 +45,7 @@ public class StockEmpService {
                 .orElseThrow(() -> new InoutException("사용 가능한 상품이 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         item.removeStock(quantity);
 

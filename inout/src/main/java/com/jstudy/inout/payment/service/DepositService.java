@@ -113,7 +113,7 @@ public class DepositService {
         try {
             account.deductBalance(amount);
         } catch (IllegalStateException e) {
-            throw new InoutException("예치금 잔액이 부족합니다.", 400, "INSUFFICIENT_BALANCE");
+            throw new InoutException("예치금 잔액이 부족합니다. 충전 후 다시 시도해 주세요.", 400, "INSUFFICIENT_BALANCE");
         }
 
         DepositHistory history = DepositHistory.builder()

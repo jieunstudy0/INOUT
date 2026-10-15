@@ -31,7 +31,7 @@ public class DashboardOwnerService {
 
     public DashboardOwnerResponse getSummary(Long ownerUserId) {
         User owner = userRepository.findById(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         if (owner.getStore() == null) {
             throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");

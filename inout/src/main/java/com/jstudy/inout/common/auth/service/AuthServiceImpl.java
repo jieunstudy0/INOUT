@@ -60,11 +60,11 @@ public class AuthServiceImpl implements AuthService {
     public ServiceResult addUser(UserInput userInput) {
         Optional<User> optionalUser = userRepository.findByEmail(userInput.getEmail());
         if (optionalUser.isPresent()) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 400, "DUPLICATE_EMAIL");
+            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
         }
 
         Store store = storeRepository.findById(userInput.getStoreId())
-                .orElseThrow(() -> new InoutException("존재하지 않는 매장입니다.", 404, "STORE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
 
         String encryptPassword = passwordEncoder.encode(userInput.getPassword());
 
@@ -104,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void checkEmail(String email) {
         if (userRepository.existsByEmail(email)) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 400);
+            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
         }
     }
 
@@ -182,9 +182,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ServiceResult updateUser(Long id, UserUpdate userUpdate) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new InoutException("사용자 정보가 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         Store store = storeRepository.findById(userUpdate.getStoreId())
-                .orElseThrow(() -> new InoutException("존재하지 않는 매장입니다.", 404, "STORE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
         user.updateInfo(userUpdate.getPhone(), store);
         return ServiceResult.success();
     }
@@ -205,7 +205,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void unlockUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         user.resetLoginAttributes();
     }
 
@@ -256,17 +256,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void updateUserByAdmin(Long userId, AdminUserDto.UpdateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         Store store = null;
         if (request.getStoreId() != null) {
             store = storeRepository.findById(request.getStoreId())
-                    .orElseThrow(() -> new InoutException("존재하지 않는 매장입니다.", 404));
+                    .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
         }
         user.updateStatusAndStore(request.getStatus(), store);
 
         Role adminRole = roleRepository.findByRoleName("ROLE_ADMIN")
-                .orElseThrow(() -> new InoutException("관리자 권한 정보를 찾을 수 없습니다.", 500));
+                .orElseThrow(() -> new InoutException("관리자 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
 
         boolean hasAdminRole = user.getUserRoles().stream()
                 .anyMatch(ur -> ur.getRole().getRoleName().equals("ROLE_ADMIN"));
@@ -287,7 +287,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void sendPasswordResetMailByAdmin(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         
         UserPasswordResetInput input = new UserPasswordResetInput();
         input.setEmail(user.getEmail());
@@ -346,7 +346,7 @@ public class AuthServiceImpl implements AuthService {
             throw new InoutException("비밀번호 확인이 일치하지 않습니다.", 400, "PASSWORD_CONFIRM_MISMATCH");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 400, "DUPLICATE_EMAIL");
+            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
         }
 
         User employee = User.builder()
@@ -371,7 +371,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request) {
         if (request == null || request.getStatus() == null) {
-            throw new InoutException("상태(status)는 필수입니다.", 400, "STATUS_REQUIRED");
+            throw new InoutException("변경할 계정 상태를 선택해 주세요.", 400, "STATUS_REQUIRED");
         }
         User owner = requireOwnerWithStore(ownerUserId);
         User employee = requireSameStoreEmployee(owner, employeeUserId);
@@ -414,7 +414,7 @@ public class AuthServiceImpl implements AuthService {
 
     private User requireOwnerWithStore(Long ownerUserId) {
         User owner = userRepository.findById(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         if (owner.getStore() == null) {
             throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
         }
@@ -423,9 +423,9 @@ public class AuthServiceImpl implements AuthService {
 
     private User requireSameStoreEmployee(User owner, Long employeeUserId) {
         User employee = userRepository.findById(employeeUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         if (employee.getStore() == null || !owner.getStore().getId().equals(employee.getStore().getId())) {
-            throw new InoutException("다른 매장 직원에는 접근할 수 없습니다.", 403, "CROSS_STORE_FORBIDDEN");
+            throw new InoutException("소속 매장의 직원만 관리할 수 있습니다.", 403, "CROSS_STORE_FORBIDDEN");
         }
         return employee;
     }

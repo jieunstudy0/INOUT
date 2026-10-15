@@ -28,7 +28,7 @@ public class InquiryCommentService {
                 .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         InquiryComment parent = null;
         if (request.getParentId() != null) {
@@ -56,7 +56,7 @@ public class InquiryCommentService {
                 .orElseThrow(() -> new InoutException("댓글을 찾을 수 없습니다.", 404, "COMMENT_NOT_FOUND"));
 
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new InoutException("삭제 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인이 작성한 댓글만 삭제할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         commentRepository.delete(comment);
@@ -68,7 +68,7 @@ public class InquiryCommentService {
                 .orElseThrow(() -> new InoutException("댓글을 찾을 수 없습니다.", 404, "COMMENT_NOT_FOUND"));
 
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new InoutException("수정 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인이 작성한 댓글만 수정할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         comment.updateContent(newContent);

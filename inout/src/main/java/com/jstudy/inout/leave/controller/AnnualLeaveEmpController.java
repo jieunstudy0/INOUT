@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "?? ?? ??", description = "?? ?? ?? ? ?? (EMPLOYEE / OWNER)")
+@Tag(name = "직원 연차 신청", description = "연차 신청 및 본인 신청 내역·잔여 연차 조회 (EMPLOYEE / OWNER)")
 @RestController
 @RequestMapping("/api/emp/vacation")
 @PreAuthorize("hasAnyRole('EMPLOYEE', 'OWNER')")
@@ -35,11 +35,11 @@ public class AnnualLeaveEmpController {
 
     private final AnnualLeaveService annualLeaveService;
 
-    @Operation(summary = "?? ??",
-               description = "?? ??? ?????. ?? ?? ??? PENDING(??)???.")
+    @Operation(summary = "연차 신청",
+               description = "연차를 신청합니다. 신청 직후 상태는 PENDING(대기)입니다.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "?? ?? (?? ID ??)"),
-            @ApiResponse(responseCode = "400", description = "?? ?? / ?? ??")
+            @ApiResponse(responseCode = "200", description = "신청 성공 (연차 ID 반환)"),
+            @ApiResponse(responseCode = "400", description = "기간 오류 / 기간 중복")
     })
     @PostMapping
     public ResponseEntity<?> submitLeave(
@@ -47,7 +47,7 @@ public class AnnualLeaveEmpController {
             @Valid @RequestBody AnnualLeaveDto.CreateRequest request) {
 
         Long leaveId = annualLeaveService.submitLeave(getUserId(principal), request);
-        return ResponseResult.success("?? ??? ???????.", leaveId);
+        return ResponseResult.success("연차 신청이 완료되었습니다.", leaveId);
     }
 
     @Operation(summary = "내 연차 신청 목록 조회", description = "본인이 신청한 연차 내역을 조회합니다.")
@@ -86,7 +86,7 @@ public class AnnualLeaveEmpController {
 
     private Long getUserId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("?? ??? ???? ????.", 401, "UNAUTHORIZED");
+            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
         }
         return principal.getUser().getId();
     }

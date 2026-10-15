@@ -53,7 +53,7 @@ public class OrderEmpService {
 
         for (CartDetail detail : selectedItems) {
             if (!detail.getCart().getUser().getId().equals(userId)) {
-                throw new InoutException("본인의 장바구니 상품만 주문할 수 있습니다.", 403, "FORBIDDEN");
+                throw new InoutException("본인의 장바구니 상품만 발주할 수 있습니다.", 403, "NOT_OWNER");
             }
         }
         return OrderPreResponse.from(user, selectedItems);
@@ -63,7 +63,7 @@ public class OrderEmpService {
     public Long submitOrderRequest(Long userId, OrderCreateRequest request) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
 
         List<CartDetail> selectedItems = cartDetailRepository.findWithCartAndUserByIds(request.getCartDetailIds());
 
@@ -73,11 +73,11 @@ public class OrderEmpService {
 
         for (CartDetail cartItem : selectedItems) {
             if (!cartItem.getCart().getUser().getId().equals(userId)) {
-                throw new InoutException("본인의 장바구니 상품만 주문할 수 있습니다.", 403, "FORBIDDEN");
+                throw new InoutException("본인의 장바구니 상품만 발주할 수 있습니다.", 403, "NOT_OWNER");
             }
 
             Item item = itemRepository.findByIdWithLock(cartItem.getItem().getItemId())
-                    .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
             
             if (item.getCurrentStock() < cartItem.getQuantity()) {
                 throw new InoutException(item.getName() + " 재고가 부족합니다.", 400, "STOCK_SHORTAGE");
@@ -143,10 +143,10 @@ public class OrderEmpService {
     public OrderDetailResponse getOrderDetails(Long userId, Long orderRequestId) {
 
         OrderRequest order = orderRequestRepository.findWithDetailsGraphById(orderRequestId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 발주 내역입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
 
         if (!order.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("조회 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인의 발주만 조회할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         List<OrderDetailResponse.OrderDetailItemDto> itemDtos = order.getOrderDetails().stream()
@@ -176,10 +176,10 @@ public class OrderEmpService {
     public void cancelOrder(Long userId, Long orderRequestId) {
 
         OrderRequest order = orderRequestRepository.findByIdForUpdate(orderRequestId)
-                .orElseThrow(() -> new InoutException("주문 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
 
         if (!order.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("본인의 주문만 취소할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("본인의 발주만 취소할 수 있습니다.", 403, "NOT_OWNER");
         }
 
         OrderStatus currentStatus = order.getStatus();
@@ -199,7 +199,7 @@ public class OrderEmpService {
             order.updateProcessDate(LocalDateTime.now());
 
         } else {
-            throw new InoutException("이미 처리 진행 중이거나 완료된 주문은 취소할 수 없습니다.", 400, "INVALID_STATUS");
+            throw new InoutException("이미 처리 중이거나 완료된 발주는 취소할 수 없습니다.", 400, "INVALID_ORDER_STATUS");
         }
     }
 

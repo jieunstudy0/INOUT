@@ -103,7 +103,7 @@ public class OrderAdmService {
     @Transactional(readOnly = true)
     public OrderAdminDetailResponse getOrderDetail(Long orderId) {
         OrderRequest order = orderRequestRepository.findByIdWithDetails(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         boolean aiSuggestedOrder = isAiSuggestedOrder(order);
 
         List<OrderAdminDetailResponse.ItemDto> items =
@@ -146,7 +146,7 @@ public class OrderAdmService {
     @Transactional
     public void processOrderItems(Long orderId, OrderProcessRequest request, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdate(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         User adminUser = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
         boolean aiOrder = isAiSuggestedOrder(order);
@@ -165,7 +165,7 @@ public class OrderAdmService {
         for (ItemStatusUpdate update : request.items()) {
             OrderDetail detail = orderDetailRepository
                     .findByOrderDetailIdAndOrderRequest_Id(update.orderDetailId(), orderId)
-                    .orElseThrow(() -> new InoutException("해당 주문에 속한 발주 상세 항목을 찾을 수 없습니다.", 404, "ORDER_DETAIL_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException("해당 발주에 속한 상세 항목을 찾을 수 없습니다.", 404, "ORDER_DETAIL_NOT_FOUND"));
 
             OrderDetailStatus current = detail.getStatus();
             OrderDetailStatus target = update.status();
@@ -174,7 +174,7 @@ public class OrderAdmService {
 
             if ((current == OrderDetailStatus.APPROVED || current == OrderDetailStatus.REJECTED)
                     && target != current) {
-                throw new InoutException("이미 처리된 발주 상세 항목은 상태를 변경할 수 없습니다.", 400, "ALREADY_PROCESSED_DETAIL");
+                throw new InoutException("이미 처리된 발주 상세 항목은 상태를 변경할 수 없습니다.", 409, "ALREADY_PROCESSED_DETAIL");
             }
 
             if (target == OrderDetailStatus.WAITING && current != OrderDetailStatus.WAITING) {
@@ -234,10 +234,10 @@ public class OrderAdmService {
     @Transactional
     public void approveOrder(Long orderId, Long adminId) {
         OrderRequest order = orderRequestRepository.findById(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         boolean aiDraftBypass = isAiSuggestedOrder(order) && order.getStatus() == OrderStatus.REQUESTED;
         if (!(order.getStatus().isAwaitingHq() || aiDraftBypass)) {
-            throw new InoutException("본사 승인 대기(ORDERED) 상태의 발주만 승인할 수 있습니다.", 400, "INVALID_ORDER_STATUS");
+            throw new InoutException("본사 승인 대기 상태의 발주만 승인할 수 있습니다.", 400, "INVALID_ORDER_STATUS");
         }
         boolean ok = orderApprovalTxService.processSingleOrderApproval(orderId, adminId);
         if (!ok) {
@@ -250,9 +250,9 @@ public class OrderAdmService {
      */
     public void rejectOrder(Long orderId, Long adminId, OrderRejectRequest request) {
         OrderRequest peek = orderRequestRepository.findById(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         if (!peek.getStatus().isAwaitingHq()) {
-            throw new InoutException("본사 승인 대기(ORDERED) 상태의 발주만 반려할 수 있습니다.", 400, "INVALID_ORDER_STATUS");
+            throw new InoutException("본사 승인 대기 상태의 발주만 반려할 수 있습니다.", 400, "INVALID_ORDER_STATUS");
         }
         String reason = (request != null && request.getReason() != null && !request.getReason().isBlank())
                 ? request.getReason().trim()
@@ -262,7 +262,7 @@ public class OrderAdmService {
 
     private void approveItemStock(OrderDetail detail, User adminUser, Long orderId) {
         Item item = itemRepository.findByIdWithLock(detail.getItem().getItemId())
-                .orElseThrow(() -> new InoutException("상품 정보 없음", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         item.removeStock(detail.getRequestQuantity());
 
@@ -274,7 +274,7 @@ public class OrderAdmService {
 
     private void restoreItemStock(OrderDetail detail, User adminUser, Long orderId) {
         Item item = itemRepository.findByIdWithLock(detail.getItem().getItemId())
-                .orElseThrow(() -> new InoutException("상품 정보 없음", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         item.addStock(detail.getRequestQuantity());
 

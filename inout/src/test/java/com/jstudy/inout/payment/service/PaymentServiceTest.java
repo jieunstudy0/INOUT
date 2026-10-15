@@ -97,7 +97,7 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.processDepositPayment(USER_ID, request))
                 .isInstanceOf(InoutException.class)
-                .satisfies(e -> assertThat(((InoutException) e).getResultCode()).isEqualTo("FORBIDDEN"));
+                .satisfies(e -> assertThat(((InoutException) e).getResultCode()).isEqualTo("NOT_OWNER"));
     }
 
     @Test

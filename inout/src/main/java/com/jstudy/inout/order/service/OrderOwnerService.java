@@ -65,7 +65,7 @@ public class OrderOwnerService {
     public Long modifyAndApprove(Long ownerUserId, Long orderId, OwnerOrderModifyRequest request) {
         User owner = requireOwner(ownerUserId);
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         assertSameStore(owner, order);
 
         if (order.getStatus() != OrderStatus.REQUESTED) {
@@ -99,7 +99,7 @@ public class OrderOwnerService {
         // 요청에만 있고 기존에 없던 품목은 신규 추가
         for (Long itemId : keepItemIds) {
             Item item = itemRepository.findById(itemId)
-                    .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다. (id=" + itemId + ")", 404, "ITEM_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
             OrderDetail detail = OrderDetail.builder()
                     .orderRequest(order)
                     .item(item)
@@ -126,7 +126,7 @@ public class OrderOwnerService {
         try {
             payer.consumeDailyDeposit(newTotal);
         } catch (IllegalStateException e) {
-            throw new InoutException("1일 예치금 사용 한도를 초과했습니다", 400, "DAILY_DEPOSIT_LIMIT_EXCEEDED");
+            throw new InoutException("1일 예치금 사용 한도를 초과했습니다.", 400, "DAILY_DEPOSIT_LIMIT_EXCEEDED");
         }
 
         depositService.deductDeposit(
@@ -149,7 +149,7 @@ public class OrderOwnerService {
     public void rejectDraft(Long ownerUserId, Long orderId, OrderRejectRequest request) {
         User owner = requireOwner(ownerUserId);
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         assertSameStore(owner, order);
 
         if (order.getStatus() != OrderStatus.REQUESTED) {
@@ -190,7 +190,7 @@ public class OrderOwnerService {
         Map<Long, Item> items = new HashMap<>();
         for (Map.Entry<Long, Integer> e : qtyByItemId.entrySet()) {
             Item item = itemRepository.findByIdWithLock(e.getKey())
-                    .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
             if (item.getCurrentStock() < e.getValue()) {
                 throw new InoutException(item.getName() + " 재고가 부족합니다.", 400, "STOCK_SHORTAGE");
             }
@@ -199,11 +199,11 @@ public class OrderOwnerService {
         }
 
         User lockedOwner = userRepository.findByIdForUpdate(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         try {
             lockedOwner.consumeDailyDeposit(total);
         } catch (IllegalStateException e) {
-            throw new InoutException("1일 예치금 사용 한도를 초과했습니다", 400, "DAILY_DEPOSIT_LIMIT_EXCEEDED");
+            throw new InoutException("1일 예치금 사용 한도를 초과했습니다.", 400, "DAILY_DEPOSIT_LIMIT_EXCEEDED");
         }
 
         OrderRequest order = OrderRequest.builder()
@@ -244,10 +244,10 @@ public class OrderOwnerService {
     private OrderRequest requireStoreOrder(Long ownerUserId, Long orderId) {
         Long storeId = requireStoreId(ownerUserId);
         OrderRequest order = orderRequestRepository.findWithDetailsGraphById(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         if (order.getRequestUser().getStore() == null
                 || !order.getRequestUser().getStore().getId().equals(storeId)) {
-            throw new InoutException("소속 매장 발주만 조회할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("소속 매장의 발주만 조회할 수 있습니다.", 403, "CROSS_STORE_FORBIDDEN");
         }
         return order;
     }
@@ -255,7 +255,7 @@ public class OrderOwnerService {
     private void assertSameStore(User owner, OrderRequest order) {
         if (owner.getStore() == null || order.getRequestUser().getStore() == null
                 || !Objects.equals(owner.getStore().getId(), order.getRequestUser().getStore().getId())) {
-            throw new InoutException("소속 매장 발주만 처리할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException("소속 매장의 발주만 처리할 수 있습니다.", 403, "CROSS_STORE_FORBIDDEN");
         }
     }
 
@@ -310,7 +310,7 @@ public class OrderOwnerService {
 
     private User requireOwner(Long ownerUserId) {
         User owner = userRepository.findById(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
         if (owner.getStore() == null) {
             throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
         }

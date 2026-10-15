@@ -213,7 +213,8 @@ public class MassDataGeneratorService {
                 "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
                 Long.class, tableName);
         if (next == null) {
-            throw new InoutException("테이블의 다음 AUTO_INCREMENT 값을 조회할 수 없습니다: " + tableName,
+            log.error("[대량 더미 데이터] {} 테이블의 AUTO_INCREMENT 값을 조회할 수 없습니다.", tableName);
+            throw new InoutException("더미 데이터 생성에 필요한 테이블 정보를 조회하지 못했습니다.",
                     500, "MASS_DATA_SCHEMA_ERROR");
         }
         return next;

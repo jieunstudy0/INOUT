@@ -44,8 +44,9 @@ public class AiInsightService {
     @Transactional(readOnly = true)
     public CompletableFuture<AiInsightResponse> generateInsightReport() {
         if (!StringUtils.hasText(apiKey)) {
+            log.error("[AI 인사이트] gemini.api-key 미설정 — application-secret.properties를 확인하세요.");
             throw new InoutException(
-                    "Gemini API 키가 설정되지 않았습니다. application-secret.properties에 gemini.api-key를 설정해 주세요.",
+                    "AI 서비스가 설정되지 않아 사용할 수 없습니다. 관리자에게 문의해 주세요.",
                     503, "AI_NOT_CONFIGURED");
         }
 

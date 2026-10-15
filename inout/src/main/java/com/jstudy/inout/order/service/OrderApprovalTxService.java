@@ -49,7 +49,7 @@ public class OrderApprovalTxService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean processSingleOrderApproval(Long orderId, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
         User adminUser = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
         boolean aiSuggestedOrder = isAiSuggestedOrder(order);
@@ -78,7 +78,7 @@ public class OrderApprovalTxService {
                 Item item = lockedItems.computeIfAbsent(itemId, id ->
                         itemRepository.findByIdWithLock(id)
                                 .orElseThrow(() -> new InoutException(
-                                        "상품 정보가 없습니다.", 404, "ITEM_NOT_FOUND")));
+                                        "상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND")));
                 
                 entityManager.refresh(item, LockModeType.PESSIMISTIC_WRITE);
 
@@ -136,7 +136,7 @@ public class OrderApprovalTxService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processSingleOrderRejection(Long orderId, Long adminId, String reason) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
 
         if (order.getStatus().isAwaitingHq()) {
             depositService.refundDeposit(
