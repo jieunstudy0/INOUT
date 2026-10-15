@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         Role defaultRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
-            .orElseThrow(() -> new InoutException("기본 권한 정보를 찾을 수 없습니다."));
+            .orElseThrow(() -> new InoutException("기본 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
        
         UserRole userRole = UserRole.builder()
             .user(user)
@@ -149,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         MailTemplate mailTemplate = mailTemplateRepository.findByTemplateId("USER_RESET_PASSWORD")
-            .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다."));
+            .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다.", 500, "MAIL_TEMPLATE_NOT_FOUND"));
 
         String fromEmail = mailTemplate.getSendEmail();
         String fromUserName = mailTemplate.getSendUserName();

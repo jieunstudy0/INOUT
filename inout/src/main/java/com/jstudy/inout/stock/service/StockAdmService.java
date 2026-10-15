@@ -203,10 +203,10 @@ public class StockAdmService {
     @Transactional
     public void adjustStock(Long adminId, StockAdmRequest request) {
         Item item = itemRepository.findByIdWithLock(request.getItemId())
-                .orElseThrow(() -> new InoutException("상품 없음"));
+                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
 
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new InoutException("관리자 정보 없음"));
+                .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
 
         int diff = request.getActualStock() - item.getCurrentStock();
 

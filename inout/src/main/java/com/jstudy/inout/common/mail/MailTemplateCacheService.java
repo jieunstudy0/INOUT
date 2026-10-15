@@ -19,6 +19,6 @@ public class MailTemplateCacheService {
     @Transactional(readOnly = true)
     public MailTemplate getMailTemplate(String templateId) {
         return mailTemplateRepository.findByTemplateId(templateId)
-                .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다."));
+                .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다.", 500, "MAIL_TEMPLATE_NOT_FOUND"));
     }
 }

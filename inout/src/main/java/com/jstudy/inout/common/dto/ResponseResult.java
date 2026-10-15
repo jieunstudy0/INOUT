@@ -44,11 +44,4 @@ public class ResponseResult {
     public static ResponseEntity<?> success(String message, Object data) {
         return ResponseEntity.ok().body(ResponseMessage.success(message, data));
     }
-  
-    public static ResponseEntity<?> result(ServiceResult result) {
-        if (result.isFail()) {
-            return fail(result.getMessage());
-        }
-        return success();
-    }
 }

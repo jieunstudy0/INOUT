@@ -13,18 +13,11 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.jstudy.inout.common.dto.ResponseError;
 import com.jstudy.inout.common.dto.ResponseResult;
 import com.jstudy.inout.common.exception.InoutException;
-import com.jstudy.inout.common.exception.UserNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
-
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<?> handleUserNotFoundException(UserNotFoundException exception) {
-        log.warn("User Not Found: {}", exception.getMessage());
-        return ResponseResult.fail(exception.getMessage(), null, 404);
-    }
 
     @ExceptionHandler(InoutException.class)
     public ResponseEntity<?> handleInoutException(InoutException exception) {
