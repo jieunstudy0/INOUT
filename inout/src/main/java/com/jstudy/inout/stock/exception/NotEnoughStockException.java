@@ -1,11 +1,12 @@
 package com.jstudy.inout.stock.exception;
 
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 
 public class NotEnoughStockException extends InoutException {
 
     public NotEnoughStockException(String message) {
-        super(message, 400, "STOCK_SHORTAGE");
+        super(ErrorCode.STOCK_SHORTAGE, message);
     }
 
     public static NotEnoughStockException withCurrentStock(int current, int request) {

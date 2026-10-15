@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.delivery.dto.DeliveryDto;
 import com.jstudy.inout.delivery.entity.DeliveryStatus;
@@ -40,7 +41,7 @@ public class DeliveryEmpController {
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
 
         Page<DeliveryDto.ListItem> result =

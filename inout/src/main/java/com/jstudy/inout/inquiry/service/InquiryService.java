@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.inquiry.dto.*;
 import com.jstudy.inout.inquiry.entity.Inquiry;
@@ -41,7 +42,7 @@ public class InquiryService {
     @Transactional
     public Long createInquiry(Long userId, InquiryCreateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         String originalFileName = null;
         String savedFilePath = null;
@@ -73,7 +74,7 @@ public class InquiryService {
                 
             } catch (IOException e) {
                 log.error("파일 저장 실패: {}", e.getMessage(), e);
-                throw new InoutException("파일 업로드 중 오류가 발생했습니다.", 500, "FILE_UPLOAD_ERROR");
+                throw new InoutException(ErrorCode.FILE_UPLOAD_ERROR);
             }
         }
 
@@ -141,7 +142,7 @@ public class InquiryService {
     @Transactional
     public InquiryDetailResponse getInquiryDetail(Long inquiryId, Long userId, boolean isAdmin, Long ownerStoreId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INQUIRY_NOT_FOUND));
 
         boolean isAuthor = inquiry.getAuthor().getId().equals(userId);
         boolean isOwnerOfStore = ownerStoreId != null
@@ -149,7 +150,7 @@ public class InquiryService {
                 && ownerStoreId.equals(inquiry.getAuthor().getStore().getId());
 
         if (!isAdmin && !isAuthor && !isOwnerOfStore) {
-            throw new InoutException("조회 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException(ErrorCode.FORBIDDEN, "조회 권한이 없습니다.");
         }
 
         if (isAdmin && !inquiry.isRead()) {
@@ -162,10 +163,10 @@ public class InquiryService {
     @Transactional
     public void deleteInquiry(Long inquiryId, Long userId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INQUIRY_NOT_FOUND));
 
         if (!inquiry.getAuthor().getId().equals(userId)) {
-            throw new InoutException("본인이 작성한 문의글만 삭제할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 문의글만 삭제할 수 있습니다.");
         }
 
         inquiryRepository.delete(inquiry);
@@ -177,17 +178,17 @@ public class InquiryService {
      */
     public InquiryFileResource getInquiryFileResource(Long inquiryId, Long userId, boolean isAdmin) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INQUIRY_NOT_FOUND));
 
         if (!isAdmin && !inquiry.getAuthor().getId().equals(userId)) {
-            throw new InoutException("다운로드 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException(ErrorCode.FORBIDDEN, "다운로드 권한이 없습니다.");
         }
 
         String savedFilePath = inquiry.getSavedFilePath();
         String originalFileName = inquiry.getOriginalFileName();
         if (savedFilePath == null || savedFilePath.isBlank()
                 || originalFileName == null || originalFileName.isBlank()) {
-            throw new InoutException("첨부파일이 존재하지 않습니다.", 404, "FILE_NOT_FOUND");
+            throw new InoutException(ErrorCode.FILE_NOT_FOUND);
         }
 
         try {
@@ -195,7 +196,7 @@ public class InquiryService {
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists() || !resource.isReadable()) {
                 log.warn("첨부파일 리소스를 읽을 수 없음. inquiryId={}, path={}", inquiryId, filePath);
-                throw new InoutException("첨부파일을 찾을 수 없습니다.", 404, "FILE_NOT_FOUND");
+                throw new InoutException(ErrorCode.FILE_NOT_FOUND);
             }
 
             String contentType = Files.probeContentType(filePath);
@@ -206,10 +207,10 @@ public class InquiryService {
             return new InquiryFileResource(resource, originalFileName, contentType);
         } catch (MalformedURLException e) {
             log.error("첨부파일 URL 생성 실패: {}", e.getMessage(), e);
-            throw new InoutException("첨부파일 다운로드 중 오류가 발생했습니다.", 500, "FILE_DOWNLOAD_ERROR");
+            throw new InoutException(ErrorCode.FILE_DOWNLOAD_ERROR);
         } catch (IOException e) {
             log.error("첨부파일 Content-Type 조회 실패: {}", e.getMessage(), e);
-            throw new InoutException("첨부파일 다운로드 중 오류가 발생했습니다.", 500, "FILE_DOWNLOAD_ERROR");
+            throw new InoutException(ErrorCode.FILE_DOWNLOAD_ERROR);
         }
     }
 
@@ -219,7 +220,7 @@ public class InquiryService {
         Path candidate = configuredUploadDir.resolve(fileName).normalize();
 
         if (!candidate.startsWith(configuredUploadDir)) {
-            throw new InoutException("잘못된 파일 경로입니다.", 400, "INVALID_FILE_PATH");
+            throw new InoutException(ErrorCode.INVALID_FILE_PATH);
         }
         return candidate;
     }

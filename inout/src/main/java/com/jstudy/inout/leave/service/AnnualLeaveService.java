@@ -2,6 +2,7 @@ package com.jstudy.inout.leave.service;
 
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.leave.dto.AnnualLeaveDto;
 import com.jstudy.inout.leave.entity.AnnualLeave;
@@ -31,16 +32,16 @@ public class AnnualLeaveService {
     @Transactional
     public Long submitLeave(Long userId, AnnualLeaveDto.CreateRequest request) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
-            throw new InoutException("시작일은 종료일보다 늦을 수 없습니다.", 400, "INVALID_LEAVE_PERIOD");
+            throw new InoutException(ErrorCode.INVALID_LEAVE_PERIOD);
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         boolean overlapping = annualLeaveRepository.existsOverlapping(
                 userId, request.getStartDate(), request.getEndDate(), LeaveStatus.REJECTED);
         if (overlapping) {
-            throw new InoutException("이미 신청된 연차 기간과 겹칩니다.", 409, "LEAVE_PERIOD_OVERLAP");
+            throw new InoutException(ErrorCode.LEAVE_PERIOD_OVERLAP);
         }
 
         AnnualLeave leave = AnnualLeave.builder()
@@ -60,10 +61,10 @@ public class AnnualLeaveService {
 
     public AnnualLeaveDto.DetailResponse getMyLeaveDetail(Long userId, Long leaveId) {
         AnnualLeave leave = annualLeaveRepository.findByIdWithUser(leaveId)
-                .orElseThrow(() -> new InoutException("연차 신청 정보를 찾을 수 없습니다.", 404, "LEAVE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.LEAVE_NOT_FOUND));
 
         if (!leave.getUser().getId().equals(userId)) {
-            throw new InoutException("본인의 연차 신청만 조회할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인의 연차 신청만 조회할 수 있습니다.");
         }
 
         return AnnualLeaveDto.toDetail(leave);
@@ -78,7 +79,7 @@ public class AnnualLeaveService {
 
     public AnnualLeaveDto.DetailResponse getLeaveDetail(Long leaveId) {
         AnnualLeave leave = annualLeaveRepository.findByIdWithUser(leaveId)
-                .orElseThrow(() -> new InoutException("연차 신청 정보를 찾을 수 없습니다.", 404, "LEAVE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.LEAVE_NOT_FOUND));
         return AnnualLeaveDto.toDetail(leave);
     }
 
@@ -91,7 +92,7 @@ public class AnnualLeaveService {
 
     public AnnualLeaveDto.DetailResponse getLeaveDetailByStore(Long storeId, Long leaveId) {
         AnnualLeave leave = annualLeaveRepository.findByIdWithUser(leaveId)
-                .orElseThrow(() -> new InoutException("연차 신청 정보를 찾을 수 없습니다.", 404, "LEAVE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.LEAVE_NOT_FOUND));
         assertSameStore(storeId, leave.getUser());
         return AnnualLeaveDto.toDetail(leave);
     }
@@ -101,25 +102,25 @@ public class AnnualLeaveService {
             Long leaveId, Long processorId, AnnualLeaveDto.ProcessRequest request) {
 
         AnnualLeave leave = annualLeaveRepository.findByIdWithUser(leaveId)
-                .orElseThrow(() -> new InoutException("연차 신청 정보를 찾을 수 없습니다.", 404, "LEAVE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.LEAVE_NOT_FOUND));
 
         User processor = userRepository.findById(processorId)
-                .orElseThrow(() -> new InoutException("처리자 정보를 찾을 수 없습니다.", 404, "PROCESSOR_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.PROCESSOR_NOT_FOUND));
 
         if (processor.getStore() == null) {
-            throw new InoutException("소속 매장이 없는 계정은 연차를 처리할 수 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED, "소속 매장이 없는 계정은 연차를 처리할 수 없습니다.");
         }
         assertSameStore(processor.getStore().getId(), leave.getUser());
 
         if (!leave.getStatus().isProcessable()) {
-            throw new InoutException("이미 처리된 연차 신청입니다.", 409, "ALREADY_PROCESSED");
+            throw new InoutException(ErrorCode.ALREADY_PROCESSED, "이미 처리된 연차 신청입니다.");
         }
 
         LeaveStatus newStatus = request.getStatus();
 
         if (newStatus == LeaveStatus.REJECTED) {
             if (!StringUtils.hasText(request.getRejectReason())) {
-                throw new InoutException("반려 사유를 입력해야 합니다.", 400, "REJECT_REASON_REQUIRED");
+                throw new InoutException(ErrorCode.REJECT_REASON_REQUIRED);
             }
             leave.reject(processor, request.getRejectReason().trim());
         } else if (newStatus == LeaveStatus.APPROVED) {
@@ -127,7 +128,7 @@ public class AnnualLeaveService {
         } else if (newStatus == LeaveStatus.HOLD) {
             leave.hold(processor);
         } else {
-            throw new InoutException("허용되지 않은 처리 상태입니다.", 400, "INVALID_LEAVE_STATUS");
+            throw new InoutException(ErrorCode.INVALID_LEAVE_STATUS);
         }
 
         return AnnualLeaveDto.toDetail(leave);
@@ -153,7 +154,7 @@ public class AnnualLeaveService {
 
     private void assertSameStore(Long ownerStoreId, User targetUser) {
         if (targetUser.getStore() == null || !ownerStoreId.equals(targetUser.getStore().getId())) {
-            throw new InoutException("다른 매장 직원의 연차에 접근할 수 없습니다.", 403, "CROSS_STORE_FORBIDDEN");
+            throw new InoutException(ErrorCode.CROSS_STORE_FORBIDDEN, "다른 매장 직원의 연차에 접근할 수 없습니다.");
         }
     }
 }

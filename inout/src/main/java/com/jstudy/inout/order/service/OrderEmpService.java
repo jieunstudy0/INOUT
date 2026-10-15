@@ -9,6 +9,7 @@ import org.springframework.util.StringUtils;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.util.UserDisplayNames;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.dto.OrderCreateRequest;
 import com.jstudy.inout.order.dto.OrderDetailResponse;
@@ -46,14 +47,14 @@ public class OrderEmpService {
         List<CartDetail> selectedItems = cartDetailRepository.findWithCartAndUserByIds(request.getCartDetailIds());
 
         if (selectedItems.isEmpty()) {
-            throw new InoutException("선택된 상품이 없습니다.", 400, "EMPTY_SELECTION");
+            throw new InoutException(ErrorCode.EMPTY_SELECTION);
         }
 
         User user = userRepository.findById(userId).orElseThrow();
 
         for (CartDetail detail : selectedItems) {
             if (!detail.getCart().getUser().getId().equals(userId)) {
-                throw new InoutException("본인의 장바구니 상품만 발주할 수 있습니다.", 403, "NOT_OWNER");
+                throw new InoutException(ErrorCode.NOT_OWNER, "본인의 장바구니 상품만 발주할 수 있습니다.");
             }
         }
         return OrderPreResponse.from(user, selectedItems);
@@ -63,24 +64,24 @@ public class OrderEmpService {
     public Long submitOrderRequest(Long userId, OrderCreateRequest request) {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         List<CartDetail> selectedItems = cartDetailRepository.findWithCartAndUserByIds(request.getCartDetailIds());
 
         if (selectedItems.isEmpty()) {
-            throw new InoutException("발주할 상품이 없습니다.", 400, "EMPTY_ORDER");
+            throw new InoutException(ErrorCode.EMPTY_ORDER);
         }
 
         for (CartDetail cartItem : selectedItems) {
             if (!cartItem.getCart().getUser().getId().equals(userId)) {
-                throw new InoutException("본인의 장바구니 상품만 발주할 수 있습니다.", 403, "NOT_OWNER");
+                throw new InoutException(ErrorCode.NOT_OWNER, "본인의 장바구니 상품만 발주할 수 있습니다.");
             }
 
             Item item = itemRepository.findByIdWithLock(cartItem.getItem().getItemId())
-                    .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
             
             if (item.getCurrentStock() < cartItem.getQuantity()) {
-                throw new InoutException(item.getName() + " 재고가 부족합니다.", 400, "STOCK_SHORTAGE");
+                throw new InoutException(ErrorCode.STOCK_SHORTAGE, item.getName() + " 재고가 부족합니다.");
             }
         }
 
@@ -143,10 +144,10 @@ public class OrderEmpService {
     public OrderDetailResponse getOrderDetails(Long userId, Long orderRequestId) {
 
         OrderRequest order = orderRequestRepository.findWithDetailsGraphById(orderRequestId)
-                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
 
         if (!order.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("본인의 발주만 조회할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인의 발주만 조회할 수 있습니다.");
         }
 
         List<OrderDetailResponse.OrderDetailItemDto> itemDtos = order.getOrderDetails().stream()
@@ -176,10 +177,10 @@ public class OrderEmpService {
     public void cancelOrder(Long userId, Long orderRequestId) {
 
         OrderRequest order = orderRequestRepository.findByIdForUpdate(orderRequestId)
-                .orElseThrow(() -> new InoutException("발주 정보를 찾을 수 없습니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
 
         if (!order.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("본인의 발주만 취소할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인의 발주만 취소할 수 있습니다.");
         }
 
         OrderStatus currentStatus = order.getStatus();
@@ -199,7 +200,7 @@ public class OrderEmpService {
             order.updateProcessDate(LocalDateTime.now());
 
         } else {
-            throw new InoutException("이미 처리 중이거나 완료된 발주는 취소할 수 없습니다.", 400, "INVALID_ORDER_STATUS");
+            throw new InoutException(ErrorCode.INVALID_ORDER_STATUS, "이미 처리 중이거나 완료된 발주는 취소할 수 없습니다.");
         }
     }
 

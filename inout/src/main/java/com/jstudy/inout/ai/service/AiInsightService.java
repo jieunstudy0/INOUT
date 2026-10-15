@@ -3,6 +3,7 @@ package com.jstudy.inout.ai.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jstudy.inout.ai.dto.AiInsightResponse;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.entity.OrderStatus;
 import com.jstudy.inout.order.repository.OrderRequestRepository;
@@ -45,9 +46,7 @@ public class AiInsightService {
     public CompletableFuture<AiInsightResponse> generateInsightReport() {
         if (!StringUtils.hasText(apiKey)) {
             log.error("[AI 인사이트] gemini.api-key 미설정 — application-secret.properties를 확인하세요.");
-            throw new InoutException(
-                    "AI 서비스가 설정되지 않아 사용할 수 없습니다. 관리자에게 문의해 주세요.",
-                    503, "AI_NOT_CONFIGURED");
+            throw new InoutException(ErrorCode.AI_NOT_CONFIGURED);
         }
 
         try {
@@ -69,7 +68,7 @@ public class AiInsightService {
             throw e;
         } catch (Exception e) {
             log.error("AI 인사이트 생성 중 오류", e);
-            throw new InoutException("AI 분석 중 오류가 발생했습니다.", 500, "AI_SERVICE_ERROR");
+            throw new InoutException(ErrorCode.AI_SERVICE_ERROR);
         }
     }
 
@@ -162,17 +161,17 @@ public class AiInsightService {
             JsonNode candidates = root.path("candidates");
 
             if (candidates.isEmpty()) {
-                throw new InoutException("AI 응답 형식이 올바르지 않습니다.", 500, "AI_INVALID_RESPONSE");
+                throw new InoutException(ErrorCode.AI_INVALID_RESPONSE);
             }
 
             return candidates.get(0).path("content").path("parts").get(0).path("text").asText();
 
         } catch (RestClientException e) {
             log.error("Gemini API 호출 실패", e);
-            throw new InoutException("AI 서비스 연결에 실패했습니다.", 503, "AI_API_ERROR");
+            throw new InoutException(ErrorCode.AI_API_ERROR);
         } catch (Exception e) {
             log.error("Gemini 응답 파싱 실패", e);
-            throw new InoutException("AI 응답 처리 중 오류가 발생했습니다.", 500, "AI_PARSE_ERROR");
+            throw new InoutException(ErrorCode.AI_PARSE_ERROR);
         }
     }
 }

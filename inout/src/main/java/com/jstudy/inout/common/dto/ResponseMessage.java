@@ -1,6 +1,7 @@
 package com.jstudy.inout.common.dto;
 
 import org.springframework.http.HttpStatus;
+import com.jstudy.inout.common.exception.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,16 +16,9 @@ public class ResponseMessage {
     private ResponseMessageHeader header;
     private Object body;
     
-    public static ResponseMessage fail(String message) {
-        return fail(message, null);
-    }
-
-    public static ResponseMessage fail(String message, Object data) {
-        return fail(message, data, "", HttpStatus.BAD_REQUEST.value());
-    }
-
-    public static ResponseMessage fail(String message, Object data, int status) {
-        return fail(message, data, "", status);
+    /** ResponseEntity를 쓸 수 없는 Security 필터 단계(401·403)에서 본문만 만들 때 사용한다. */
+    public static ResponseMessage fail(ErrorCode code) {
+        return fail(code.getMessage(), null, code.name(), code.getStatus());
     }
 
     public static ResponseMessage fail(String message, Object data, String resultCode, int status) {

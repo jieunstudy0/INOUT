@@ -1,6 +1,7 @@
 package com.jstudy.inout.common.mail;
 
 import com.jstudy.inout.common.config.CacheConfig;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.mail.dto.MailTemplate;
 import com.jstudy.inout.common.mail.repository.MailTemplateRepository;
@@ -19,6 +20,6 @@ public class MailTemplateCacheService {
     @Transactional(readOnly = true)
     public MailTemplate getMailTemplate(String templateId) {
         return mailTemplateRepository.findByTemplateId(templateId)
-                .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다.", 500, "MAIL_TEMPLATE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.MAIL_TEMPLATE_NOT_FOUND));
     }
 }

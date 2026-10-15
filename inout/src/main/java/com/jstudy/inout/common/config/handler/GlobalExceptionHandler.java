@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.jstudy.inout.common.dto.ResponseError;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,27 +23,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InoutException.class)
     public ResponseEntity<?> handleInoutException(InoutException exception) {
-        return ResponseResult.fail(
-                exception.getMessage(),
-                null,
-                exception.getResultCode(),
-                exception.getErrorCode()
-        );
+        return ResponseResult.fail(exception.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> handleBadCredentialsException(BadCredentialsException exception) {
-        return ResponseResult.fail("아이디 또는 비밀번호가 일치하지 않습니다.", null, 401);
+        return ResponseResult.fail(ErrorCode.LOGIN_FAILED);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<?> handleAuthException(AuthenticationException e) {
-        return ResponseResult.fail(
-                "인증 정보가 유효하지 않습니다. 로그인이 필요합니다.",
-                null,
-                "AUTH_401",
-                401
-        );
+        return ResponseResult.fail(ErrorCode.AUTH_401);
     }
 
     /**
@@ -51,19 +42,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException e) {
-        return ResponseResult.fail("접근 권한이 없습니다.", null, "AUTH_403", 403);
+        return ResponseResult.fail(ErrorCode.AUTH_403);
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<?> handleOptimisticLockingFailureException(
             ObjectOptimisticLockingFailureException exception) {
         log.warn("Concurrency Conflict (Optimistic Lock): {}", exception.getMessage());
-        return ResponseResult.fail(
-                "이미 다른 요청에 의해 처리되었습니다. 새로고침 후 다시 시도해주세요.",
-                null,
-                "CONCURRENCY_ERROR",
-                409
-        );
+        return ResponseResult.fail(ErrorCode.CONCURRENCY_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -71,7 +57,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception) {
         log.warn("Validation Error occurred: {}", exception.getMessage());
         List<ResponseError> errors = ResponseError.of(exception.getBindingResult().getAllErrors());
-        return ResponseResult.fail("입력 데이터에 유효성 오류가 있습니다.", errors);
+        return ResponseResult.failWithData(ErrorCode.VALIDATION_ERROR, errors);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -82,11 +68,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception exception) {
         log.error("Unhandled Exception occurred: ", exception);
-        return ResponseResult.fail(
-                "서버 내부에서 예상치 못한 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-                null,
-                "INTERNAL_ERROR",
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        );
+        return ResponseResult.fail(ErrorCode.INTERNAL_ERROR);
     }
 }

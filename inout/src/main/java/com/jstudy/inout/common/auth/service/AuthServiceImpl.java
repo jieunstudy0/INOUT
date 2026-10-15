@@ -25,6 +25,7 @@ import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
 import com.jstudy.inout.common.dto.ServiceResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.exception.UserNotFoundException;
 import com.jstudy.inout.common.mail.config.MailComponent;
@@ -60,11 +61,11 @@ public class AuthServiceImpl implements AuthService {
     public ServiceResult addUser(UserInput userInput) {
         Optional<User> optionalUser = userRepository.findByEmail(userInput.getEmail());
         if (optionalUser.isPresent()) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
+            throw new InoutException(ErrorCode.DUPLICATE_EMAIL);
         }
 
         Store store = storeRepository.findById(userInput.getStoreId())
-                .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.STORE_NOT_FOUND));
 
         String encryptPassword = passwordEncoder.encode(userInput.getPassword());
 
@@ -79,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         Role defaultRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
-            .orElseThrow(() -> new InoutException("기본 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
+            .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "기본 권한 정보를 찾을 수 없습니다."));
        
         UserRole userRole = UserRole.builder()
             .user(user)
@@ -104,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void checkEmail(String email) {
         if (userRepository.existsByEmail(email)) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
+            throw new InoutException(ErrorCode.DUPLICATE_EMAIL);
         }
     }
 
@@ -123,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
         Store store = null;
         if (StringUtils.hasText(request.getStoreName())) {
             store = storeRepository.findByName(request.getStoreName())
-                    .orElseThrow(() -> new InoutException("입력하신 매장명을 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException(ErrorCode.STORE_NOT_FOUND, "입력하신 매장명을 찾을 수 없습니다."));
         }
         user.updateProfile(request.getName(), request.getPhone(), store);
 
@@ -140,13 +141,13 @@ public class AuthServiceImpl implements AuthService {
         );
 
         User user = optionalUser
-            .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+            .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         String passwordResetKey = UUID.randomUUID().toString();
         user.setPasswordResetInfo(passwordResetKey);
         userRepository.save(user);
 
         MailTemplate mailTemplate = mailTemplateRepository.findByTemplateId("USER_RESET_PASSWORD")
-            .orElseThrow(() -> new InoutException("메일 템플릿이 존재하지 않습니다.", 500, "MAIL_TEMPLATE_NOT_FOUND"));
+            .orElseThrow(() -> new InoutException(ErrorCode.MAIL_TEMPLATE_NOT_FOUND));
 
         String fromEmail = mailTemplate.getSendEmail();
         String fromUserName = mailTemplate.getSendUserName();
@@ -163,12 +164,12 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ServiceResult completePasswordReset(String uuid, String newPassword) {
         User user = userRepository.findByPasswordResetKey(uuid)
-                .orElseThrow(() -> new InoutException("유효하지 않은 재설정 링크입니다.", 400, "INVALID_LINK"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INVALID_LINK));
 
         // 만료된 링크는 passwordResetLimit이 과거로 남아 있으므로 키를 지우지 않아도 다시 쓸 수 없다.
         // (예외를 던지면 트랜잭션이 롤백되므로 여기서 clear해도 반영되지 않는다)
         if (user.isPasswordResetExpired(LocalDateTime.now())) {
-            throw new InoutException("링크 유효 시간(30분)이 만료되었습니다. 다시 시도해 주세요.", 400, "EXPIRED_LINK");
+            throw new InoutException(ErrorCode.EXPIRED_LINK);
         }
 
         user.changePassword(passwordEncoder.encode(newPassword));
@@ -182,9 +183,9 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ServiceResult updateUser(Long id, UserUpdate userUpdate) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         Store store = storeRepository.findById(userUpdate.getStoreId())
-                .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.STORE_NOT_FOUND));
         user.updateInfo(userUpdate.getPhone(), store);
         return ServiceResult.success();
     }
@@ -205,7 +206,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void unlockUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         user.resetLoginAttributes();
     }
 
@@ -256,17 +257,17 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void updateUserByAdmin(Long userId, AdminUserDto.UpdateRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         Store store = null;
         if (request.getStoreId() != null) {
             store = storeRepository.findById(request.getStoreId())
-                    .orElseThrow(() -> new InoutException("매장 정보를 찾을 수 없습니다.", 404, "STORE_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException(ErrorCode.STORE_NOT_FOUND));
         }
         user.updateStatusAndStore(request.getStatus(), store);
 
         Role adminRole = roleRepository.findByRoleName("ROLE_ADMIN")
-                .orElseThrow(() -> new InoutException("관리자 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "관리자 권한 정보를 찾을 수 없습니다."));
 
         boolean hasAdminRole = user.getUserRoles().stream()
                 .anyMatch(ur -> ur.getRole().getRoleName().equals("ROLE_ADMIN"));
@@ -287,7 +288,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void sendPasswordResetMailByAdmin(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         
         UserPasswordResetInput input = new UserPasswordResetInput();
         input.setEmail(user.getEmail());
@@ -343,10 +344,10 @@ public class AuthServiceImpl implements AuthService {
         User owner = requireOwnerWithStore(ownerUserId);
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new InoutException("비밀번호 확인이 일치하지 않습니다.", 400, "PASSWORD_CONFIRM_MISMATCH");
+            throw new InoutException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new InoutException("이미 사용 중인 이메일입니다.", 409, "DUPLICATE_EMAIL");
+            throw new InoutException(ErrorCode.DUPLICATE_EMAIL);
         }
 
         User employee = User.builder()
@@ -361,7 +362,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(employee);
 
         Role employeeRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
-                .orElseThrow(() -> new InoutException("기본 권한 정보를 찾을 수 없습니다.", 500, "ROLE_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "기본 권한 정보를 찾을 수 없습니다."));
         userRoleRepository.save(UserRole.builder().user(employee).role(employeeRole).build());
 
         return ServiceResult.success("직원 계정이 생성되었습니다.");
@@ -371,7 +372,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request) {
         if (request == null || request.getStatus() == null) {
-            throw new InoutException("변경할 계정 상태를 선택해 주세요.", 400, "STATUS_REQUIRED");
+            throw new InoutException(ErrorCode.STATUS_REQUIRED);
         }
         User owner = requireOwnerWithStore(ownerUserId);
         User employee = requireSameStoreEmployee(owner, employeeUserId);
@@ -387,7 +388,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             employee.updateDailyDepositLimit(request != null ? request.getDailyDepositLimit() : null);
         } catch (IllegalArgumentException e) {
-            throw new InoutException(e.getMessage(), 400, "INVALID_DAILY_DEPOSIT_LIMIT");
+            throw new InoutException(ErrorCode.INVALID_DAILY_DEPOSIT_LIMIT, e.getMessage());
         }
     }
 
@@ -414,18 +415,18 @@ public class AuthServiceImpl implements AuthService {
 
     private User requireOwnerWithStore(Long ownerUserId) {
         User owner = userRepository.findById(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         if (owner.getStore() == null) {
-            throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED);
         }
         return owner;
     }
 
     private User requireSameStoreEmployee(User owner, Long employeeUserId) {
         User employee = userRepository.findById(employeeUserId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         if (employee.getStore() == null || !owner.getStore().getId().equals(employee.getStore().getId())) {
-            throw new InoutException("소속 매장의 직원만 관리할 수 있습니다.", 403, "CROSS_STORE_FORBIDDEN");
+            throw new InoutException(ErrorCode.CROSS_STORE_FORBIDDEN, "소속 매장의 직원만 관리할 수 있습니다.");
         }
         return employee;
     }

@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.config.CacheConfig;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.stock.dto.admin.*;
 import com.jstudy.inout.stock.dto.emp.StockHistoryResponse;
@@ -46,10 +47,10 @@ public class StockAdmService {
         log.info("상품 등록 시도: name={}, categoryId={}", stockRegister.getName(), stockRegister.getCategoryId());
     
         ItemCategory category = itemCategoryRepository.findById(stockRegister.getCategoryId())
-                .orElseThrow(() -> new InoutException("해당 카테고리를 찾을 수 없습니다.", 404, "CATEGORY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.CATEGORY_NOT_FOUND));
 
         if (itemRepository.existsByName(stockRegister.getName())) {
-            throw new InoutException("이미 등록된 상품명입니다.", 409, "DUPLICATE_ITEM_NAME");
+            throw new InoutException(ErrorCode.DUPLICATE_ITEM_NAME);
         }
 
         Item item = stockRegister.toEntity(category);
@@ -62,10 +63,10 @@ public class StockAdmService {
     @Transactional
     public void updateStock(Long itemId, StockUpdate stockUpdate, Long userId) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         ItemCategory category = itemCategoryRepository.findById(stockUpdate.getCategoryId())
-                .orElseThrow(() -> new InoutException("카테고리를 찾을 수 없습니다.", 404, "CATEGORY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.CATEGORY_NOT_FOUND));
 
         item.updateInfo(
                 stockUpdate.getName(),
@@ -80,10 +81,10 @@ public class StockAdmService {
     @Transactional
     public void deleteStock(Long itemId) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         if (item.getDeleted()) {
-            throw new InoutException("이미 삭제된 상품입니다.", 409, "ALREADY_DELETED");
+            throw new InoutException(ErrorCode.ALREADY_DELETED);
         }
 
         item.delete();
@@ -111,10 +112,10 @@ public class StockAdmService {
     })
     public Long receiveStock(Long itemId, int quantity, Long userId, String memo) {
         Item item = itemRepository.findByIdWithLock(itemId)
-                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         item.addStock(quantity);
 
@@ -168,7 +169,7 @@ public class StockAdmService {
     @Transactional(readOnly = true)
     public StockDetailResponse getStockDetail(Long itemId, int page, int size) {
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         List<StockHistoryResponse> allHistory = getAllHistoryForStats(itemId);
 
@@ -203,10 +204,10 @@ public class StockAdmService {
     @Transactional
     public void adjustStock(Long adminId, StockAdmRequest request) {
         Item item = itemRepository.findByIdWithLock(request.getItemId())
-                .orElseThrow(() -> new InoutException("상품 정보를 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
 
         int diff = request.getActualStock() - item.getCurrentStock();
 

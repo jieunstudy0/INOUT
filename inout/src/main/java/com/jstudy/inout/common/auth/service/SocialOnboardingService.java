@@ -10,6 +10,7 @@ import com.jstudy.inout.common.auth.repository.RefreshTokenRepository;
 import com.jstudy.inout.common.auth.repository.RoleRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.jwt.JwtTokenProvider;
 import com.jstudy.inout.common.jwt.dto.JwtToken;
@@ -49,12 +50,12 @@ public class SocialOnboardingService {
     @Transactional
     public Map<String, String> complete(CustomUserDetails principal, SocialOnboardingRequest req) {
         User user = userRepository.findById(principal.getUser().getId())
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         boolean isGuest = user.getUserRoles().stream()
                 .anyMatch(ur -> "ROLE_GUEST".equals(ur.getRole().getRoleName()));
         if (!isGuest) {
-            throw new InoutException("이미 온보딩이 완료된 계정입니다.", 409, "ALREADY_COMPLETED");
+            throw new InoutException(ErrorCode.ALREADY_COMPLETED);
         }
 
         // 프로필 확정 (실명·전화·생년월일)
@@ -67,8 +68,7 @@ public class SocialOnboardingService {
         Role newRole = roleRepository.findByRoleName(targetRoleName)
                 .orElseThrow(() -> {
                     log.error("[소셜 온보딩] {} 역할이 DB에 없습니다.", targetRoleName);
-                    return new InoutException("회원 권한 정보를 찾을 수 없습니다. 관리자에게 문의해 주세요.",
-                            500, "ROLE_NOT_FOUND");
+                    return new InoutException(ErrorCode.ROLE_NOT_FOUND, "회원 권한 정보를 찾을 수 없습니다. 관리자에게 문의해 주세요.");
                 });
 
         userRoleRepository.save(UserRole.builder().user(user).role(newRole).build());

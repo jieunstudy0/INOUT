@@ -1,4 +1,5 @@
 package com.jstudy.inout.stock.service;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.util.FileStorageUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +22,7 @@ public class ImageService {
 
     public String uploadImage(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new InoutException("업로드할 파일이 없습니다.", 400, "FILE_EMPTY");
+            throw new InoutException(ErrorCode.FILE_EMPTY);
         }
     
         String extension = FileStorageUtil.extractAllowedExtension(
@@ -42,7 +43,7 @@ public class ImageService {
 
         } catch (IOException e) {
             log.error("파일 저장 실패", e);
-            throw new InoutException("이미지 저장 중 오류가 발생했습니다.", 500, "FILE_UPLOAD_ERROR");
+            throw new InoutException(ErrorCode.FILE_UPLOAD_ERROR, "이미지 저장 중 오류가 발생했습니다.");
         }
     }
 }

@@ -2,6 +2,7 @@ package com.jstudy.inout.ai.service;
 
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.dashboard.service.DashboardService;
 import com.jstudy.inout.order.entity.OrderDetail;
@@ -62,8 +63,7 @@ public class AiAutoOrderPersistenceService {
         List<User> admins = userRepository.findAdminUsersSortedById(PageRequest.of(0, 1));
         if (admins.isEmpty()) {
             log.error("[AI 자동 발주] ROLE_ADMIN 사용자가 DB에 없어 자동 발주 초안을 저장할 수 없습니다.");
-            throw new InoutException("시스템 관리자 계정이 없어 자동 발주를 처리할 수 없습니다. 관리자에게 문의해 주세요.",
-                    500, "ADMIN_NOT_FOUND");
+            throw new InoutException(ErrorCode.SYSTEM_ADMIN_MISSING);
         }
         User adminUser = admins.get(0);
 

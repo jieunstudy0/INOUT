@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.inquiry.dto.CommentCreateRequest;
 import com.jstudy.inout.inquiry.entity.Inquiry;
@@ -25,18 +26,18 @@ public class InquiryCommentService {
     @Transactional
     public Long createComment(Long inquiryId, Long userId, CommentCreateRequest request) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INQUIRY_NOT_FOUND));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         InquiryComment parent = null;
         if (request.getParentId() != null) {
             parent = commentRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new InoutException("부모 댓글을 찾을 수 없습니다.", 404, "COMMENT_NOT_FOUND"));
+                    .orElseThrow(() -> new InoutException(ErrorCode.COMMENT_NOT_FOUND, "부모 댓글을 찾을 수 없습니다."));
 
             if (parent.getParent() != null) {
-                throw new InoutException("답댓글에는 답댓글을 달 수 없습니다.", 400, "INVALID_COMMENT_DEPTH");
+                throw new InoutException(ErrorCode.INVALID_COMMENT_DEPTH);
             }
         }
 
@@ -53,10 +54,10 @@ public class InquiryCommentService {
     @Transactional
     public void deleteComment(Long commentId, Long userId) {
         InquiryComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new InoutException("댓글을 찾을 수 없습니다.", 404, "COMMENT_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new InoutException("본인이 작성한 댓글만 삭제할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 댓글만 삭제할 수 있습니다.");
         }
 
         commentRepository.delete(comment);
@@ -65,10 +66,10 @@ public class InquiryCommentService {
     @Transactional
     public void updateComment(Long commentId, Long userId, String newContent) {
         InquiryComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new InoutException("댓글을 찾을 수 없습니다.", 404, "COMMENT_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new InoutException("본인이 작성한 댓글만 수정할 수 있습니다.", 403, "NOT_OWNER");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 댓글만 수정할 수 있습니다.");
         }
 
         comment.updateContent(newContent);

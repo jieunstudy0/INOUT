@@ -2,6 +2,7 @@ package com.jstudy.inout.payment.service;
 
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.payment.dto.ChargeDto;
 import com.jstudy.inout.payment.dto.DepositDto;
@@ -25,10 +26,10 @@ public class ChargeService {
     @Transactional
     public void requestCharge(Long userId, Long amount) {
         if (amount == null || amount <= 0) {
-            throw new InoutException("충전 금액은 0보다 커야 합니다.", 400, "INVALID_AMOUNT");
+            throw new InoutException(ErrorCode.INVALID_AMOUNT, "충전 금액은 0보다 커야 합니다.");
         }
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         ChargeRequest request = ChargeRequest.builder()
                 .requestUser(user)
@@ -41,13 +42,13 @@ public class ChargeService {
     @Transactional
     public void approveCharge(Long adminId, Long chargeRequestId) {
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
 
         ChargeRequest request = chargeRequestRepository.findById(chargeRequestId)
-                .orElseThrow(() -> new InoutException("충전 요청을 찾을 수 없습니다.", 404, "REQUEST_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.REQUEST_NOT_FOUND));
 
         if (request.getStatus() != ChargeStatus.PENDING) {
-            throw new InoutException("이미 처리된 요청입니다.", 409, "ALREADY_PROCESSED");
+            throw new InoutException(ErrorCode.ALREADY_PROCESSED);
         }
 
         request.approve(admin);
@@ -63,13 +64,13 @@ public class ChargeService {
     @Transactional
     public void rejectCharge(Long adminId, Long chargeRequestId, String reason) {
         User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new InoutException("관리자 정보를 찾을 수 없습니다.", 404, "ADMIN_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
 
         ChargeRequest request = chargeRequestRepository.findById(chargeRequestId)
-                .orElseThrow(() -> new InoutException("충전 요청을 찾을 수 없습니다.", 404, "REQUEST_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.REQUEST_NOT_FOUND));
 
         if (request.getStatus() != ChargeStatus.PENDING) {
-            throw new InoutException("이미 처리된 요청입니다.", 409, "ALREADY_PROCESSED");
+            throw new InoutException(ErrorCode.ALREADY_PROCESSED);
         }
 
         request.reject(admin, reason);

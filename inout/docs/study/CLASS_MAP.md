@@ -151,5 +151,5 @@
 - [x] @PreAuthorize(메서드 보안) 거부가 GlobalExceptionHandler의 Exception 핸들러에 잡혀 500으로 응답 → AccessDeniedException 핸들러 추가로 403 AUTH_403 통일, ACL 회귀 테스트 3개 추가 (2026-10-10)
 - [x] 프론트 실패 토스트 단일화: 공통 인터셉터만 토스트를 띄우고 화면 catch 34곳의 중복 토스트 제거, 검증 오류는 첫 필드 오류를 토스트로·입력칸별 표시(온보딩·직원 생성), blob 다운로드 오류 문구 파싱 (2026-10-15)
 - [x] 실패 문구 정비 (2026-10-15): A 내부 정보 노출·깨진 문구 18건+AI 공급자명 4건 수정(원인은 log로), B 조회 API 48곳에 errorContext(5xx·네트워크 시 화면 문맥), C 표준 문구·resultCode 79건 통일(발주 용어, *_NOT_FOUND, NOT_OWNER, CROSS_STORE_FORBIDDEN, 중복·이미 처리 409) — 규칙은 ERROR_MESSAGE_GUIDE.md
-- [ ] D: ErrorCode Enum으로 문구·코드·상태를 한곳에 정의 (C의 규칙을 코드로 강제)
+- [x] D: ErrorCode Enum 도입 (2026-10-15) — InoutException 문자열 생성자 삭제, 호출부 219곳·핸들러·Security 핸들러 전환, 로그인 실패 resultCode null 해결, VALIDATION_ERROR 추가, ErrorCodeTest로 문구 규칙 검사
 - [ ] E: resultCode 기반 화면 분기 (INSUFFICIENT_BALANCE, STOCK_SHORTAGE, CONCURRENCY_ERROR 등)

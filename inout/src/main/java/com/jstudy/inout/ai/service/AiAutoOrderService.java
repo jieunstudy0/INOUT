@@ -3,6 +3,7 @@ package com.jstudy.inout.ai.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.stock.entity.Item;
 import com.jstudy.inout.stock.repository.ItemRepository;
@@ -73,9 +74,7 @@ public class AiAutoOrderService {
     public int createAutoOrderDraft() {
         if (!StringUtils.hasText(apiKey)) {
             log.error("[AI 자동 발주] gemini.api-key 미설정 — application-secret.properties를 확인하세요.");
-            throw new InoutException(
-                    "AI 서비스가 설정되지 않아 사용할 수 없습니다. 관리자에게 문의해 주세요.",
-                    503, "AI_NOT_CONFIGURED");
+            throw new InoutException(ErrorCode.AI_NOT_CONFIGURED);
         }
 
         List<Item> activeItems = itemRepository.findAllByDeletedFalse();
@@ -166,7 +165,7 @@ public class AiAutoOrderService {
                 JsonNode candidates = root.path("candidates");
                 if (candidates.isEmpty()) {
                     log.error("[AI 자동 발주] Gemini 응답에 candidates 없음: {}", responseBody);
-                    throw new InoutException("AI 응답 형식이 올바르지 않습니다. 잠시 후 다시 시도해 주세요.", 500, "AI_INVALID_RESPONSE");
+                    throw new InoutException(ErrorCode.AI_INVALID_RESPONSE);
                 }
                 return candidates.get(0).path("content").path("parts").get(0).path("text").asText();
 
@@ -181,7 +180,7 @@ public class AiAutoOrderService {
                     sleep(backoff);
                 } else {
                     log.error("[AI 자동 발주] Gemini API {} 에러 (최종 실패)", status, e);
-                    throw new InoutException("AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
+                    throw new InoutException(ErrorCode.AI_API_ERROR, "AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.");
                 }
 
             } catch (RestClientException e) {
@@ -190,20 +189,20 @@ public class AiAutoOrderService {
                 if (attempt < MAX_RETRY_ATTEMPTS) {
                     sleep(RETRY_BASE_BACKOFF_MS * attempt);
                 } else {
-                    throw new InoutException("AI 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
+                    throw new InoutException(ErrorCode.AI_API_ERROR);
                 }
 
             } catch (InoutException e) {
                 throw e;
             } catch (Exception e) {
                 log.error("[AI 자동 발주] Gemini 응답 파싱 실패", e);
-                throw new InoutException("AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.", 500, "AI_PARSE_ERROR");
+                throw new InoutException(ErrorCode.AI_PARSE_ERROR);
             }
         }
 
         // 루프를 모두 소진한 경우 (이론상 도달하지 않지만 컴파일러를 위해)
         log.error("[AI 자동 발주] Gemini API 재시도 횟수 초과", lastException);
-        throw new InoutException("AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.", 503, "AI_API_ERROR");
+        throw new InoutException(ErrorCode.AI_API_ERROR, "AI 서비스 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -289,9 +288,7 @@ public class AiAutoOrderService {
         int end   = cleaned.lastIndexOf(']');
         if (start == -1 || end == -1 || start > end) {
             log.error("[AI 자동 발주] JSON 배열 추출 실패. 원본: {}", rawText);
-            throw new InoutException(
-                    "AI 응답을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-                    500, "AI_PARSE_ERROR");
+            throw new InoutException(ErrorCode.AI_PARSE_ERROR);
         }
         String jsonArray = cleaned.substring(start, end + 1);
 
@@ -299,7 +296,7 @@ public class AiAutoOrderService {
             return objectMapper.readValue(jsonArray, new TypeReference<List<AiOrderRecommendation>>() {});
         } catch (Exception e) {
             log.error("[AI 자동 발주] JSON 역직렬화 실패. jsonArray={}", jsonArray, e);
-            throw new InoutException("AI 추천 데이터 파싱에 실패했습니다.", 500, "AI_DESERIALIZE_ERROR");
+            throw new InoutException(ErrorCode.AI_DESERIALIZE_ERROR);
         }
     }
 

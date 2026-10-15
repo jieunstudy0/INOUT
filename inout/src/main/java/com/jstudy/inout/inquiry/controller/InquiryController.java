@@ -1,5 +1,7 @@
 package com.jstudy.inout.inquiry.controller;
 
+import com.jstudy.inout.common.exception.ErrorCode;
+import com.jstudy.inout.common.exception.InoutException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -170,8 +172,7 @@ public class InquiryController {
 
     private Long requireStoreId(CustomUserDetails principal) {
         if (principal.getUser().getStore() == null) {
-            throw new com.jstudy.inout.common.exception.InoutException(
-                    "매장 정보가 없습니다.", 400, "STORE_NOT_FOUND");
+            throw new InoutException(ErrorCode.STORE_REQUIRED);
         }
         return principal.getUser().getStore().getId();
     }

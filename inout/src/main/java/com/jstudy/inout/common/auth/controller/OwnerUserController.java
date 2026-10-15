@@ -4,6 +4,7 @@ import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.dto.OwnerUserDto;
 import com.jstudy.inout.common.auth.service.AuthService;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -100,7 +101,7 @@ public class OwnerUserController {
 
     private Long requireOwnerId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
         return principal.getUser().getId();
     }

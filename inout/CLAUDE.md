@@ -87,7 +87,8 @@ docs: 문서 수정
 ### Java 코드 규칙
 - 엔티티는 @Setter 금지, 도메인 메서드로 상태 변경
 - Service는 @Transactional(readOnly = true) 기본, 쓰기 메서드만 @Transactional
-- 예외는 반드시 InoutException(message, httpStatus, errorCode) 사용
+- 예외는 반드시 `new InoutException(ErrorCode.X)` 또는 `new InoutException(ErrorCode.X, "상황별 문구")` 사용.
+  새 실패 상황은 `common/exception/ErrorCode`에 상수를 추가한다(상태·resultCode·기본 문구). 문구 규칙은 `ErrorCodeTest`가 검사한다
 - REQUIRES_NEW가 필요하면 반드시 별도 클래스로 분리
 
 ### 주의사항

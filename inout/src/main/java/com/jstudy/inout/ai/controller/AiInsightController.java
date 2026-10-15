@@ -5,6 +5,7 @@ import com.jstudy.inout.ai.service.AiAutoOrderService;
 import com.jstudy.inout.ai.service.AiCsService;
 import com.jstudy.inout.ai.service.AiInsightService;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -57,19 +58,17 @@ public class AiInsightController {
         } catch (TimeoutException e) {
             future.cancel(true);
             log.warn("AI 인사이트 요청 타임아웃 ({}초 초과)", TIMEOUT_SECONDS);
-            throw new InoutException(
-                    "AI 분석 요청이 시간 초과되었습니다 (" + TIMEOUT_SECONDS + "초). 잠시 후 다시 시도해 주세요.",
-                    504, "AI_TIMEOUT");
+            throw new InoutException(ErrorCode.AI_TIMEOUT, "AI 분석 요청이 시간 초과되었습니다 (" + TIMEOUT_SECONDS + "초). 잠시 후 다시 시도해 주세요.");
 
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof InoutException ie) throw ie;
             log.error("AI 인사이트 비동기 실행 오류", cause);
-            throw new InoutException("AI 분석 처리 중 내부 오류가 발생했습니다.", 500, "AI_EXECUTION_ERROR");
+            throw new InoutException(ErrorCode.AI_EXECUTION_ERROR);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new InoutException("AI 분석 요청이 중단되었습니다.", 500, "AI_INTERRUPTED");
+            throw new InoutException(ErrorCode.AI_INTERRUPTED);
         }
     }
 

@@ -14,6 +14,7 @@ import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.entity.Store;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.config.handler.GlobalExceptionHandler;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.leave.dto.AnnualLeaveDto;
 import com.jstudy.inout.leave.entity.LeaveStatus;
@@ -86,7 +87,7 @@ class AnnualLeaveOwnerControllerTest {
     void processLeave_fail_crossStore() throws Exception {
         // given
         given(annualLeaveService.processLeave(eq(99L), eq(5L), any()))
-                .willThrow(new InoutException("다른 매장 직원의 연차에 접근할 수 없습니다.", 403, "CROSS_STORE_FORBIDDEN"));
+                .willThrow(new InoutException(ErrorCode.CROSS_STORE_FORBIDDEN, "다른 매장 직원의 연차에 접근할 수 없습니다."));
 
         AnnualLeaveDto.ProcessRequest request = AnnualLeaveDto.ProcessRequest.builder()
                 .status(LeaveStatus.APPROVED)

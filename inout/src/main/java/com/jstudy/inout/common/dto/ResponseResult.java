@@ -1,32 +1,30 @@
 package com.jstudy.inout.common.dto;
 
 import org.springframework.http.ResponseEntity;
+import com.jstudy.inout.common.exception.ErrorCode;
 
 public class ResponseResult {
 
-    public static ResponseEntity<?> fail(String message) {
-        return fail(message, null);
+    /*
+     * 실패 응답은 ErrorCode로만 만든다. 상태 줄·header.status·resultCode가 모두 같은 ErrorCode에서 나오므로
+     * 서로 어긋날 수 없다. 데이터를 담는 실패는 fail(ErrorCode, String)과 오버로딩하면 null 인자가
+     * String 버전으로 선택되는 문제가 있어 failWithData로 이름을 나눴다.
+     */
+    public static ResponseEntity<?> fail(ErrorCode code) {
+        return fail(code, code.getMessage());
     }
 
-    public static ResponseEntity<?> fail(String message, Object data) {
-        return ResponseEntity.badRequest().body(ResponseMessage.fail(message, data));
-    }
-    
-    public static ResponseEntity<?> fail(String message, Object data, int status) {
-        return ResponseEntity.status(status).body(ResponseMessage.fail(message, data, status));
+    public static ResponseEntity<?> fail(ErrorCode code, String message) {
+        return build(code, message, null);
     }
 
-    public static ResponseEntity<?> fail(String message, int status) {
-        return fail(message, null, status);
+    public static ResponseEntity<?> failWithData(ErrorCode code, Object data) {
+        return build(code, code.getMessage(), data);
     }
 
-    public static ResponseEntity<?> fail(String message, Object data, String resultCode, int status) {
-        return ResponseEntity.status(status)
-                .body(ResponseMessage.fail(message, data, resultCode, status));
-    }
-
-    public static ResponseEntity<?> fail(String message, String resultCode, int status) {
-        return fail(message, null, resultCode, status);
+    private static ResponseEntity<?> build(ErrorCode code, String message, Object data) {
+        return ResponseEntity.status(code.getStatus())
+                .body(ResponseMessage.fail(message, data, code.name(), code.getStatus()));
     }
 
     /*

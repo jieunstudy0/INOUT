@@ -26,8 +26,20 @@
 | 이미 처리됨 / 중복 | 409 | `ALREADY_PROCESSED`, `DUPLICATE_*` | `이미 처리된 {대상}입니다.` |
 | 서버 설정 문제 | 500/503 | `*_NOT_CONFIGURED` 등 | `서비스 설정 문제로 처리할 수 없습니다. 관리자에게 문의해 주세요.` |
 
-`resultCode`는 생략하지 않는다(생략 시 `""`가 나가 프론트가 분기할 수 없다).
-이 표를 코드로 강제하는 방법이 `ErrorCode` Enum이다(코드·상태·기본 문구를 한곳에 정의).
+## 2-1. 코드로 강제하기: ErrorCode
+
+위 규칙은 `common/exception/ErrorCode` Enum으로 강제한다.
+
+```java
+throw new InoutException(ErrorCode.USER_NOT_FOUND);                                   // 기본 문구
+throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 댓글만 삭제할 수 있습니다."); // 상황별 문구
+```
+
+- 상수 이름 = resultCode, 상태 코드와 기본 문구도 Enum이 정한다. 호출하는 쪽은 **문구만** 바꿀 수 있다.
+- 문자열로 상태·코드를 지정하던 생성자는 삭제했다. 새 실패 상황은 Enum에 상수를 추가해야 한다.
+- 핸들러·Security 필터의 응답도 `ResponseResult.fail(ErrorCode)`, `ResponseMessage.fail(ErrorCode)`로 만든다.
+  상태 줄·header.status·resultCode가 같은 ErrorCode에서 나오므로 어긋날 수 없다.
+- `ErrorCodeTest`가 모든 기본 문구에 대해 마침표로 끝나는지, 내부 정보가 없는지, 상태가 4xx·5xx인지 검사한다.
 
 ## 3. 화면이 직접 대응해야 하는 코드
 

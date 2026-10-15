@@ -2,6 +2,7 @@ package com.jstudy.inout.payment.controller;
 
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.payment.dto.ChargeDto;
 import com.jstudy.inout.payment.dto.DepositEmpDto;
@@ -64,7 +65,7 @@ public class DepositOwnerController {
 
     private Long requireStoreId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null || principal.getUser().getStore() == null) {
-            throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED);
         }
         return principal.getUser().getStore().getId();
     }

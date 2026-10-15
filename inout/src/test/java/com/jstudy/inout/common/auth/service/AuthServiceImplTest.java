@@ -33,6 +33,7 @@ import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
 import com.jstudy.inout.common.dto.ServiceResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.mail.config.MailComponent;
 import com.jstudy.inout.common.mail.dto.MailTemplate;
@@ -206,7 +207,7 @@ class AuthServiceImplTest {
                 .isInstanceOf(InoutException.class)
                 .satisfies(e -> {
                     InoutException ex = (InoutException) e;
-                    assertThat(ex.getErrorCode()).isEqualTo(404);
+                    assertThat(ex.getStatus()).isEqualTo(404);
                     assertThat(ex.getResultCode()).isEqualTo("USER_NOT_FOUND");
                 });
     }

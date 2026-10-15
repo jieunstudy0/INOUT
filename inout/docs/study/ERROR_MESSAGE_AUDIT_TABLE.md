@@ -1,5 +1,6 @@
 # 백엔드 실패 문구 전수 목록 (2026-10-15 정비 후, 224건)
 
+> ErrorCode 도입(D단계) 이전의 스냅샷이다. 현재 기준은 `common/exception/ErrorCode.java`.
 > 자동 추출. '점검' 열은 [ERROR_MESSAGE_GUIDE.md](ERROR_MESSAGE_GUIDE.md) 규칙 위반 후보.
 
 | 위치 | status | resultCode | 문구 | 점검 |
