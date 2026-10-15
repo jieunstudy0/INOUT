@@ -80,7 +80,7 @@ export default function DepositAdmPage() {
         setTotalPages(data.histories?.totalPages || 0);
         if (data.summary) setSummary(data.summary);
       })
-      .catch(() => Toast.error('예치금 내역을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -133,7 +133,7 @@ export default function DepositAdmPage() {
         const users = await getFranchiseeUserList();
         setFranchiseeList(users || []);
       } catch {
-        Toast.error('가맹점 목록을 불러오지 못했습니다.');
+        /* interceptor */
       } finally {
         setIsFetchingUsers(false);
       }
@@ -168,7 +168,7 @@ export default function DepositAdmPage() {
       }
       dispatchHeaderRefresh({ role: 'ADMIN' });
     } catch {
-      Toast.error('지급에 실패했습니다.');
+      /* interceptor */
     } finally {
       setIsSubmitting(false);
     }

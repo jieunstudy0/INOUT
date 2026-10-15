@@ -13,7 +13,7 @@ export default function CartEmpPage() {
 
   const loadCart = () => {
     setLoading(true);
-    unwrap(client.get('/emp/carts'))
+    unwrap(client.get('/emp/carts', { errorContext: '장바구니를 불러오지 못했습니다.' }))
       .then((data) => {
         setCartData({
           items: data?.items || [],
@@ -21,7 +21,7 @@ export default function CartEmpPage() {
           totalPrice: data?.totalPrice || 0,
         });
       })
-      .catch(() => Toast.error('장바구니를 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   };
 

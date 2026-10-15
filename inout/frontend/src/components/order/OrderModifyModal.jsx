@@ -31,7 +31,6 @@ export default function OrderModifyModal({ orderId, onClose, onDone }) {
         );
       })
       .catch(() => {
-        Toast.error('발주 상세를 불러오지 못했습니다.');
         onClose();
       })
       .finally(() => {

@@ -34,7 +34,7 @@ function OrderDetailModal({ orderId, onClose, onRefresh }) {
   useEffect(() => {
     getEmpOrderDetail(orderId)
       .then(setDetail)
-      .catch(() => { Toast.error('상세 내역을 불러오지 못했습니다.'); onClose(); })
+      .catch(() => { onClose(); })
       .finally(() => setLoading(false));
   }, [orderId, onClose]);
 
@@ -123,7 +123,7 @@ export default function OrderEmpPage() {
     setLoading(true);
     getMyOrderHistory()
       .then(setOrders)
-      .catch(() => Toast.error('발주 이력을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 
@@ -131,7 +131,7 @@ export default function OrderEmpPage() {
     setLoading(true);
     getEmpDeliveryList({ size: 50 })
       .then((page) => setDeliveries(page?.content || []))
-      .catch(() => Toast.error('배송 내역을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

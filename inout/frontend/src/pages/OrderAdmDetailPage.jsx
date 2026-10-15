@@ -69,7 +69,6 @@ export default function OrderAdmDetailPage() {
     getDetail(orderId)
       .then((data) => setDetail(data))
       .catch(() => {
-        Toast.error('발주 정보를 불러오지 못했습니다.');
         navigate('/admin/orders');
       })
       .finally(() => setLoading(false));

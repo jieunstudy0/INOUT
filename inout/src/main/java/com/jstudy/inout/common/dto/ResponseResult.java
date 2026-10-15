@@ -28,7 +28,11 @@ public class ResponseResult {
     public static ResponseEntity<?> fail(String message, String resultCode, int status) {
         return fail(message, null, resultCode, status);
     }
-    
+
+    /*
+     * 성공 응답의 message는 API 문서·로그용 설명이다. 화면에 표시할 성공 문구는 프론트엔드가 정하고,
+     * 실패 문구만 header.message를 그대로 표시한다.
+     */
     public static ResponseEntity<?> success() {
         return successWithData((Object) null);
     }

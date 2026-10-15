@@ -2,7 +2,7 @@ import client, { unwrap } from './apiClient';
 
 // ── 공통 ───────────────────────────────────────────────────────────────────────
 export function getInquiryDetail(inquiryId) {
-  return unwrap(client.get(`/inquiry/${inquiryId}`));
+  return unwrap(client.get(`/inquiry/${inquiryId}`, { errorContext: '문의 상세를 불러오지 못했습니다.' }));
 }
 
 export function createInquiry(formData) {
@@ -18,7 +18,7 @@ export function deleteInquiry(inquiryId) {
 }
 
 export function downloadInquiryFile(inquiryId) {
-  return client.get(`/inquiry/${inquiryId}/download`, { responseType: 'blob' });
+  return client.get(`/inquiry/${inquiryId}/download`, { errorContext: '첨부파일을 내려받지 못했습니다.', responseType: 'blob' });
 }
 
 export function createComment(inquiryId, data) {
@@ -35,32 +35,32 @@ export function deleteComment(inquiryId, commentId) {
 
 // ── EMP 탭별 ───────────────────────────────────────────────────────────────────
 export function getEmpInquiriesToAdmin(page = 0, size = 10) {
-  return unwrap(client.get('/emp/inquiries/to-admin', { params: { page, size } }));
+  return unwrap(client.get('/emp/inquiries/to-admin', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 export function getEmpInquiriesToOwner(page = 0, size = 10) {
-  return unwrap(client.get('/emp/inquiries/to-owner', { params: { page, size } }));
+  return unwrap(client.get('/emp/inquiries/to-owner', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 // ── OWNER 탭별 ─────────────────────────────────────────────────────────────────
 export function getOwnerInquiriesFromStaff(page = 0, size = 10) {
-  return unwrap(client.get('/owner/inquiries/from-staff', { params: { page, size } }));
+  return unwrap(client.get('/owner/inquiries/from-staff', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 export function getOwnerInquiriesToAdmin(page = 0, size = 10) {
-  return unwrap(client.get('/owner/inquiries/to-admin', { params: { page, size } }));
+  return unwrap(client.get('/owner/inquiries/to-admin', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 // ── ADMIN 탭별 ─────────────────────────────────────────────────────────────────
 export function getAdminInquiriesFromOwners(page = 0, size = 10) {
-  return unwrap(client.get('/admin/inquiries/from-owners', { params: { page, size } }));
+  return unwrap(client.get('/admin/inquiries/from-owners', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 export function getAdminInquiriesFromEmployees(page = 0, size = 10) {
-  return unwrap(client.get('/admin/inquiries/from-employees', { params: { page, size } }));
+  return unwrap(client.get('/admin/inquiries/from-employees', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }
 
 // 하위 호환: 기존 전체 목록 조회 (deprecated — 탭별 조회로 대체됨)
 export function getInquiryList(page = 0, size = 10) {
-  return unwrap(client.get('/inquiry', { params: { page, size } }));
+  return unwrap(client.get('/inquiry', { errorContext: '문의 목록을 불러오지 못했습니다.', params: { page, size } }));
 }

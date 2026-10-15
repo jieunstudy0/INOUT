@@ -24,7 +24,7 @@ export default function ProfileEmpPage() {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const data = await unwrap(client.get('/user/profile'));
+      const data = await unwrap(client.get('/user/profile', { errorContext: '내 정보를 불러오지 못했습니다.' }));
       setProfile({
         loginId: data.loginId || data.email || '', 
         storeName: data.storeName || '',
@@ -39,7 +39,7 @@ export default function ProfileEmpPage() {
         phone: data.phone || '',
       });
     } catch (err) {
-      Toast.error('내 정보를 불러오지 못했습니다.');
+      /* interceptor */
     } finally {
       setLoading(false);
     }

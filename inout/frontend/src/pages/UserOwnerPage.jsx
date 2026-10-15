@@ -8,6 +8,7 @@ import {
   resetOwnerEmployeePassword,
 } from '../api/ownerUserApi.js';
 import { Toast } from '../utils/toast.js';
+import { toFieldErrors } from '../api/apiClient';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 
@@ -204,6 +205,7 @@ export default function UserOwnerPage() {
   const [filters, setFilters] = useState({ keyword: '', status: '' });
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [statusTarget, setStatusTarget] = useState(null);
 
@@ -215,7 +217,7 @@ export default function UserOwnerPage() {
         setTotalPages(data.users?.totalPages || 1);
         setSummary(data.summary || { total: 0, active: 0, leave: 0, locked: 0, resigned: 0 });
       })
-      .catch(() => Toast.error('직원 목록을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -234,6 +236,7 @@ export default function UserOwnerPage() {
       return;
     }
     setSubmitting(true);
+    setFieldErrors({});
     try {
       await createOwnerEmployee(form);
       Toast.success('직원이 등록되었습니다.');
@@ -241,8 +244,9 @@ export default function UserOwnerPage() {
       setForm(emptyForm);
       loadUsers(0);
       setPage(0);
-    } catch {
-      /* toast from interceptor */
+    } catch (err) {
+      // 토스트는 인터셉터가 띄우고, 서버 검증 오류(비밀번호 길이·연락처 길이 등)는 입력칸 아래에 표시한다
+      setFieldErrors(toFieldErrors(err?.errors));
     } finally {
       setSubmitting(false);
     }
@@ -415,9 +419,17 @@ export default function UserOwnerPage() {
                   required
                   type={field.type}
                   value={form[field.key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [field.key]: e.target.value }))}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-xl text-sm"
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, [field.key]: e.target.value }));
+                    setFieldErrors((p) => ({ ...p, [field.key]: undefined }));
+                  }}
+                  className={`mt-1 w-full px-3 py-2 border rounded-xl text-sm ${
+                    fieldErrors[field.key] ? 'border-rose-400' : 'border-slate-200'
+                  }`}
                 />
+                {fieldErrors[field.key] && (
+                  <span className="mt-1 block text-xs text-rose-500">{fieldErrors[field.key]}</span>
+                )}
               </label>
             ))}
             <div className="flex gap-2 pt-2">

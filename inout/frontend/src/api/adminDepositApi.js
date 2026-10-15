@@ -2,7 +2,7 @@ import client, { unwrap } from './apiClient';
 
 // 전체 예치금 내역 및 요약 정보 조회
 export function getAdminDepositList(params) {
-  return unwrap(client.get('/admin/deposits', { params }));
+  return unwrap(client.get('/admin/deposits', { errorContext: '예치금 내역을 불러오지 못했습니다.', params }));
 }
 
 // 관리자 수동 충전 API (본사 직접 지급)
@@ -12,12 +12,12 @@ export function adminChargeDeposit(data) {
 
 // 셀렉트 박스용 가맹점 목록 조회 API
 export function getFranchiseeUserList() {
-  return unwrap(client.get('/admin/deposits/franchisees'));
+  return unwrap(client.get('/admin/deposits/franchisees', { errorContext: '가맹점 목록을 불러오지 못했습니다.' }));
 }
 
 /** 승인 대기 중인 충전 신청 목록 (OWNER 신청분) */
 export function getPendingChargeRequests() {
-  return unwrap(client.get('/admin/charges/pending'));
+  return unwrap(client.get('/admin/charges/pending', { errorContext: '충전 요청 목록을 불러오지 못했습니다.' }));
 }
 
 /** 충전 신청 승인 → 매장 예치금 반영 */

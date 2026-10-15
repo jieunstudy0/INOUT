@@ -337,6 +337,7 @@ export default function OrderAdmPage() {
     setIsDownloading(true);
     try {   
       const response = await client.get('/admin/orders/excel', {
+        errorContext: '엑셀 파일을 내려받지 못했습니다.',
         responseType: 'blob',
       });
 
@@ -363,7 +364,7 @@ export default function OrderAdmPage() {
 
     } catch (error) {
       console.error('Excel download error:', error);
-      Toast.error('엑셀 다운로드에 실패했습니다. 권한을 확인해주세요.');
+      /* interceptor */
     } finally {
       setIsDownloading(false);
     }

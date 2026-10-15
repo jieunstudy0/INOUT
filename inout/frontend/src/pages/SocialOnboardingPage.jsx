@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { completeSocialOnboarding } from '../api/authApi';
+import { toFieldErrors } from '../api/apiClient';
 import { homePathByRole } from '../utils/roleUtils';
 import { Toast } from '../utils/toast';
 
@@ -94,7 +95,9 @@ export default function SocialOnboardingPage() {
       Toast.success('회원가입이 완료되었습니다. 환영합니다!');
       navigate(homePathByRole(newRole.replace('ROLE_', '')), { replace: true });
     } catch (err) {
-      Toast.error(err?.message || '온보딩 중 오류가 발생했습니다. 다시 시도해 주세요.');
+      // 실패 토스트는 인터셉터가 띄운다. 서버 검증 오류는 입력칸 아래에도 표시한다
+      // (프론트 검증과 규칙이 어긋났을 때의 안전망)
+      setErrors((prev) => ({ ...prev, ...toFieldErrors(err?.errors) }));
     } finally {
       setSubmitting(false);
     }

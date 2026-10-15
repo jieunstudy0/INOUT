@@ -44,6 +44,8 @@ INOUT/
 3. **이벤트**: 메일 발송은 @TransactionalEventListener(AFTER_COMMIT) + @Async로 분리
 4. **캐시**: Redis 장애 시 LoggingCacheErrorHandler로 Fallback (DB 직접 조회)
 5. **응답 규약**: 모든 API는 ResponseResult → ResponseMessage 래핑 사용
+   - 실패 문구는 백엔드(header.message)가, 성공 문구는 프론트엔드가 정한다. 성공 응답의 message는 화면에 표시되지 않는다.
+   - 검증 오류는 body에 `[{ field, message }]`로 담기며, 프론트는 `toFieldErrors(err.errors)`로 입력칸별 오류를 표시한다.
 
 ## 자주 쓰는 명령어
 

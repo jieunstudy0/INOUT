@@ -15,7 +15,7 @@ function ItemDetailModal({ itemId, onClose }) {
   useEffect(() => {
     getEmpStockDetail(itemId)
       .then(setDetail)
-      .catch(() => { Toast.error('상품 정보를 불러오지 못했습니다.'); onClose(); })
+      .catch(() => { onClose(); })
       .finally(() => setLoading(false));
   }, [itemId, onClose]);
 
@@ -95,7 +95,7 @@ export default function StockEmpPage() {
     setLoading(true);
     getEmpStockList({ name: name || undefined, page: 0, size: 50 }) 
       .then((data) => setItems(data?.content || []))
-      .catch(() => { Toast.error('상품 목록을 불러오지 못했습니다.'); setItems([]); })
+      .catch(() => { setItems([]); })
       .finally(() => setLoading(false));
   }, []);
 
