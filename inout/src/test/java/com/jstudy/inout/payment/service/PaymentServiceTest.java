@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import com.jstudy.inout.common.auth.entity.User;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.entity.OrderRequest;
 import com.jstudy.inout.order.entity.OrderStatus;
@@ -70,7 +71,7 @@ class PaymentServiceTest {
                 .satisfies(e -> {
                     InoutException ie = (InoutException) e;
                     assertThat(ie.getResultCode()).isEqualTo("OWNER_APPROVAL_REQUIRED");
-                    assertThat(ie.getErrorCode()).isEqualTo(403);
+                    assertThat(ie.getStatus()).isEqualTo(403);
                 });
 
         assertThat(order.getStatus()).isEqualTo(OrderStatus.REQUESTED);
@@ -97,7 +98,7 @@ class PaymentServiceTest {
 
         assertThatThrownBy(() -> paymentService.processDepositPayment(USER_ID, request))
                 .isInstanceOf(InoutException.class)
-                .satisfies(e -> assertThat(((InoutException) e).getResultCode()).isEqualTo("FORBIDDEN"));
+                .satisfies(e -> assertThat(((InoutException) e).getResultCode()).isEqualTo("NOT_OWNER"));
     }
 
     @Test

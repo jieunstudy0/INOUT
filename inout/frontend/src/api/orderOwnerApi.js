@@ -1,11 +1,11 @@
 import client, { unwrap } from './apiClient';
 
 export function getOwnerOrders(params = {}) {
-  return unwrap(client.get('/owner/orders', { params }));
+  return unwrap(client.get('/owner/orders', { errorContext: '발주 목록을 불러오지 못했습니다.', params }));
 }
 
 export function getOwnerOrderDetail(orderId) {
-  return unwrap(client.get(`/owner/orders/${orderId}`));
+  return unwrap(client.get(`/owner/orders/${orderId}`, { errorContext: '발주 상세를 불러오지 못했습니다.' }));
 }
 
 export function createOwnerOrder(body) {

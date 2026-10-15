@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { getEmpDashboardSummary } from '../../api/dashboardEmpApi';
 import { getMyOrderHistory } from '../../api/orderEmpApi';
 import { getMyLeaveList } from '../../api/vacationEmpApi';
-import { Toast } from '../../utils/toast';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import KpiCard from '../../components/dashboard/KpiCard';
 import DashboardPanel, { ProgressBar } from '../../components/dashboard/DashboardPanel';
@@ -30,7 +29,7 @@ export default function EmpDashboard() {
         setRecentOrders(list.slice(0, 8));
         setLeaves(leavePage?.content || (Array.isArray(leavePage) ? leavePage : []));
       })
-      .catch(() => Toast.error('대시보드를 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

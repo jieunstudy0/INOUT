@@ -33,6 +33,7 @@ import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
 import com.jstudy.inout.common.dto.ServiceResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.mail.config.MailComponent;
 import com.jstudy.inout.common.mail.dto.MailTemplate;
@@ -155,8 +156,8 @@ class AuthServiceImplTest {
         // given
         User user = User.builder().email("test@test.com").password("oldPassword").build();
         user.setPasswordResetInfo("valid-uuid-key");
-
-        ReflectionTestUtils.setField(user, "updatedAt", LocalDateTime.now().minusMinutes(10));
+        // 요청 후 다른 필드 변경으로 updatedAt이 바뀌어도 만료 판단에는 영향이 없어야 한다
+        ReflectionTestUtils.setField(user, "updatedAt", LocalDateTime.now().minusMinutes(40));
 
         given(userRepository.findByPasswordResetKey("valid-uuid-key")).willReturn(Optional.of(user));
         given(passwordEncoder.encode("newPassword123!")).willReturn("encodedNewPassword");
@@ -171,23 +172,44 @@ class AuthServiceImplTest {
     }
 
     @Test
-    @DisplayName("비밀번호 초기화 완료 실패 - 링크 유효시간(30분) 초과 시 실패 처리된다")
+    @DisplayName("비밀번호 초기화 완료 실패 - 링크 유효시간(30분) 초과 시 EXPIRED_LINK 예외가 발생한다")
     void completePasswordReset_Fail_ExpiredLink() {
         // given
-        User user = User.builder().email("test@test.com").build();
+        User user = User.builder().email("test@test.com").password("oldPassword").build();
         user.setPasswordResetInfo("expired-uuid-key");
-
-        ReflectionTestUtils.setField(user, "updatedAt", LocalDateTime.now().minusMinutes(40));
+        ReflectionTestUtils.setField(user, "passwordResetLimit", LocalDateTime.now().minusMinutes(10));
+        // updatedAt이 최근이어도(로그인 실패 등으로 갱신) 만료는 유지되어야 한다
+        ReflectionTestUtils.setField(user, "updatedAt", LocalDateTime.now());
 
         given(userRepository.findByPasswordResetKey("expired-uuid-key")).willReturn(Optional.of(user));
 
-        // when
-        ServiceResult result = authService.completePasswordReset("expired-uuid-key", "newPassword123!");
+        // when & then
+        assertThatThrownBy(() -> authService.completePasswordReset("expired-uuid-key", "newPassword123!"))
+                .isInstanceOf(InoutException.class)
+                .hasMessageContaining("만료되었습니다")
+                .extracting("resultCode").isEqualTo("EXPIRED_LINK");
+        assertThat(user.getPassword()).isEqualTo("oldPassword");
+    }
 
-        // then
-        assertThat(result.isFail()).isTrue();
-        assertThat(result.getMessage()).contains("만료되었습니다");
-        assertThat(user.isPasswordResetYn()).isFalse(); // 만료 시 상태 원복 확인
+    @Test
+    @DisplayName("비밀번호 초기화 요청 실패 - 회원이 없으면 404 USER_NOT_FOUND 예외가 발생한다")
+    void resetPassword_Fail_UserNotFound() {
+        // given
+        UserPasswordResetInput request = new UserPasswordResetInput();
+        request.setEmail("none@test.com");
+        request.setName("없음");
+        request.setPhone("010-0000-0000");
+        given(userRepository.findByEmailAndNameAndPhone(request.getEmail(), request.getName(), request.getPhone()))
+                .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> authService.resetPassword(request))
+                .isInstanceOf(InoutException.class)
+                .satisfies(e -> {
+                    InoutException ex = (InoutException) e;
+                    assertThat(ex.getStatus()).isEqualTo(404);
+                    assertThat(ex.getResultCode()).isEqualTo("USER_NOT_FOUND");
+                });
     }
 
     @Test

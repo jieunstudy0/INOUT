@@ -8,6 +8,7 @@ import com.jstudy.inout.payment.dto.DepositDto;
 import com.jstudy.inout.payment.dto.DepositEmpDto; 
 import com.jstudy.inout.payment.service.DepositService;
 import com.jstudy.inout.payment.service.DepositEmpService; 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable; 
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class DepositController {
     @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<?> charge(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody DepositDto.ChargeRequest request) {
+            @Valid @RequestBody DepositDto.ChargeRequest request) {
 
         Long userId = userDetails.getUser().getId();
       
@@ -57,7 +58,7 @@ public class DepositController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> refund(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody DepositDto.RefundRequest request) {
+            @Valid @RequestBody DepositDto.RefundRequest request) {
 
         Long adminId = userDetails.getUser().getId();
         DepositDto.Response responseData = depositService.refundDeposit(

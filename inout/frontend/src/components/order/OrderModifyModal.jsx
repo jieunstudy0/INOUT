@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getOwnerOrderDetail, modifyAndApproveOwnerOrder, rejectOwnerDraft } from '../../api/orderOwnerApi';
 import { Toast } from '../../utils/toast';
+import { isStaleDataError } from '../../utils/resultCodes';
 import Spinner from '../common/Spinner';
 import PersonName from '../common/PersonName';
 
@@ -31,7 +32,6 @@ export default function OrderModifyModal({ orderId, onClose, onDone }) {
         );
       })
       .catch(() => {
-        Toast.error('발주 상세를 불러오지 못했습니다.');
         onClose();
       })
       .finally(() => {
@@ -72,8 +72,9 @@ export default function OrderModifyModal({ orderId, onClose, onDone }) {
       Toast.success('수정 및 결제 승인이 완료되었습니다. 본사 승인 대기로 전달됩니다.');
       onDone?.();
       onClose();
-    } catch {
-      /* interceptor toast */
+    } catch (err) {
+      // 이미 처리된 기안이면 목록을 갱신하고 닫는다 (잔액 부족은 토스트의 충전 버튼으로 안내)
+      if (isStaleDataError(err)) { onDone?.(); onClose(); }
     } finally {
       setSubmitting(false);
     }
@@ -87,8 +88,8 @@ export default function OrderModifyModal({ orderId, onClose, onDone }) {
       Toast.success('기안이 반려되었습니다.');
       onDone?.();
       onClose();
-    } catch {
-      /* interceptor */
+    } catch (err) {
+      if (isStaleDataError(err)) { onDone?.(); onClose(); }
     } finally {
       setSubmitting(false);
     }

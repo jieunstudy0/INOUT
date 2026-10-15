@@ -202,6 +202,6 @@ class OrderEmpServiceTest {
 
         assertThatThrownBy(() -> orderEmpService.cancelOrder(1L, 100L))
                 .isInstanceOf(InoutException.class)
-                .hasMessageContaining("이미 처리 진행 중이거나 완료된 주문");
+                .hasMessageContaining("이미 처리 중이거나 완료된 발주");
     }
 }

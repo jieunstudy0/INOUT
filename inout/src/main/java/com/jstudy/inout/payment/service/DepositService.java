@@ -2,6 +2,7 @@ package com.jstudy.inout.payment.service;
 
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.payment.dto.DepositDto;
 import com.jstudy.inout.payment.entity.*;
@@ -56,12 +57,12 @@ public class DepositService {
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자 정보를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
     }
 
     private DepositAccount getOrCreateAccountForUpdate(User user) {
         if (user.getStore() == null) {
-            throw new InoutException("소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED, "소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.");
         }
 
         return accountRepository.findByStoreIdForUpdate(user.getStore().getId())
@@ -91,7 +92,7 @@ public class DepositService {
 
     private void validateAmount(Long amount) {
         if (amount == null || amount <= 0) {
-            throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
+            throw new InoutException(ErrorCode.INVALID_AMOUNT);
         }
     }
     
@@ -104,16 +105,16 @@ public class DepositService {
     public void deductDeposit(Long targetUserId, Long adminId, long amount, String description, Long orderId) {
         User targetUser = getUser(targetUserId);
         if (targetUser.getStore() == null) {
-            throw new InoutException("소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED, "소속 매장이 없는 사용자는 예치금을 사용할 수 없습니다.");
         }
 
         DepositAccount account = accountRepository.findByStoreIdForUpdate(targetUser.getStore().getId())
-                .orElseThrow(() -> new InoutException("예치금 계좌를 찾을 수 없습니다.", 404, "ACCOUNT_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         try {
             account.deductBalance(amount);
         } catch (IllegalStateException e) {
-            throw new InoutException("예치금 잔액이 부족합니다.", 400, "INSUFFICIENT_BALANCE");
+            throw new InoutException(ErrorCode.INSUFFICIENT_BALANCE);
         }
 
         DepositHistory history = DepositHistory.builder()

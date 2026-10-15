@@ -110,7 +110,7 @@ class CartEmpServiceTest {
 
         assertThatThrownBy(() -> cartEmpService.reOrder(1L, 200L))
                 .isInstanceOf(InoutException.class)
-                .hasMessageContaining("본인의 주문 내역만");
+                .hasMessageContaining("본인의 발주 내역만");
     }
 
     @Test

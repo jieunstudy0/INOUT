@@ -39,7 +39,8 @@ function dismiss(el) {
   }, 320);
 }
 
-function show(message, type = 'info', duration = DURATION) {
+/** action: { label, onClick } — 토스트 안에 다음 행동 버튼을 붙인다 (예: 충전하러 가기) */
+function show(message, type = 'info', duration = DURATION, action) {
   const container = getContainer();
   if (!container) return;
 
@@ -80,6 +81,18 @@ function show(message, type = 'info', duration = DURATION) {
   textWrap.appendChild(labelEl);
   textWrap.appendChild(msgEl);
 
+  if (action?.label) {
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className = 'mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline';
+    actionBtn.textContent = action.label;
+    actionBtn.onclick = () => {
+      action.onClick?.();
+      dismiss(wrapper);
+    };
+    textWrap.appendChild(actionBtn);
+  }
+
   const closeBtn = document.createElement('button');
   closeBtn.className = 'text-slate-300 hover:text-slate-600 transition-colors mt-0.5 shrink-0';
   closeBtn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
@@ -102,7 +115,7 @@ function show(message, type = 'info', duration = DURATION) {
 export const Toast = {
   show,
   success: (msg, dur) => show(msg, 'success', dur),
-  error:   (msg, dur) => show(msg, 'error',   dur),
+  error:   (msg, dur, action) => show(msg, 'error', dur, action),
   warning: (msg, dur) => show(msg, 'warning', dur),
   info:    (msg, dur) => show(msg, 'info',    dur),
 };

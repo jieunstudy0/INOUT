@@ -1,7 +1,8 @@
 package com.jstudy.inout.common.exception;
 
-public class UserNotFoundException extends RuntimeException{
-    public UserNotFoundException(String s) {
-        super(s);
+public class UserNotFoundException extends InoutException {
+
+    public UserNotFoundException(String message) {
+        super(ErrorCode.USER_NOT_FOUND, message);
     }
 }

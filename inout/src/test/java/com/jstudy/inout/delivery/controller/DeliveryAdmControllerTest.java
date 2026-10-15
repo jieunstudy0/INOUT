@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.config.handler.GlobalExceptionHandler;
 import com.jstudy.inout.common.auth.entity.User;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.delivery.dto.DeliveryDto;
 import com.jstudy.inout.delivery.entity.DeliveryStatus;
@@ -126,7 +127,7 @@ class DeliveryAdmControllerTest {
     void startShipping_Fail_InoutException() throws Exception {
         // given
         given(deliveryService.startShipping(eq(100L), any(DeliveryDto.StartShippingRequest.class)))
-                .willThrow(new InoutException("관리자만 배송 상태를 변경할 수 있습니다.", 403, "FORBIDDEN"));
+                .willThrow(new InoutException(ErrorCode.FORBIDDEN, "관리자만 배송 상태를 변경할 수 있습니다."));
 
         DeliveryDto.StartShippingRequest request = DeliveryDto.StartShippingRequest.builder()
                 .trackingNumber("TRK-0000")

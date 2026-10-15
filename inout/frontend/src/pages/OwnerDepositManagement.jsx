@@ -104,7 +104,7 @@ export default function OwnerDepositManagement() {
         setTotalPages(deposit?.histories?.totalPages || 0);
         setCharges(Array.isArray(chargeList) ? chargeList : []);
       })
-      .catch(() => Toast.error('예치금 정보를 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

@@ -1,7 +1,7 @@
 import client, { unwrap } from './apiClient';
 
 export function getOwnerUsers(params) {
-  return unwrap(client.get('/owner/users', { params }));
+  return unwrap(client.get('/owner/users', { errorContext: '직원 목록을 불러오지 못했습니다.', params }));
 }
 
 export function createOwnerEmployee(data) {

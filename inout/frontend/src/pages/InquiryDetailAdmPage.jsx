@@ -57,7 +57,6 @@ export default function InquiryDetailAdmPage() {
     getInquiryDetail(inquiryId)
       .then(setDetail)
       .catch(() => {
-        Toast.error('상세 내역을 불러오지 못했습니다.');
         navigate(-1);
       })
       .finally(() => setLoading(false));

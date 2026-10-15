@@ -9,6 +9,7 @@ import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.entity.Store;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.config.handler.GlobalExceptionHandler;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.dashboard.dto.DashboardOwnerResponse;
 import com.jstudy.inout.dashboard.service.DashboardOwnerService;
@@ -76,7 +77,7 @@ class DashboardOwnerControllerTest {
     void getSummary_fail_storeRequired() throws Exception {
         // given
         given(dashboardOwnerService.getSummary(5L))
-                .willThrow(new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED"));
+                .willThrow(new InoutException(ErrorCode.STORE_REQUIRED));
 
         // when & then
         mockMvc.perform(get("/api/owner/dashboard/summary"))

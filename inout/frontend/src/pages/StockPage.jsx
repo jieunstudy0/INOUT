@@ -186,7 +186,7 @@ function HistoryModal({ item, onClose }) {
         setHistory(list);
         setHasMore(list.length === PAGE);
       })
-      .catch(() => Toast.error('이력을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, [item, page]);
 
@@ -562,7 +562,7 @@ export default function StockPage() {
           setTotal(list.length);
         }
       })
-      .catch(() => { Toast.error('재고 목록을 불러오지 못했습니다.'); setItems([]); })
+      .catch(() => { setItems([]); })
       .finally(() => setLoading(false));
   }, []);
 

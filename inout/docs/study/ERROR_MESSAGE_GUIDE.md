@@ -1,0 +1,62 @@
+# 실패 문구 작성 규칙 (백엔드 → 화면)
+
+> 실패 문구는 백엔드가 정하고(`header.message`), 프론트 공통 인터셉터가 그대로 토스트로 보여 준다.
+> 그래서 `InoutException`의 message는 **최종 사용자에게 그대로 보이는 문장**이다.
+> 전체 문구 목록과 점검 결과: [ERROR_MESSAGE_AUDIT_TABLE.md](ERROR_MESSAGE_AUDIT_TABLE.md)
+
+## 1. 문장 규칙
+
+| 규칙 | 나쁜 예 | 좋은 예 |
+|------|---------|---------|
+| 완결된 존댓말 문장, 마침표로 끝낸다 | `사용자 없음`, `한도를 초과했습니다` | `사용자를 찾을 수 없습니다.` |
+| 내부 정보(설정 파일, 필드명, enum, ID, 테이블, 외부 API 필드)를 넣지 않는다. 필요하면 `log`에 남긴다 | `DB에 ROLE_ADMIN 사용자가 필요합니다.`, `(현재 상태: ORDERED)`, `(id=12)` | `처리할 수 없는 상태의 발주입니다.` |
+| 사용자가 할 수 있는 일이 있으면 함께 알려 준다 | `예치금 잔액이 부족합니다.` | `예치금 잔액이 부족합니다. 충전 후 다시 시도해 주세요.` |
+| 도메인 용어를 통일한다: 이 서비스는 **발주** | `존재하지 않는 주문입니다.` | `발주 정보를 찾을 수 없습니다.` |
+| 5xx는 원인 대신 결과와 다음 행동만 쓴다 | `Gemini 응답에 candidates 필드가 없습니다.` | `AI 분석 결과를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
+
+## 2. 같은 상황 = 같은 문구·코드·상태
+
+| 상황 | status | resultCode | 표준 문구 |
+|------|--------|-----------|-----------|
+| 대상 없음 | 404 | `{대상}_NOT_FOUND` | `{대상} 정보를 찾을 수 없습니다.` (사용자·발주·상품·배송·연차·문의·댓글) |
+| 소유자가 아님 | 403 | `NOT_OWNER` | `본인의 {대상}만 {행동}할 수 있습니다.` |
+| 다른 매장 데이터 | 403 | `CROSS_STORE_FORBIDDEN` | `소속 매장의 {대상}만 {행동}할 수 있습니다.` |
+| 매장 미소속 | 403 | `STORE_REQUIRED` | `소속 매장 정보가 없습니다.` |
+| 현재 상태에서 불가 | 400 | `INVALID_{대상}_STATUS` | `{조건} 상태의 {대상}만 {행동}할 수 있습니다.` |
+| 이미 처리됨 / 중복 | 409 | `ALREADY_PROCESSED`, `DUPLICATE_*` | `이미 처리된 {대상}입니다.` |
+| 서버 설정 문제 | 500/503 | `*_NOT_CONFIGURED` 등 | `서비스 설정 문제로 처리할 수 없습니다. 관리자에게 문의해 주세요.` |
+
+## 2-1. 코드로 강제하기: ErrorCode
+
+위 규칙은 `common/exception/ErrorCode` Enum으로 강제한다.
+
+```java
+throw new InoutException(ErrorCode.USER_NOT_FOUND);                                   // 기본 문구
+throw new InoutException(ErrorCode.NOT_OWNER, "본인이 작성한 댓글만 삭제할 수 있습니다."); // 상황별 문구
+```
+
+- 상수 이름 = resultCode, 상태 코드와 기본 문구도 Enum이 정한다. 호출하는 쪽은 **문구만** 바꿀 수 있다.
+- 문자열로 상태·코드를 지정하던 생성자는 삭제했다. 새 실패 상황은 Enum에 상수를 추가해야 한다.
+- 핸들러·Security 필터의 응답도 `ResponseResult.fail(ErrorCode)`, `ResponseMessage.fail(ErrorCode)`로 만든다.
+  상태 줄·header.status·resultCode가 같은 ErrorCode에서 나오므로 어긋날 수 없다.
+- `ErrorCodeTest`가 모든 기본 문구에 대해 마침표로 끝나는지, 내부 정보가 없는지, 상태가 4xx·5xx인지 검사한다.
+
+## 3. 화면이 직접 대응해야 하는 코드
+
+토스트만으로는 다음 행동을 할 수 없는 경우 resultCode로 분기한다. 문구가 아니라 코드로 분기하므로 백엔드 문구가 바뀌어도 동작이 유지된다.
+
+| resultCode | 대응 | 위치 |
+|------------|------|------|
+| `INSUFFICIENT_BALANCE` | 토스트에 "예치금 충전하러 가기" 버튼 → `/owner/deposit` | 인터셉터 `RESULT_CODE_ACTIONS` (어느 화면이든 같은 대응) |
+| `STOCK_SHORTAGE`, `CONCURRENCY_ERROR`, `ALREADY_PROCESSED(_DETAIL)`, `INVALID_ORDER_STATUS` | 화면 데이터 다시 불러오기 (`isStaleDataError`) | 장바구니 발주, 본사 승인·반려·일괄 승인, 품목 처리, 충전 승인·반려, 연차 처리, 점주 기안 결재 |
+| `EXPIRED_LINK`, `INVALID_LINK` | "재설정 메일 다시 받기" 버튼 → `/find-account` (`isUnusableResetLink`) | 비밀번호 재설정 화면 |
+
+- 인터셉터는 React 밖이라 `useNavigate`를 쓸 수 없어, `NavigationBridge`가 Router 안에서 navigate 함수를 `utils/navigation`에 등록한다.
+- 화면별 판단 함수는 `frontend/src/utils/resultCodes.js`에 모은다.
+
+## 4. 목록·상세 조회 실패 (5xx·네트워크)
+
+조회 API의 실패는 대부분 5xx나 네트워크 오류라 서버 문구가 일반적이다
+(`서버 내부에서 예상치 못한 오류가 발생했습니다.`). 어느 화면의 무엇이 실패했는지는 화면만 알기 때문에,
+요청에 화면 문맥(`errorContext`)을 붙여 5xx·네트워크 오류일 때만 앞에 덧붙인다.
+4xx는 서버 문구가 이미 구체적이므로 그대로 쓴다.

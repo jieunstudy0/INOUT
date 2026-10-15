@@ -39,9 +39,5 @@ public class ServiceResult {
     public boolean isSuccess() { 
         return result;
     }
-
-    public static ServiceResult result(ServiceResult result) {
-        return result; 
-    }
 }
 

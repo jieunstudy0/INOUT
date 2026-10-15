@@ -21,7 +21,7 @@ export default function StockUseEmpPage() {
       .then((data) => {
         setItems(data?.content || []);
       })
-      .catch(() => Toast.error('상품 목록을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

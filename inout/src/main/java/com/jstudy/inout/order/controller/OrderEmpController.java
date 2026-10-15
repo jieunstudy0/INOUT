@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.dto.OrderCreateRequest;
 import com.jstudy.inout.order.dto.OrderPreResponse;
@@ -124,7 +125,7 @@ public class OrderEmpController {
 
     private Long getUserId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
         return principal.getUser().getId();
     }

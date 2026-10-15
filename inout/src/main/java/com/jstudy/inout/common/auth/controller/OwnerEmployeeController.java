@@ -4,6 +4,7 @@ import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.dto.OwnerUserDto;
 import com.jstudy.inout.common.auth.service.AuthService;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,7 +42,7 @@ public class OwnerEmployeeController {
             @Valid @RequestBody OwnerUserDto.UpdateRequest request) {
 
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
         authService.updateEmployeeByOwner(principal.getUser().getId(), id, request);
         return ResponseResult.successWithMessage("직원 상태가 변경되었습니다.");
@@ -56,7 +57,7 @@ public class OwnerEmployeeController {
             @RequestBody OwnerUserDto.DepositLimitRequest request) {
 
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
         authService.updateEmployeeDepositLimitByOwner(principal.getUser().getId(), id, request);
         return ResponseResult.successWithMessage("1일 예치금 사용 한도가 변경되었습니다.");

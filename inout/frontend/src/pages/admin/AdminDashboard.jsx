@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardSummary } from '../../api/dashboardApi';
 import { getListByStatuses } from '../../api/orderAdmApi';
-import { Toast } from '../../utils/toast';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import KpiCard from '../../components/dashboard/KpiCard';
 import DashboardPanel, { ProgressBar } from '../../components/dashboard/DashboardPanel';
@@ -38,7 +37,7 @@ export default function AdminDashboard() {
         setRecentOrders((Array.isArray(orders) ? orders : []).slice(0, 8));
         setLast(new Date());
       })
-      .catch(() => Toast.error('대시보드 데이터를 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

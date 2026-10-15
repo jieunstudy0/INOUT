@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.stock.dto.emp.AiStockSuggestionResponse;
 import com.jstudy.inout.stock.dto.emp.ItemResponse;
@@ -42,10 +43,10 @@ public class StockEmpService {
 
         Item item = itemRepository.findByIdWithLock(itemId)
                 .filter(i -> !i.getDeleted())
-                .orElseThrow(() -> new InoutException("사용 가능한 상품이 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND, "사용 가능한 상품이 없습니다."));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         item.removeStock(quantity);
 
@@ -79,7 +80,7 @@ public class StockEmpService {
     public StockUserDetailResponse getEmployeeStockDetail(Long itemId) {
        
         Item item = itemRepository.findByItemIdAndDeletedFalse(itemId)
-                .orElseThrow(() -> new InoutException("존재하지 않거나 삭제된 상품입니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND, "존재하지 않거나 삭제된 상품입니다."));
 
 
         return StockUserDetailResponse.from(item);

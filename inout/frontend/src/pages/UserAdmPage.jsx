@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import UserDetailModal from '../components/admin/UserDetailModal';
@@ -74,7 +73,7 @@ export default function UserAdmPage() {
           return fresh ? { ...prev, ...fresh } : prev;
         });
       })
-      .catch(() => Toast.error('회원 목록을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, [filters]);
 

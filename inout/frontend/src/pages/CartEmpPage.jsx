@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client, { unwrap } from '../api/apiClient';
 import { Toast } from '../utils/toast';
+import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import AiSmartOrderPanel from '../components/dashboard/AiSmartOrderPanel';
 
@@ -13,7 +14,7 @@ export default function CartEmpPage() {
 
   const loadCart = () => {
     setLoading(true);
-    unwrap(client.get('/emp/carts'))
+    unwrap(client.get('/emp/carts', { errorContext: '장바구니를 불러오지 못했습니다.' }))
       .then((data) => {
         setCartData({
           items: data?.items || [],
@@ -21,7 +22,7 @@ export default function CartEmpPage() {
           totalPrice: data?.totalPrice || 0,
         });
       })
-      .catch(() => Toast.error('장바구니를 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   };
 
@@ -83,7 +84,8 @@ const handleOrder = async () => {
     Toast.success('발주 기안이 등록되었습니다. 점주 승인 후 본사로 전달됩니다.');
     navigate('/emp/orders', { replace: true, state: { highlightOrderId: orderId } });
   } catch (err) {
-
+    // 재고가 부족하면 최신 장바구니·재고 상태를 다시 불러온다 (토스트는 인터셉터가 표시)
+    if (isStaleDataError(err)) loadCart();
   }
 };
 

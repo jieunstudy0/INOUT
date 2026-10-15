@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.jstudy.inout.common.auth.entity.User;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.dashboard.service.DashboardService;
 import com.jstudy.inout.delivery.entity.Delivery;
@@ -144,10 +145,10 @@ public class AiCsService {
         requireApiKey();
 
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new InoutException("문의글을 찾을 수 없습니다.", 404, "INQUIRY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.INQUIRY_NOT_FOUND));
 
         if (inquiry.getAiDraftAnswer() != null && !inquiry.getAiDraftAnswer().isBlank()) {
-            throw new InoutException("이미 AI 초안이 생성된 문의입니다.", 409, "AI_DRAFT_ALREADY_EXISTS");
+            throw new InoutException(ErrorCode.AI_DRAFT_ALREADY_EXISTS);
         }
 
         log.info("[AI CS 자동화] 단건 처리 시작 — inquiryId={}", inquiryId);
@@ -268,18 +269,19 @@ public class AiCsService {
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode candidates = root.path("candidates");
             if (candidates.isEmpty()) {
-                throw new InoutException("Gemini 응답에 candidates 필드가 없습니다.", 500, "AI_INVALID_RESPONSE");
+                log.error("[AI CS 자동화] Gemini 응답에 candidates 없음: {}", responseBody);
+                throw new InoutException(ErrorCode.AI_INVALID_RESPONSE);
             }
             return candidates.get(0).path("content").path("parts").get(0).path("text").asText();
 
         } catch (RestClientException e) {
             log.error("[AI CS 자동화] Gemini API 호출 실패", e);
-            throw new InoutException("Gemini API 서비스 연결에 실패했습니다.", 503, "AI_API_ERROR");
+            throw new InoutException(ErrorCode.AI_API_ERROR);
         } catch (InoutException e) {
             throw e;
         } catch (Exception e) {
             log.error("[AI CS 자동화] Gemini 응답 수신 실패", e);
-            throw new InoutException("Gemini 응답 처리 중 오류가 발생했습니다.", 500, "AI_RESPONSE_ERROR");
+            throw new InoutException(ErrorCode.AI_PARSE_ERROR);
         }
     }
 
@@ -414,9 +416,8 @@ public class AiCsService {
 
     private void requireApiKey() {
         if (!StringUtils.hasText(apiKey)) {
-            throw new InoutException(
-                    "Gemini API 키가 설정되지 않았습니다. application-secret.properties에 gemini.api-key를 설정해 주세요.",
-                    503, "GEMINI_NOT_CONFIGURED");
+            log.error("[AI CS 자동화] gemini.api-key 미설정 — application-secret.properties를 확인하세요.");
+            throw new InoutException(ErrorCode.AI_NOT_CONFIGURED);
         }
     }
 

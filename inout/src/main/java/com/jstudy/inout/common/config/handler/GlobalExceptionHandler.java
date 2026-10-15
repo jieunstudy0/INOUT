@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,55 +13,43 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.jstudy.inout.common.dto.ResponseError;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
-import com.jstudy.inout.common.exception.UserNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<?> handleUserNotFoundException(UserNotFoundException exception) {
-        log.warn("User Not Found: {}", exception.getMessage());
-        return ResponseResult.fail(exception.getMessage(), null, 404);
-    }
-
     @ExceptionHandler(InoutException.class)
     public ResponseEntity<?> handleInoutException(InoutException exception) {
-        return ResponseResult.fail(
-                exception.getMessage(),
-                null,
-                exception.getResultCode(),
-                exception.getErrorCode()
-        );
+        return ResponseResult.fail(exception.getCode(), exception.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> handleBadCredentialsException(BadCredentialsException exception) {
-        return ResponseResult.fail("아이디 또는 비밀번호가 일치하지 않습니다.", null, 401);
+        return ResponseResult.fail(ErrorCode.LOGIN_FAILED);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<?> handleAuthException(AuthenticationException e) {
-        return ResponseResult.fail(
-                "인증 정보가 유효하지 않습니다. 로그인이 필요합니다.",
-                null,
-                "AUTH_401",
-                401
-        );
+        return ResponseResult.fail(ErrorCode.AUTH_401);
+    }
+
+    /**
+     * 메서드 보안(@PreAuthorize) 거부는 DispatcherServlet 안에서 발생해 필터의 CustomAccessDeniedHandler까지
+     * 가지 않는다. 처리하지 않으면 아래 Exception 핸들러가 500으로 응답하므로 URL 규칙과 같은 403으로 맞춘다.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<?> handleAccessDeniedException(AccessDeniedException e) {
+        return ResponseResult.fail(ErrorCode.AUTH_403);
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<?> handleOptimisticLockingFailureException(
             ObjectOptimisticLockingFailureException exception) {
         log.warn("Concurrency Conflict (Optimistic Lock): {}", exception.getMessage());
-        return ResponseResult.fail(
-                "이미 다른 요청에 의해 처리되었습니다. 새로고침 후 다시 시도해주세요.",
-                null,
-                "CONCURRENCY_ERROR",
-                409
-        );
+        return ResponseResult.fail(ErrorCode.CONCURRENCY_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -68,7 +57,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception) {
         log.warn("Validation Error occurred: {}", exception.getMessage());
         List<ResponseError> errors = ResponseError.of(exception.getBindingResult().getAllErrors());
-        return ResponseResult.fail("입력 데이터에 유효성 오류가 있습니다.", errors);
+        return ResponseResult.failWithData(ErrorCode.VALIDATION_ERROR, errors);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -79,11 +68,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGlobalException(Exception exception) {
         log.error("Unhandled Exception occurred: ", exception);
-        return ResponseResult.fail(
-                "서버 내부에서 예상치 못한 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-                null,
-                "INTERNAL_ERROR",
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        );
+        return ResponseResult.fail(ErrorCode.INTERNAL_ERROR);
     }
 }

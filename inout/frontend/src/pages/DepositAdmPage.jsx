@@ -8,6 +8,7 @@ import {
   rejectChargeRequest,
 } from '../api/adminDepositApi';
 import { Toast } from '../utils/toast';
+import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import { dispatchHeaderRefresh } from '../utils/headerSync';
@@ -80,7 +81,7 @@ export default function DepositAdmPage() {
         setTotalPages(data.histories?.totalPages || 0);
         if (data.summary) setSummary(data.summary);
       })
-      .catch(() => Toast.error('예치금 내역을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -103,8 +104,9 @@ export default function DepositAdmPage() {
       Toast.success('충전 신청이 승인되어 예치금이 지급되었습니다.');
       loadPending();
       dispatchHeaderRefresh({ role: 'ADMIN' });
-    } catch {
-      /* interceptor */
+    } catch (err) {
+      // 다른 관리자가 먼저 처리한 신청이면 대기 목록을 다시 불러온다
+      if (isStaleDataError(err)) loadPending();
     } finally {
       setProcessingChargeId(null);
     }
@@ -118,8 +120,8 @@ export default function DepositAdmPage() {
       await rejectChargeRequest(chargeId, reason.trim() || '본사 검토 후 반려');
       Toast.success('충전 신청이 반려되었습니다.');
       loadPending();
-    } catch {
-      /* interceptor */
+    } catch (err) {
+      if (isStaleDataError(err)) loadPending();
     } finally {
       setProcessingChargeId(null);
     }
@@ -133,7 +135,7 @@ export default function DepositAdmPage() {
         const users = await getFranchiseeUserList();
         setFranchiseeList(users || []);
       } catch {
-        Toast.error('가맹점 목록을 불러오지 못했습니다.');
+        /* interceptor */
       } finally {
         setIsFetchingUsers(false);
       }
@@ -168,7 +170,7 @@ export default function DepositAdmPage() {
       }
       dispatchHeaderRefresh({ role: 'ADMIN' });
     } catch {
-      Toast.error('지급에 실패했습니다.');
+      /* interceptor */
     } finally {
       setIsSubmitting(false);
     }

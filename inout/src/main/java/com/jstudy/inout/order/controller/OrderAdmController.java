@@ -30,6 +30,7 @@ import com.jstudy.inout.order.service.OrderAdmService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import java.io.IOException;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 
 @Tag(name = "관리자 발주 관리", description = "결제 완료된 발주 건 승인·반려, 일괄 승인, 엑셀 다운로드 (ADMIN 전용)")
@@ -146,7 +147,7 @@ public class OrderAdmController {
         try {
             orderAdmService.exportOrdersToExcel(response);
         } catch (IOException e) {
-            throw new InoutException("엑셀 파일 생성 중 오류가 발생했습니다.", 500, "EXCEL_ERROR");
+            throw new InoutException(ErrorCode.EXCEL_ERROR);
         }
     }
 }

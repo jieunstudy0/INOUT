@@ -1,5 +1,6 @@
 package com.jstudy.inout.common.massdata;
 
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.massdata.dto.MassDataGenerationResponse;
 import com.jstudy.inout.common.massdata.dto.MassDataStepResult;
@@ -80,9 +81,7 @@ public class MassDataGeneratorService {
     @Transactional
     public MassDataGenerationResponse generate(int scale) {
         if (scale < MIN_SCALE || scale > MAX_SCALE) {
-            throw new InoutException(
-                    "scale은 " + MIN_SCALE + " 이상 " + MAX_SCALE + " 이하만 허용됩니다 (서버 리소스 보호를 위한 상한). 입력값: " + scale,
-                    400, "INVALID_SCALE");
+            throw new InoutException(ErrorCode.INVALID_SCALE, "scale은 " + MIN_SCALE + " 이상 " + MAX_SCALE + " 이하만 허용됩니다 (서버 리소스 보호를 위한 상한). 입력값: " + scale);
         }
 
         long totalStart = System.currentTimeMillis();
@@ -213,8 +212,8 @@ public class MassDataGeneratorService {
                 "SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
                 Long.class, tableName);
         if (next == null) {
-            throw new InoutException("테이블의 다음 AUTO_INCREMENT 값을 조회할 수 없습니다: " + tableName,
-                    500, "MASS_DATA_SCHEMA_ERROR");
+            log.error("[대량 더미 데이터] {} 테이블의 AUTO_INCREMENT 값을 조회할 수 없습니다.", tableName);
+            throw new InoutException(ErrorCode.MASS_DATA_SCHEMA_ERROR);
         }
         return next;
     }

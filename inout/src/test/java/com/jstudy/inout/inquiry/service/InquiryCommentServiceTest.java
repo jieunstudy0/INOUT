@@ -94,6 +94,6 @@ class InquiryCommentServiceTest {
         // when & then 
         assertThatThrownBy(() -> inquiryCommentService.deleteComment(10L, 1L))
                 .isInstanceOf(InoutException.class)
-                .hasMessageContaining("삭제 권한이 없습니다.");
+                .hasMessageContaining("본인이 작성한 댓글만 삭제할 수 있습니다.");
     }
 }

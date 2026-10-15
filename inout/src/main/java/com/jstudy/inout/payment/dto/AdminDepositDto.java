@@ -2,6 +2,8 @@ package com.jstudy.inout.payment.dto;
 
 import java.time.LocalDateTime;
 import org.springframework.data.domain.Page;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,7 +25,10 @@ public class AdminDepositDto {
     @AllArgsConstructor
     @Builder
     public static class AdminChargeRequest {
+        @NotNull(message = "충전 대상 사용자 ID는 필수입니다.")
         private Long targetUserId;  
+        @NotNull(message = "충전 금액은 필수입니다.")
+        @Positive(message = "충전 금액은 0보다 커야 합니다.")
         private Long amount;        
         private String description; 
     }

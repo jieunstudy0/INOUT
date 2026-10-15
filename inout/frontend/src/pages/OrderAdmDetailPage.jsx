@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getDetail, processItems, approveAiSuggestedItems } from '../api/orderAdmApi.js';
 import { getDeliveryByOrder, generateWaybill, startShipping } from '../api/deliveryApi';
 import { Toast } from '../utils/toast';
+import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import DeliveryTrackingModal from '../components/delivery/DeliveryTrackingModal';
@@ -69,7 +70,6 @@ export default function OrderAdmDetailPage() {
     getDetail(orderId)
       .then((data) => setDetail(data))
       .catch(() => {
-        Toast.error('발주 정보를 불러오지 못했습니다.');
         navigate('/admin/orders');
       })
       .finally(() => setLoading(false));
@@ -119,7 +119,10 @@ export default function OrderAdmDetailPage() {
       Toast.success(`품목이 ${label} 처리되었습니다.`);
       loadDetail();
       loadDelivery();
-    } catch { /* api client already toasted */ }
+    } catch (err) {
+      // 이미 처리된 품목·재고 부족 등 화면 데이터가 낡았으면 상세를 다시 불러온다
+      if (isStaleDataError(err)) { loadDetail(); loadDelivery(); }
+    }
     finally { setProc(null); }
   };
 
@@ -133,7 +136,9 @@ export default function OrderAdmDetailPage() {
       Toast.success(`${waitingItems.length}개 품목이 모두 승인 처리되었습니다.`);
       loadDetail();
       loadDelivery();
-    } catch { /* toasted */ }
+    } catch (err) {
+      if (isStaleDataError(err)) { loadDetail(); loadDelivery(); }
+    }
     finally { setProc(null); }
   };
 
@@ -144,7 +149,10 @@ export default function OrderAdmDetailPage() {
       Toast.success(approve ? 'AI 제안 품목이 승인되었습니다.' : 'AI 제안 품목이 반려되었습니다.');
       loadDetail();
       loadDelivery();
-    } catch { /* api client already toasted */ }
+    } catch (err) {
+      // 이미 처리된 품목·재고 부족 등 화면 데이터가 낡았으면 상세를 다시 불러온다
+      if (isStaleDataError(err)) { loadDetail(); loadDelivery(); }
+    }
     finally { setProc(null); }
   };
 
@@ -161,7 +169,9 @@ export default function OrderAdmDetailPage() {
       Toast.success(`AI 제안 품목 ${aiWaitingItems.length}건이 모두 승인되었습니다.`);
       loadDetail();
       loadDelivery();
-    } catch { /* toasted */ }
+    } catch (err) {
+      if (isStaleDataError(err)) { loadDetail(); loadDelivery(); }
+    }
     finally { setProc(null); }
   };
 

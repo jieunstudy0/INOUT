@@ -1,5 +1,6 @@
 package com.jstudy.inout.common.util;
 
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 
 import java.nio.file.Path;
@@ -19,24 +20,23 @@ public final class FileStorageUtil {
 
     public static String extractAllowedExtension(String originalFilename, Set<String> allowedExtensions) {
         if (originalFilename == null || originalFilename.isBlank()) {
-            throw new InoutException("파일 이름이 유효하지 않습니다.", 400, "INVALID_FILE_NAME");
+            throw new InoutException(ErrorCode.INVALID_FILE_NAME);
         }
 
         
         if (originalFilename.contains("/") || originalFilename.contains("\\")
                 || originalFilename.contains("..") || originalFilename.contains("\u0000")) {
-            throw new InoutException("허용되지 않는 파일 이름입니다.", 400, "INVALID_FILE_NAME");
+            throw new InoutException(ErrorCode.INVALID_FILE_NAME, "허용되지 않는 파일 이름입니다.");
         }
 
         int dotIndex = originalFilename.lastIndexOf('.');
         if (dotIndex < 0 || dotIndex == originalFilename.length() - 1) {
-            throw new InoutException("확장자가 없는 파일은 업로드할 수 없습니다.", 400, "INVALID_FILE_EXTENSION");
+            throw new InoutException(ErrorCode.INVALID_FILE_EXTENSION, "확장자가 없는 파일은 업로드할 수 없습니다.");
         }
 
         String extension = originalFilename.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
         if (!allowedExtensions.contains(extension)) {
-            throw new InoutException(
-                    "허용되지 않는 파일 형식입니다. 허용된 확장자: " + allowedExtensions, 400, "INVALID_FILE_EXTENSION");
+            throw new InoutException(ErrorCode.INVALID_FILE_EXTENSION, "허용되지 않는 파일 형식입니다. 허용된 확장자: " + allowedExtensions);
         }
         return extension;
     }
@@ -46,7 +46,7 @@ public final class FileStorageUtil {
         Path target = normalizedRoot.resolve(safeFileName).normalize();
 
         if (!target.startsWith(normalizedRoot)) {
-            throw new InoutException("잘못된 업로드 경로입니다.", 400, "INVALID_FILE_PATH");
+            throw new InoutException(ErrorCode.INVALID_FILE_PATH, "잘못된 업로드 경로입니다.");
         }
         return target;
     }

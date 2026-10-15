@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.order.dto.CartAddRequest;
 import com.jstudy.inout.order.dto.CartResponse;
@@ -37,7 +38,7 @@ public class CartEmpService {
         Cart cart = getOrCreateCart(userId);
 
         Item item = itemRepository.findById(request.getItemId())
-                .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
 
         addItemToCartInternal(cart, item, request.getQuantity());
     }
@@ -46,10 +47,10 @@ public class CartEmpService {
     public void reOrder(Long userId, Long pastOrderId) {
 
         OrderRequest pastOrder = orderRequestRepository.findWithDetailsGraphById(pastOrderId)
-                .orElseThrow(() -> new InoutException("존재하지 않는 주문입니다.", 404, "ORDER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
 
         if (!pastOrder.getRequestUser().getId().equals(userId)) {
-            throw new InoutException("본인의 주문 내역만 재주문할 수 있습니다.", 403, "FORBIDDEN");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인의 발주 내역만 재주문할 수 있습니다.");
         }
 
         Cart cart = getOrCreateCart(userId);
@@ -67,7 +68,7 @@ public class CartEmpService {
         return cartRepository.findByUser_Id(userId)
                 .orElseGet(() -> cartRepository.save(Cart.builder()
                 		.user(userRepository.findById(userId)
-                			    .orElseThrow(() -> new InoutException("사용자 없음", 404, "USER_NOT_FOUND")))
+                			    .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND)))
                         .build()));
     }
 
@@ -121,10 +122,10 @@ public class CartEmpService {
     public void updateQuantity(Long userId, Long cartDetailId, int newQuantity) {
 
         CartDetail cartDetail = cartDetailRepository.findById(cartDetailId)
-                .orElseThrow(() -> new InoutException("항목을 찾을 수 없습니다.", 404, "NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.CART_ITEM_NOT_FOUND));
 
         if (!cartDetail.getCart().getUser().getId().equals(userId)) {
-            throw new InoutException("수정 권한이 없습니다.", 403, "FORBIDDEN");
+            throw new InoutException(ErrorCode.NOT_OWNER, "본인의 장바구니 항목만 수정할 수 있습니다.");
         }
         cartDetail.updateQuantity(newQuantity);
     }

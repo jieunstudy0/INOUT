@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getOwnerOrders, getOwnerOrderDetail } from '../api/orderOwnerApi';
 import { getOwnerDeliveryList } from '../api/deliveryOwnerApi';
-import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import DeliveryTrackingModal from '../components/delivery/DeliveryTrackingModal';
@@ -67,7 +66,7 @@ function OrderDetailModal({ orderId, onClose }) {
   useEffect(() => {
     getOwnerOrderDetail(orderId)
       .then(setDetail)
-      .catch(() => { Toast.error('발주 상세를 불러오지 못했습니다.'); onClose(); })
+      .catch(() => { onClose(); })
       .finally(() => setLoading(false));
   }, [orderId, onClose]);
 
@@ -143,7 +142,7 @@ export default function OwnerOrderList() {
         setOrders(data?.content || []);
         setTotalPages(data?.totalPages || 0);
       })
-      .catch(() => Toast.error('발주 목록을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 
@@ -154,7 +153,7 @@ export default function OwnerOrderList() {
         setDeliveries(data?.content || []);
         setTotalPages(data?.totalPages || 0);
       })
-      .catch(() => Toast.error('배송 목록을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

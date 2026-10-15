@@ -37,6 +37,7 @@ import com.jstudy.inout.common.jwt.dto.JwtToken;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 
 @Tag(name = "인증 (Auth)", description = "로그인, 토큰 갱신, 로그아웃. 로그인·갱신 API는 인증 없이 호출 가능합니다.")
@@ -103,20 +104,17 @@ public class AuthLoginController {
             return ResponseResult.success("로그인 성공", responseData);
 
         } catch (LockedException e) {
-            throw new InoutException("계정이 잠겼습니다. 관리자에게 문의해주세요.", 403, "ACCOUNT_LOCKED");
+            throw new InoutException(ErrorCode.ACCOUNT_LOCKED);
 
         } catch (DisabledException e) {
-            throw new InoutException(
-                    e.getMessage() != null ? e.getMessage() : "비활성 계정입니다. 로그인이 불가합니다.",
-                    403,
-                    "ACCOUNT_DISABLED");
+            throw new InoutException(ErrorCode.ACCOUNT_DISABLED, e.getMessage() != null ? e.getMessage() : "비활성 계정입니다. 로그인이 불가합니다.");
 
         } catch (Exception e) {
             log.warn("로그인 실패: {}", userLogin.getEmail());
 
             authService.loginFailed(userLogin.getEmail());
 
-            throw new InoutException("이메일 또는 비밀번호가 잘못되었거나, 5회 이상 실패하여 계정이 잠겼습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 잘못되었거나, 5회 이상 실패하여 계정이 잠겼습니다.");
         }
     }
     
@@ -133,17 +131,17 @@ public class AuthLoginController {
     public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
         if (!StringUtils.hasText(refreshToken)) {
-            throw new InoutException("리프레시 토큰이 필요합니다.", 400, "BAD_REQUEST");
+            throw new InoutException(ErrorCode.REFRESH_TOKEN_REQUIRED);
         }
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new InoutException("유효하지 않거나 만료된 리프레시 토큰입니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED, "유효하지 않거나 만료된 리프레시 토큰입니다.");
         }
 
         RefreshToken savedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new InoutException("유효하지 않은 토큰입니다.", 401, "UNAUTHORIZED"));
+                .orElseThrow(() -> new InoutException(ErrorCode.UNAUTHORIZED, "유효하지 않은 토큰입니다."));
 
         if (savedToken.isExpired()) {
-            throw new InoutException("만료된 토큰입니다. 다시 로그인해주세요.", 401, "TOKEN_EXPIRED");
+            throw new InoutException(ErrorCode.TOKEN_EXPIRED);
         }
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(savedToken.getUser());

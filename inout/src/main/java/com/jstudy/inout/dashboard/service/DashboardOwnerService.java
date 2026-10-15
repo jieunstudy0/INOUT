@@ -3,6 +3,7 @@ package com.jstudy.inout.dashboard.service;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.entity.UserStatus;
 import com.jstudy.inout.common.auth.repository.UserRepository;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.dashboard.dto.DashboardOwnerResponse;
 import com.jstudy.inout.delivery.entity.DeliveryStatus;
@@ -31,10 +32,10 @@ public class DashboardOwnerService {
 
     public DashboardOwnerResponse getSummary(Long ownerUserId) {
         User owner = userRepository.findById(ownerUserId)
-                .orElseThrow(() -> new InoutException("사용자를 찾을 수 없습니다.", 404, "USER_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
 
         if (owner.getStore() == null) {
-            throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED);
         }
 
         Long storeId = owner.getStore().getId();

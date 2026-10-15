@@ -1,7 +1,7 @@
 import client, { unwrap } from './apiClient';
 
 export function getUserList(params) {
-  return unwrap(client.get('/admin/users', { params }));
+  return unwrap(client.get('/admin/users', { errorContext: '회원 목록을 불러오지 못했습니다.', params }));
 }
 
 export function unlockUserAccount(userId) {

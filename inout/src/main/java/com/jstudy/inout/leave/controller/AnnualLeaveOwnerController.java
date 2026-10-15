@@ -2,6 +2,7 @@ package com.jstudy.inout.leave.controller;
 
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.dto.ResponseResult;
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.leave.dto.AnnualLeaveDto;
 import com.jstudy.inout.leave.entity.LeaveStatus;
@@ -87,14 +88,14 @@ public class AnnualLeaveOwnerController {
 
     private Long requireStoreId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null || principal.getUser().getStore() == null) {
-            throw new InoutException("소속 매장 정보가 없습니다.", 403, "STORE_REQUIRED");
+            throw new InoutException(ErrorCode.STORE_REQUIRED);
         }
         return principal.getUser().getStore().getId();
     }
 
     private Long getUserId(CustomUserDetails principal) {
         if (principal == null || principal.getUser() == null) {
-            throw new InoutException("인증 정보가 유효하지 않습니다.", 401, "UNAUTHORIZED");
+            throw new InoutException(ErrorCode.UNAUTHORIZED);
         }
         return principal.getUser().getId();
     }

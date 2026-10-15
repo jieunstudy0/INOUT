@@ -44,6 +44,9 @@ INOUT/
 3. **이벤트**: 메일 발송은 @TransactionalEventListener(AFTER_COMMIT) + @Async로 분리
 4. **캐시**: Redis 장애 시 LoggingCacheErrorHandler로 Fallback (DB 직접 조회)
 5. **응답 규약**: 모든 API는 ResponseResult → ResponseMessage 래핑 사용
+   - 실패 문구는 백엔드(header.message)가, 성공 문구는 프론트엔드가 정한다. 성공 응답의 message는 화면에 표시되지 않는다.
+   - 검증 오류는 body에 `[{ field, message }]`로 담기며, 프론트는 `toFieldErrors(err.errors)`로 입력칸별 오류를 표시한다.
+   - 프론트의 실패 분기는 문구가 아니라 `err.resultCode`(= ErrorCode 이름)로 한다 (`utils/resultCodes.js`, 인터셉터 `RESULT_CODE_ACTIONS`).
 
 ## 자주 쓰는 명령어
 
@@ -85,7 +88,8 @@ docs: 문서 수정
 ### Java 코드 규칙
 - 엔티티는 @Setter 금지, 도메인 메서드로 상태 변경
 - Service는 @Transactional(readOnly = true) 기본, 쓰기 메서드만 @Transactional
-- 예외는 반드시 InoutException(message, httpStatus, errorCode) 사용
+- 예외는 반드시 `new InoutException(ErrorCode.X)` 또는 `new InoutException(ErrorCode.X, "상황별 문구")` 사용.
+  새 실패 상황은 `common/exception/ErrorCode`에 상수를 추가한다(상태·resultCode·기본 문구). 문구 규칙은 `ErrorCodeTest`가 검사한다
 - REQUIRES_NEW가 필요하면 반드시 별도 클래스로 분리
 
 ### 주의사항

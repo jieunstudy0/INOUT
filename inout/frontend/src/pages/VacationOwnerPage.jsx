@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getVacationList, processVacation } from '../api/vacationOwnerApi.js';
 import { Toast } from '../utils/toast';
+import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 
@@ -181,7 +182,7 @@ export default function VacationOwnerPage() {
         setLeaves(data.content || []);
         setTotalPages(data.totalPages || 0);
       })
-      .catch(() => { Toast.error('연차 신청 목록을 불러오지 못했습니다.'); setLeaves([]); })
+      .catch(() => { setLeaves([]); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -199,7 +200,11 @@ export default function VacationOwnerPage() {
       load(page, activeTab);
       setRejectTarget(null);
     } catch (error) {
-      // Toast 에러는 apiClient 인터셉터에서 처리됨
+      // 토스트는 인터셉터가 표시. 이미 처리된 신청이면 목록을 다시 불러온다
+      if (isStaleDataError(error)) {
+        load(page, activeTab);
+        setRejectTarget(null);
+      }
     } finally {
       setProcessingId(null);
     }

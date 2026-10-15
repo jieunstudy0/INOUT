@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getMyDepositHistory } from '../api/depositEmpApi';
-import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 
@@ -40,7 +39,7 @@ export default function DepositEmpPage() {
         setHistories(data?.histories?.content || []);
         setTotalPages(data?.histories?.totalPages || 0);
       })
-      .catch(() => Toast.error('예치금 내역을 불러오지 못했습니다.'))
+      .catch(() => { /* interceptor */ })
       .finally(() => setLoading(false));
   }, []);
 

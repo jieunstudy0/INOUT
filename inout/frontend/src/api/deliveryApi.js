@@ -3,11 +3,11 @@ import client, { unwrap } from './apiClient';
 export function getDeliveryList({ status, page = 0, size = 10 } = {}) {
   const params = { page, size };
   if (status) params.status = status;
-  return unwrap(client.get('/admin/deliveries', { params }));
+  return unwrap(client.get('/admin/deliveries', { errorContext: '배송 목록을 불러오지 못했습니다.', params }));
 }
 
 export function getDeliveryByOrder(orderId) {
-  return unwrap(client.get(`/admin/deliveries/orders/${orderId}`));
+  return unwrap(client.get(`/admin/deliveries/orders/${orderId}`, { errorContext: '배송 정보를 불러오지 못했습니다.' }));
 }
 
 /** 택배사 연동 Mock 운송장 발급 (약 1초 지연) */
@@ -26,6 +26,7 @@ export function completeDelivery(orderId) {
 /** 배송 조회 프록시 (실패 시 서버 Mock Fallback) */
 export function trackDelivery({ carrier, trackingNumber }) {
   return unwrap(client.get('/deliveries/tracking', {
+    errorContext: '배송 상태를 불러오지 못했습니다.',
     params: { carrier: carrier || 'CJ대한통운', trackingNumber },
   }));
 }

@@ -17,6 +17,7 @@ import com.jstudy.inout.payment.dto.DepositDto;
 import com.jstudy.inout.payment.service.AdminDepositService;
 import com.jstudy.inout.payment.service.DepositService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Tag(name = "관리자 예치금 관리", description = "가맹점 전체의 예치금 보유 현황 및 변동 내역 조회")
@@ -54,7 +55,7 @@ public class AdminDepositController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> chargeDepositToUser(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody AdminDepositDto.AdminChargeRequest request) {
+            @Valid @RequestBody AdminDepositDto.AdminChargeRequest request) {
 
         DepositDto.ChargeRequest chargeReq = DepositDto.ChargeRequest.builder()
                 .amount(request.getAmount())

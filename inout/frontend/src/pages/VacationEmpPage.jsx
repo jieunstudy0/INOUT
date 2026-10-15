@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyLeaveList } from '../api/vacationEmpApi';
-import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import { useAppBasePath } from '../utils/appPaths';
@@ -66,7 +65,7 @@ export default function VacationEmpPage() {
         setLeaves(data.content || []);
         setTotalPages(data.totalPages || 0);
       })
-      .catch(() => { Toast.error('연차 신청 목록을 불러오지 못했습니다.'); setLeaves([]); })
+      .catch(() => { setLeaves([]); })
       .finally(() => setLoading(false));
   }, []);
 

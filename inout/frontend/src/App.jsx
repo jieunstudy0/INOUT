@@ -40,6 +40,7 @@ import OwnerLeaveApproval from './pages/OwnerLeaveApproval';
 import OrderAdmDetailPage from './pages/OrderAdmDetailPage';
 import { resolveHomeFromToken } from './utils/roleUtils';
 import SocialOnboardingPage from './pages/SocialOnboardingPage';
+import NavigationBridge from './components/common/NavigationBridge';
 
 function NotFound() {
   return (
@@ -59,6 +60,7 @@ function HomeRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
+      <NavigationBridge />
       <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage />} />

@@ -1,5 +1,6 @@
 package com.jstudy.inout.delivery.service;
 
+import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.delivery.dto.DeliveryDto;
 import com.jstudy.inout.delivery.entity.Delivery;
@@ -42,8 +43,7 @@ public class DeliveryService {
         if (!StringUtils.hasText(order.getReceiverName())
                 || !StringUtils.hasText(order.getReceiverPhone())
                 || !StringUtils.hasText(order.getDestinationAddress())) {
-            throw new InoutException(
-                    "발주에 저장된 배송 정보가 없습니다.", 400, "ORDER_SHIPPING_SNAPSHOT_MISSING");
+            throw new InoutException(ErrorCode.ORDER_SHIPPING_SNAPSHOT_MISSING);
         }
         Delivery delivery = Delivery.builder()
                 .orderRequest(order)
@@ -77,7 +77,7 @@ public class DeliveryService {
 
     public DeliveryDto.DetailResponse getDeliveryByOrderId(Long orderId) {
         Delivery delivery = deliveryRepository.findByOrderRequest_Id(orderId)
-                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.DELIVERY_NOT_FOUND));
         return DeliveryDto.from(delivery);
     }
 
@@ -91,14 +91,14 @@ public class DeliveryService {
             Thread.sleep(1000L);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new InoutException("운송장 발급이 중단되었습니다.", 500, "WAYBILL_INTERRUPTED");
+            throw new InoutException(ErrorCode.WAYBILL_INTERRUPTED);
         }
 
         Delivery delivery = deliveryRepository.findByIdForUpdate(deliveryId)
-                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.DELIVERY_NOT_FOUND));
 
         if (delivery.getStatus() != DeliveryStatus.READY) {
-            throw new InoutException("배송 준비 상태에서만 운송장 발급이 가능합니다.", 400, "INVALID_DELIVERY_STATUS");
+            throw new InoutException(ErrorCode.INVALID_DELIVERY_STATUS, "배송 준비 상태에서만 운송장 발급이 가능합니다.");
         }
 
         String trackingNumber = generateCjStyleTrackingNumber();
@@ -122,7 +122,7 @@ public class DeliveryService {
     @Transactional
     public void markAiInboundWaiting(Long orderId) {
         Delivery delivery = deliveryRepository.findByOrderIdForUpdate(orderId)
-                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.DELIVERY_NOT_FOUND));
         if (delivery.getStatus() != DeliveryStatus.READY) {
             return;
         }
@@ -165,17 +165,17 @@ public class DeliveryService {
 
         if (request == null || request.getTrackingNumber() == null
                 || request.getTrackingNumber().trim().isEmpty()) {
-            throw new InoutException("운송장 번호는 필수입니다.", 400, "INVALID_TRACKING_NUMBER");
+            throw new InoutException(ErrorCode.INVALID_TRACKING_NUMBER);
         }
 
         LocalDateTime shippedAt = request.getShippedAt() != null
                 ? request.getShippedAt() : LocalDateTime.now();
 
         Delivery delivery = deliveryRepository.findByOrderIdForUpdate(orderId)
-                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.DELIVERY_NOT_FOUND));
 
         if (delivery.getStatus() != DeliveryStatus.READY) {
-            throw new InoutException("배송 준비 상태에서만 배송 시작이 가능합니다.", 400, "INVALID_DELIVERY_STATUS");
+            throw new InoutException(ErrorCode.INVALID_DELIVERY_STATUS, "배송 준비 상태에서만 배송 시작이 가능합니다.");
         }
 
         String carrier = StringUtils.hasText(delivery.getCarrier()) ? delivery.getCarrier() : CARRIER_CJ;
@@ -191,10 +191,10 @@ public class DeliveryService {
                 ? request.getDeliveredAt() : LocalDateTime.now();
 
         Delivery delivery = deliveryRepository.findByOrderIdForUpdate(orderId)
-                .orElseThrow(() -> new InoutException("배송 정보를 찾을 수 없습니다.", 404, "DELIVERY_NOT_FOUND"));
+                .orElseThrow(() -> new InoutException(ErrorCode.DELIVERY_NOT_FOUND));
 
         if (delivery.getStatus() != DeliveryStatus.SHIPPING) {
-            throw new InoutException("배송 중 상태에서만 배송 완료 처리가 가능합니다.", 400, "INVALID_DELIVERY_STATUS");
+            throw new InoutException(ErrorCode.INVALID_DELIVERY_STATUS, "배송 중 상태에서만 배송 완료 처리가 가능합니다.");
         }
 
         delivery.completeDelivery(deliveredAt);

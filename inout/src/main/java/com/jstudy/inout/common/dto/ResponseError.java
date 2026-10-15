@@ -28,8 +28,16 @@ public class ResponseError {
     public static List<ResponseError> of(List<ObjectError> errors) {
         List<ResponseError> responseErrors = new ArrayList<>();
         if (errors != null) {
-            errors.stream().forEach((e) -> {
-                responseErrors.add(ResponseError.of((FieldError)e));
+            errors.forEach((e) -> {
+                // 클래스 레벨 제약·reject()로 생긴 ObjectError는 FieldError가 아니므로 객체 이름을 field로 쓴다.
+                if (e instanceof FieldError fieldError) {
+                    responseErrors.add(ResponseError.of(fieldError));
+                } else {
+                    responseErrors.add(ResponseError.builder()
+                            .field(e.getObjectName())
+                            .message(e.getDefaultMessage())
+                            .build());
+                }
             });
         }
         return responseErrors;

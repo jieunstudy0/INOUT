@@ -121,14 +121,24 @@ public class User extends BaseTimeEntity {
         this.password = encodedPassword;
     }
 
+    /** 비밀번호 재설정 링크 유효 시간(분) */
+    public static final int PASSWORD_RESET_VALID_MINUTES = 30;
+
     public void setPasswordResetInfo(String resetKey) {
         this.passwordResetYn = true;
         this.passwordResetKey = resetKey;
+        this.passwordResetLimit = LocalDateTime.now().plusMinutes(PASSWORD_RESET_VALID_MINUTES);
     }
 
     public void clearPasswordResetInfo() {
         this.passwordResetKey = null;
         this.passwordResetYn = false;
+        this.passwordResetLimit = null;
+    }
+
+    /** 재설정 링크 만료 여부. updatedAt은 다른 필드 변경에도 갱신되므로 전용 필드로 판단한다. */
+    public boolean isPasswordResetExpired(LocalDateTime now) {
+        return this.passwordResetLimit == null || this.passwordResetLimit.isBefore(now);
     }
     
     

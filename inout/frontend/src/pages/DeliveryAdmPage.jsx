@@ -254,7 +254,7 @@ export default function DeliveryAdmPage() {
         setTotalPages(data.totalPages || 0);
         setTotalElements(data.totalElements || 0);
       })
-      .catch(() => { Toast.error('배송 목록을 불러오지 못했습니다.'); setDeliveries([]); })
+      .catch(() => { setDeliveries([]); })
       .finally(() => setLoading(false));
   }, []);
 

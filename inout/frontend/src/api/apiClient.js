@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Toast } from '../utils/toast';
+import { navigateTo } from '../utils/navigation';
 
 const sharedConfig = {
   baseURL: '/api',
@@ -8,17 +9,47 @@ const sharedConfig = {
   headers: { 'Content-Type': 'application/json' },
 };
 
-function parseApiError(error) {
+async function parseApiError(error) {
   const status = error?.response?.status ?? null;
+  let data = error?.response?.data;
+  // responseType: 'blob'(파일 다운로드) 요청은 오류 본문도 Blob으로 오므로 JSON으로 풀어 header.message를 읽는다
+  if (data instanceof Blob && data.type?.includes('application/json')) {
+    try {
+      data = JSON.parse(await data.text());
+    } catch {
+      data = null;
+    }
+  }
   const message =
-    error?.response?.data?.header?.message
-    || error?.response?.data?.message
-    || error?.message
-    || '오류 발생';
-  return { status, message };
+    data?.header?.message
+    || data?.message
+    || (error?.response
+      ? '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      : '서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.');
+  // 검증 오류(@Valid 실패)일 때만 body가 [{ field, message }] 배열로 온다
+  const errors = Array.isArray(data?.body) ? data.body : [];
+  const resultCode = data?.header?.resultCode || null;
+  return { status, message, errors, resultCode };
 }
 
-/** 인증 필요 API — Authorization 주입 + 401 시 로그인 리다이렉트 */
+/** 서버 검증 오류 목록을 { 필드이름: 문구 } 형태로 바꾼다 (입력칸별 오류 표시용) */
+export function toFieldErrors(errors = []) {
+  return Object.fromEntries(errors.map((e) => [e.field, e.message]));
+}
+
+/**
+ * 어느 화면에서 나든 대응이 같은 resultCode는 토스트에 다음 행동 버튼을 붙인다.
+ * (화면마다 다르게 대응하는 코드는 utils/resultCodes.js를 쓴다)
+ */
+const RESULT_CODE_ACTIONS = {
+  INSUFFICIENT_BALANCE: { label: '예치금 충전하러 가기', onClick: () => navigateTo('/owner/deposit') },
+};
+
+/**
+ * 인증 필요 API — Authorization 주입 + 401 시 로그인 리다이렉트.
+ * 실패 토스트는 이 인터셉터가 한 번만 띄운다. 화면의 catch에서는 토스트를 다시 띄우지 않고
+ * 화면 상태 정리(목록 비우기, 모달 닫기, 입력칸 오류 표시)만 한다.
+ */
 const client = axios.create(sharedConfig);
 
 client.interceptors.request.use(
@@ -34,8 +65,8 @@ client.interceptors.request.use(
 
 client.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const { status, message } = parseApiError(error);
+  async (error) => {
+    const { status, message, errors, resultCode } = await parseApiError(error);
 
     if (status === 401 && window.location.pathname !== '/login') {
       localStorage.removeItem('accessToken');
@@ -45,9 +76,13 @@ client.interceptors.response.use(
     } else if (status === 403) {
       Toast.error('접근 권한이 없습니다.');
     } else {
-      Toast.error(message);
+      // 5xx·네트워크 오류는 서버 문구가 일반적이므로, 요청에 붙인 화면 문맥(errorContext)을 앞에 덧붙인다.
+      // 4xx는 서버 문구가 이미 구체적이라 그대로 쓰고, 검증 오류면 첫 번째 필드 오류를 보여 준다.
+      const context = error?.config?.errorContext;
+      const withContext = context && (status == null || status >= 500) ? `${context} ${message}` : message;
+      Toast.error(errors[0]?.message || withContext, undefined, RESULT_CODE_ACTIONS[resultCode]);
     }
-    return Promise.reject({ status, message });
+    return Promise.reject({ status, message, errors, resultCode });
   },
 );
 
@@ -60,9 +95,9 @@ export const publicClient = axios.create(sharedConfig);
 
 publicClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const { status, message } = parseApiError(error);
-    return Promise.reject({ status, message });
+  async (error) => {
+    const { status, message, errors, resultCode } = await parseApiError(error);
+    return Promise.reject({ status, message, errors, resultCode });
   },
 );
 
