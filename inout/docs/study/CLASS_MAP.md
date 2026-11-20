@@ -126,7 +126,7 @@
 
 | 글 | 클래스 |
 |----|--------|
-| 공통 응답 | ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError · ServiceResult |
+| 공통 응답 | ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError |
 | 예외 계층 | InoutException · UserNotFoundException · (stock) NotEnoughStockException |
 | 기반 엔티티 | BaseTimeEntity · JpaAuditConfig |
 | 대용량 데이터 | MassDataController · MassDataGeneratorService · MassDataGenerationResponse · MassDataStepResult |
@@ -144,6 +144,7 @@
 - [ ] `resultCode`가 문자열 리터럴로 흩어져 있음(`"ORDER_NOT_FOUND"` 등) → `ErrorCode` Enum으로 모으면 오타 방지·목록화 가능
 - [x] 비밀번호 재설정 실패를 ServiceResult.fail → InoutException(404 USER_NOT_FOUND / 400 EXPIRED_LINK)으로 통일, 컨트롤러 try/catch 제거 (2026-10-09)
 - [x] 재설정 링크 만료를 BaseTimeEntity.updatedAt → passwordResetLimit으로 판단 (2026-10-09)
+- [x] ServiceResult 삭제 — 실패를 InoutException으로 통일한 뒤 성공 문구만 전달하던 반환값을 void로 바꾸고, 성공 문구는 컨트롤러가 정하도록 정리. 항상 참이던 isSuccess() 테스트 검사 4곳 제거 (2026-11-20)
 - [x] UserNotFoundException이 InoutException을 상속(404, USER_NOT_FOUND), 전용 핸들러 제거 (2026-10-09)
 - [x] 인자 1개 InoutException 6곳에 status·resultCode 지정, 재고 부족 코드 STOCK_SHORTAGE로 통일 (2026-10-09)
 - [x] 예치금 금액 검증 IllegalArgumentException(500) → InoutException(400 INVALID_AMOUNT) + DTO @Valid (2026-10-09)
@@ -153,3 +154,4 @@
 - [x] 실패 문구 정비 (2026-10-15): A 내부 정보 노출·깨진 문구 18건+AI 공급자명 4건 수정(원인은 log로), B 조회 API 48곳에 errorContext(5xx·네트워크 시 화면 문맥), C 표준 문구·resultCode 79건 통일(발주 용어, *_NOT_FOUND, NOT_OWNER, CROSS_STORE_FORBIDDEN, 중복·이미 처리 409) — 규칙은 ERROR_MESSAGE_GUIDE.md
 - [x] D: ErrorCode Enum 도입 (2026-10-15) — InoutException 문자열 생성자 삭제, 호출부 219곳·핸들러·Security 핸들러 전환, 로그인 실패 resultCode null 해결, VALIDATION_ERROR 추가, ErrorCodeTest로 문구 규칙 검사
 - [x] E: resultCode 기반 화면 분기 (2026-10-15) — 잔액 부족 토스트에 충전 버튼, 낡은 데이터 오류 시 화면 재조회(본사 승인 재고 부족 시 자동 반려된 발주가 목록에 남던 문제 해결), 재설정 링크 만료 시 메일 재요청 버튼
+- [x] 검증 실패 로그에 사용자 입력값(비밀번호 포함)이 평문으로 남던 문제 수정 (2026-10-21) — MethodArgumentNotValidException.getMessage()에 rejected value가 포함됨. 필드 이름·규칙만 로그에 남기고 회귀 테스트 추가

@@ -7,6 +7,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -55,7 +56,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException exception) {
-        log.warn("Validation Error occurred: {}", exception.getMessage());
+        // exception.getMessage()에는 사용자가 입력한 값(rejected value)이 그대로 들어 있어
+        // 비밀번호가 로그에 평문으로 남는다. 어느 필드가 어떤 규칙에 걸렸는지만 기록한다.
+        log.warn("Validation failed: {}", exception.getBindingResult().getAllErrors().stream()
+                .map(e -> (e instanceof FieldError fe ? fe.getField() : e.getObjectName()) + "(" + e.getCode() + ")")
+                .toList());
         List<ResponseError> errors = ResponseError.of(exception.getBindingResult().getAllErrors());
         return ResponseResult.failWithData(ErrorCode.VALIDATION_ERROR, errors);
     }

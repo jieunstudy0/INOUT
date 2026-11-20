@@ -1,8 +1,5 @@
 package com.jstudy.inout.common.auth.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,7 +9,6 @@ import com.jstudy.inout.common.auth.entity.Store;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.service.AuthService;
 import com.jstudy.inout.common.config.handler.GlobalExceptionHandler;
-import com.jstudy.inout.common.dto.ServiceResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,10 +51,7 @@ class OwnerUserControllerTest {
     @Test
     @DisplayName("점주 직원 생성 성공")
     void createEmployee_success() throws Exception {
-        // given
-        given(authService.createEmployeeByOwner(eq(5L), any()))
-                .willReturn(ServiceResult.success("직원 계정이 생성되었습니다."));
-
+        // given (authService는 mock이라 void 메서드는 호출돼도 아무 일도 하지 않는다)
         String body = """
                 {
                   "email": "newemp@test.com",

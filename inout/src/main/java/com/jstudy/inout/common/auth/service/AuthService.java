@@ -8,19 +8,18 @@ import com.jstudy.inout.common.auth.dto.UserPasswordResetInput;
 import com.jstudy.inout.common.auth.dto.UserProfileResponse;
 import com.jstudy.inout.common.auth.dto.UserProfileUpdateRequest;
 import com.jstudy.inout.common.auth.dto.UserUpdate;
-import com.jstudy.inout.common.dto.ServiceResult;
 import jakarta.validation.Valid;
 
 public interface AuthService {
-    ServiceResult addUser(UserInput userInput); 
-    
-    ServiceResult updateUser(Long id, UserUpdate userUpdate);
-    
+    void addUser(UserInput userInput);
+
+    void updateUser(Long id, UserUpdate userUpdate);
+
     void checkEmail(String email);
-    
-    ServiceResult resetPassword(UserPasswordResetInput userInput);    
-    
-    ServiceResult completePasswordReset(String uuid, String newPassword);
+
+    void resetPassword(UserPasswordResetInput userInput);
+
+    void completePasswordReset(String uuid, String newPassword);
     
     void unlockUser(Long id);
     
@@ -40,7 +39,7 @@ public interface AuthService {
 
     OwnerUserDto.ListResponse getOwnerUserList(Long ownerUserId, String status, String keyword, Pageable pageable);
 
-    ServiceResult createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request);
+    void createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request);
 
     void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request);
 

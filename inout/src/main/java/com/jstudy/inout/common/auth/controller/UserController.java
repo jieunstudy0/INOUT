@@ -29,7 +29,6 @@ import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.service.AuthService;
 import com.jstudy.inout.common.dto.ResponseError;
 import com.jstudy.inout.common.dto.ResponseResult;
-import com.jstudy.inout.common.dto.ServiceResult;
 import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.exception.UserNotFoundException;
@@ -105,10 +104,10 @@ public class UserController {
 	        return ResponseResult.fail(ErrorCode.PASSWORD_MISMATCH);
 	    }
 	    
-	    ServiceResult result = authService.completePasswordReset(resetKey, newPassword);
+	    authService.completePasswordReset(resetKey, newPassword);
 
 	    Map<String, String> data = Map.of("redirectUrl", "/user/login");
-	    return ResponseResult.success(result.getMessage(), data);
+	    return ResponseResult.success("비밀번호가 성공적으로 변경되었습니다.", data);
 	}
  
  
