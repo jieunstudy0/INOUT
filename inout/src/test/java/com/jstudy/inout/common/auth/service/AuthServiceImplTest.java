@@ -32,7 +32,6 @@ import com.jstudy.inout.common.auth.repository.RoleRepository;
 import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
-import com.jstudy.inout.common.dto.ServiceResult;
 import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.mail.config.MailComponent;
@@ -81,10 +80,9 @@ class AuthServiceImplTest {
                 .willReturn(true);
 
         // when
-        ServiceResult result = authService.addUser(request);
+        authService.addUser(request);
 
         // then
-        assertThat(result.isSuccess()).isTrue();
         verify(userRepository).save(any(User.class)); 
         verify(userRoleRepository).save(any());
     }
@@ -142,11 +140,10 @@ class AuthServiceImplTest {
                 .willReturn(true);
 
         // when
-        ServiceResult result = authService.resetPassword(request);
+        authService.resetPassword(request);
 
         // then
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(user.isPasswordResetYn()).isTrue(); 
+        assertThat(user.isPasswordResetYn()).isTrue();
         assertThat(user.getPasswordResetKey()).isNotNull();
     }
     
@@ -163,10 +160,9 @@ class AuthServiceImplTest {
         given(passwordEncoder.encode("newPassword123!")).willReturn("encodedNewPassword");
 
         // when
-        ServiceResult result = authService.completePasswordReset("valid-uuid-key", "newPassword123!");
+        authService.completePasswordReset("valid-uuid-key", "newPassword123!");
 
         // then
-        assertThat(result.isSuccess()).isTrue();
         assertThat(user.getPassword()).isEqualTo("encodedNewPassword");
         assertThat(user.isPasswordResetYn()).isFalse(); // 상태 원복 확인
     }
@@ -227,10 +223,9 @@ class AuthServiceImplTest {
         given(storeRepository.findById(2L)).willReturn(Optional.of(newStore));
 
         // when
-        ServiceResult result = authService.updateUser(1L, updateRequest);
+        authService.updateUser(1L, updateRequest);
 
         // then
-        assertThat(result.isSuccess()).isTrue();
         assertThat(user.getPhone()).isEqualTo("010-9999-9999");
         assertThat(user.getStore().getName()).isEqualTo("판교점");
     }

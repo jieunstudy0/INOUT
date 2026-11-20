@@ -24,7 +24,6 @@ import com.jstudy.inout.common.auth.repository.RoleRepository;
 import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.repository.UserRoleRepository;
-import com.jstudy.inout.common.dto.ServiceResult;
 import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.common.exception.UserNotFoundException;
@@ -58,7 +57,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public ServiceResult addUser(UserInput userInput) {
+    public void addUser(UserInput userInput) {
         Optional<User> optionalUser = userRepository.findByEmail(userInput.getEmail());
         if (optionalUser.isPresent()) {
             throw new InoutException(ErrorCode.DUPLICATE_EMAIL);
@@ -99,7 +98,6 @@ public class AuthServiceImpl implements AuthService {
         if (!emailSent) {
             log.warn("회원가입 축하 메일 발송 실패: {}", user.getEmail());
         }
-        return ServiceResult.success();
     }
 
     @Override
@@ -135,7 +133,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
-    public ServiceResult resetPassword(UserPasswordResetInput userInput) {
+    public void resetPassword(UserPasswordResetInput userInput) {
         Optional<User> optionalUser = userRepository.findByEmailAndNameAndPhone(
             userInput.getEmail(), userInput.getName(), userInput.getPhone()
         );
@@ -158,11 +156,10 @@ public class AuthServiceImpl implements AuthService {
             .replaceAll("\\{RESET_PASSWORD_KEY\\}", passwordResetKey);
 
         mailComponent.send(fromEmail, fromUserName, user.getEmail(), user.getName(), title, contents);
-        return ServiceResult.success("비밀번호 초기화 이메일이 전송되었습니다. 이메일을 확인해 주세요.");
     }
 
     @Transactional
-    public ServiceResult completePasswordReset(String uuid, String newPassword) {
+    public void completePasswordReset(String uuid, String newPassword) {
         User user = userRepository.findByPasswordResetKey(uuid)
                 .orElseThrow(() -> new InoutException(ErrorCode.INVALID_LINK));
 
@@ -175,19 +172,16 @@ public class AuthServiceImpl implements AuthService {
         user.changePassword(passwordEncoder.encode(newPassword));
         user.clearPasswordResetInfo();
         userRepository.save(user);
-
-        return ServiceResult.success("비밀번호가 성공적으로 변경되었습니다.");
     }
 
     @Override
     @Transactional
-    public ServiceResult updateUser(Long id, UserUpdate userUpdate) {
+    public void updateUser(Long id, UserUpdate userUpdate) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
         Store store = storeRepository.findById(userUpdate.getStoreId())
                 .orElseThrow(() -> new InoutException(ErrorCode.STORE_NOT_FOUND));
         user.updateInfo(userUpdate.getPhone(), store);
-        return ServiceResult.success();
     }
 
     @Transactional
@@ -340,7 +334,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ServiceResult createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
+    public void createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
         User owner = requireOwnerWithStore(ownerUserId);
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -364,8 +358,6 @@ public class AuthServiceImpl implements AuthService {
         Role employeeRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
                 .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "기본 권한 정보를 찾을 수 없습니다."));
         userRoleRepository.save(UserRole.builder().user(employee).role(employeeRole).build());
-
-        return ServiceResult.success("직원 계정이 생성되었습니다.");
     }
 
     @Override

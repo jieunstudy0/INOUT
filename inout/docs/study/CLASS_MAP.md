@@ -126,7 +126,7 @@
 
 | 글 | 클래스 |
 |----|--------|
-| 공통 응답 | ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError · ServiceResult |
+| 공통 응답 | ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError |
 | 예외 계층 | InoutException · UserNotFoundException · (stock) NotEnoughStockException |
 | 기반 엔티티 | BaseTimeEntity · JpaAuditConfig |
 | 대용량 데이터 | MassDataController · MassDataGeneratorService · MassDataGenerationResponse · MassDataStepResult |
@@ -144,6 +144,7 @@
 - [ ] `resultCode`가 문자열 리터럴로 흩어져 있음(`"ORDER_NOT_FOUND"` 등) → `ErrorCode` Enum으로 모으면 오타 방지·목록화 가능
 - [x] 비밀번호 재설정 실패를 ServiceResult.fail → InoutException(404 USER_NOT_FOUND / 400 EXPIRED_LINK)으로 통일, 컨트롤러 try/catch 제거 (2026-10-09)
 - [x] 재설정 링크 만료를 BaseTimeEntity.updatedAt → passwordResetLimit으로 판단 (2026-10-09)
+- [x] ServiceResult 삭제 — 실패를 InoutException으로 통일한 뒤 성공 문구만 전달하던 반환값을 void로 바꾸고, 성공 문구는 컨트롤러가 정하도록 정리. 항상 참이던 isSuccess() 테스트 검사 4곳 제거 (2026-11-20)
 - [x] UserNotFoundException이 InoutException을 상속(404, USER_NOT_FOUND), 전용 핸들러 제거 (2026-10-09)
 - [x] 인자 1개 InoutException 6곳에 status·resultCode 지정, 재고 부족 코드 STOCK_SHORTAGE로 통일 (2026-10-09)
 - [x] 예치금 금액 검증 IllegalArgumentException(500) → InoutException(400 INVALID_AMOUNT) + DTO @Valid (2026-10-09)

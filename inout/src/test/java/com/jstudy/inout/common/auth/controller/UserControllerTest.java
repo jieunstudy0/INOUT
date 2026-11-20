@@ -37,7 +37,6 @@ import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.service.AuthService;
-import com.jstudy.inout.common.dto.ServiceResult;
 
 @WebMvcTest(UserController.class)
 @AutoConfigureMockMvc(addFilters = false) // 단위 테스트이므로 Spring Security 필터 비활성화
@@ -75,8 +74,6 @@ class UserControllerTest {
                 .storeId(1L)
                 .birthday(LocalDate.of(1995, 1, 1))
                 .build();
-
-        given(authService.addUser(any())).willReturn(ServiceResult.success());
 
         // when & then
         mockMvc.perform(post("/api/user/register")
