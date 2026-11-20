@@ -2,7 +2,7 @@
 
 > **문서 성격**  
 > 본 문서는 INOUT B2B 발주·재고·결제 시스템을 구축하면서 실제로 **100명 동시성 테스트에서 부분 차감 누수가 발생하고, 외부 메일 서버가 트랜잭션을 인질로 잡고, JPA 1차 캐시 비대칭으로 락이 무력화되며, OAuth2 설정이 프로퍼티 우선순위에 덮어써지던**  기술 문제들을 복기한 기록이다.  
-> 단순 오타 수정이나 일상적인 버그 수정을 제외하고, **시스템 정합성, 성능 최적화, 아키텍처 격리** 관점에서 디버깅하며 고도화한 7가지 핵심 항목을 4단 구조로 정리했다.  
+> 단순 오타 수정이나 일상적인 버그 수정을 제외하고, **시스템 정합성, 성능 최적화, 아키텍처 격리** 관점에서 디버깅하며 고도화한 8가지 핵심 항목을 4단 구조로 정리했다.  
 > 대상 모듈: Spring Boot 3.5.7 / Spring 6.2 / JPA(Hibernate 6) / MySQL 8 / JUnit5 + Mockito / React 19 + Vite
 
 ---
@@ -18,6 +18,7 @@
 | 5 | 아키텍처 격리 | 메일 I/O 트랜잭션 강결합 해소 | `Spring Events` + `@Async` + `AFTER_COMMIT`으로 비동기 및 메인 TX 격리 |
 | 6 | 아키텍처 격리 | SpringDoc `NoSuchMethodError` | Gradle `resolutionStrategy.force`로 런타임 클래스패스 버전 고정 |
 | 7 | Security / OAuth2 | 소셜 로그인 환경 및 DB 제약 통합 | 프로퍼티 우선순위 교정 및 `toEntity()` 계정 필수 필드 Placeholder 적용 |
+| 8 | 응답·예외 체계 | 실패 응답의 상태·resultCode 불일치 | `ErrorCode` Enum으로 상태·resultCode·문구를 한곳에 정의, 실패 처리를 예외로 통일하고 `ServiceResult` 삭제 |
 
 ---
 
@@ -39,7 +40,7 @@
 
 ### 🛠️ 해결 방법 (Solution)
 1. `findWithCartAndUserByIds` fetch join을 작성해 Cart와 User 데이터를 1회 쿼리로 일괄 조회(N+1 차단)
-2. 타인의 `cartDetailId` 접근 시 `403 FORBIDDEN` 예외 즉시 발생
+2. 타인의 `cartDetailId` 접근 시 `403 NOT_OWNER` 예외 즉시 발생
 3. `findByIdWithLock`(비관적 쓰기 락)을 적용하여 사전 재고 검증을 수행하고, 부족 시 DB INSERT 없이 즉시 `400` 응답
 
 ```java
@@ -48,13 +49,13 @@ List<CartDetail> selectedItems = cartDetailRepository.findWithCartAndUserByIds(r
 
 for (CartDetail cartItem : selectedItems) {
     if (!cartItem.getCart().getUser().getId().equals(userId)) {
-        throw new InoutException("본인의 장바구니 상품만 주문할 수 있습니다.", 403, "FORBIDDEN");
+        throw new InoutException(ErrorCode.NOT_OWNER, "본인의 장바구니 상품만 발주할 수 있습니다.");
     }
     Item item = itemRepository.findByIdWithLock(cartItem.getItem().getItemId())
-            .orElseThrow(() -> new InoutException("상품을 찾을 수 없습니다.", 404, "ITEM_NOT_FOUND"));
-            
+            .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
+
     if (item.getCurrentStock() < cartItem.getQuantity()) {
-        throw new InoutException(item.getName() + " 재고가 부족합니다.", 400, "STOCK_SHORTAGE");
+        throw new InoutException(ErrorCode.STOCK_SHORTAGE, item.getName() + " 재고가 부족합니다.");
     }
 }
 
@@ -339,6 +340,58 @@ public User toEntity() {
 
 ---
 
+# SECTION 5. 공통 응답·예외 체계 정비
+
+> 실패 응답의 상태 코드·resultCode·문구는 프론트엔드와의 약속이다. 약속이 한곳에 정의되어 있지 않으면 호출하는 곳마다 조금씩 어긋난다.
+
+---
+
+## 5.1 실패 응답의 상태·resultCode가 곳곳에서 어긋나던 문제 — `ErrorCode` 단일화
+
+### 📌 문제 현상 (Issue)
+
+1. 로그인 실패 응답의 `resultCode`가 `null`로 나갔다.
+2. `@PreAuthorize`에 막힌 요청이 403이 아니라 **500**으로 응답했다.
+3. 이메일 중복처럼 이미 있는 데이터와 충돌하는 요청이 409가 아니라 400으로 응답했다.
+4. 실패를 알리는 방식이 세 갈래였다.
+   - `ServiceResult.fail()` (반환값에 실패를 담음)
+   - 상태 코드를 클래스마다 고정한 하위 예외(`AuthFailException` 401, `ResourceNotFoundException` 404, `UnauthorizedException` 403)
+   - 메시지만 받고 상태는 항상 400인 `InoutException(String)`
+
+### 🔍 원인 분석 (Cause)
+
+* **값의 기준이 한곳에 없음**: 상태 코드·resultCode·문구를 호출하는 곳마다 직접 적었다. 같은 오류도 API마다 다르게 나갈 수 있었다.
+* **오버로딩 선택 문제**: `fail(String, Object, int)`와 `fail(String, String, int)`가 함께 있어, `null`을 넘기면 컴파일러가 더 구체적인 `String` 버전을 골랐다. data 자리에 넣으려던 `null`이 resultCode 자리에 들어갔다.
+* **필터와 DispatcherServlet의 차이**: URL 규칙의 403은 필터 단계의 `CustomAccessDeniedHandler`가 처리하지만, `@PreAuthorize` 거부는 DispatcherServlet 안에서 발생한다. 이 예외를 처리하는 핸들러가 없어 `Exception` 핸들러(500)에 잡혔다.
+
+### 🛠️ 해결 방법 (Solution)
+
+1. **`ErrorCode` Enum(87개)** 으로 상태·resultCode(상수 이름)·기본 문구를 한곳에 정의했다.
+2. `InoutException`은 `ErrorCode`로만 만들 수 있게 바꿨다. 호출하는 쪽은 상황에 맞는 문구만 바꿀 수 있고, 상태와 resultCode는 바꿀 수 없다.
+3. `ResponseResult`의 실패 응답은 `build` 한 메서드에서 `code.getStatus()`를 상태 줄과 `header.status` 양쪽에 넣는다.
+4. `GlobalExceptionHandler`에 `AccessDeniedException` 핸들러를 추가해 `@PreAuthorize` 거부를 403 `AUTH_403`으로 맞췄다.
+5. 사용처가 없어진 클래스를 삭제했다: 하위 예외 3개, `ErrorResponse`, 그리고 마지막으로 **`ServiceResult`**. 실패가 모두 예외로 옮겨진 뒤 `ServiceResult`는 성공 문구만 전달하고 있었고(컨트롤러 5곳 중 4곳은 반환값을 쓰지 않음), 서비스 성공 반환값을 `void`로 바꿨다.
+
+```java
+// Before
+throw new InoutException("이미 가입된 이메일 입니다.");          // 상태는 항상 400
+public ServiceResult addUser(UserInput userInput) { ... return ServiceResult.success(); }
+
+// After
+throw new InoutException(ErrorCode.DUPLICATE_EMAIL);           // 409, 기본 문구는 ErrorCode가 제공
+public void addUser(UserInput userInput) { ... }                // 예외 없이 끝나면 성공
+```
+
+### 💡 성과 및 깨달음 (Insight)
+
+* 상태 줄·`header.status`·resultCode가 항상 같은 `ErrorCode`에서 나오고, `ErrorCodeTest`가 87개 상수의 상태 범위·문구 규칙·내부 정보 노출을 한 번에 검사한다.
+* 프론트엔드는 문구가 아니라 resultCode로 화면 동작을 나눈다(잔액 부족 → 충전 버튼, 낡은 데이터 → 다시 불러오기).
+* **실패는 반환값이 아니라 예외로 알려야 `@Transactional`이 롤백한다.** `return fail()`은 메서드가 정상 종료된 것이라 앞에서 저장한 데이터가 커밋된다.
+* **항상 통과하는 테스트는 아무것도 지키지 않는다.** 서비스가 성공만 반환하는데 `isSuccess()`를 검사하던 테스트 4곳을 정리했다.
+* 문구 작성 규칙: [`study/ERROR_MESSAGE_GUIDE.md`](study/ERROR_MESSAGE_GUIDE.md), 전체 변경 내역: [PR #1](https://github.com/jieunstudy0/INOUT/pull/1)
+
+---
+
 # 부록 A. 사고 방지 체크리스트 (개인 원칙)
 
 1. **재고·잔액 등 자원 차감 전에는 락 획득 후 반드시 `refresh`로 영속성 컨텍스트를 최신화한다.**
@@ -347,6 +400,8 @@ public User toEntity() {
 4. **CUD 연산 전에는 사전 검증(Fail-Fast)을 거쳐 무효 데이터가 DB에 저장되지 않도록 방어한다.**
 5. **프로필 전용 설정 파일(`application-dev.properties`)에는 하드코딩 리터럴 대신 Placeholder(`${VAR:DEFAULT}`) 구조를 사용한다.**
 6. **의존성 충돌 발생 시 소스 코드 확인에 앞서 `dependencyInsight`로 실제 런타임 클래스패스를 점검한다.**
+7. **상태 코드·resultCode처럼 클라이언트와 약속한 값은 한곳(`ErrorCode`)에만 정의한다.** 호출하는 곳에서 숫자나 문자열을 직접 적지 않는다.
+8. **취소해야 하는 실패는 반환값이 아니라 예외로 알린다.** 설계를 바꾸면 쓰이지 않게 된 클래스·메서드도 함께 정리한다.
 
 ```
 
