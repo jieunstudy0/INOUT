@@ -390,13 +390,46 @@ public void addUser(UserInput userInput) { ... }                // 예외 없이
 * **항상 통과하는 테스트는 아무것도 지키지 않는다.** 서비스가 성공만 반환하는데 `isSuccess()`를 검사하던 테스트 4곳을 정리했다.
 * 문구 작성 규칙: [`study/ERROR_MESSAGE_GUIDE.md`](study/ERROR_MESSAGE_GUIDE.md), 전체 변경 내역: [PR #1](https://github.com/jieunstudy0/INOUT/pull/1)
 
+
+---
+
+## 5.2 알림을 저장하는 리스너 때문에 동시 발주 승인이 모두 멈추던 문제 — 커밋 이후 작업은 다른 스레드로
+
+### 📌 문제 현상 (Issue)
+
+화면 안 알림 기능을 붙인 뒤 `StockConcurrencyTest`(같은 상품 100건 동시 승인)가 실패했다.
+`HikariPool - Connection is not available, request timed out after 30000ms (total=10, active=10, idle=0, waiting=73)`.
+기능 자체(알림 저장)는 단독 테스트에서 잘 동작했다.
+
+### 🔍 원인 분석 (Cause)
+
+* 알림은 `@TransactionalEventListener(AFTER_COMMIT)` + `@Transactional(REQUIRES_NEW)`로 저장했다.
+* **AFTER_COMMIT 시점에도 요청 스레드는 원래 DB 연결을 아직 쥐고 있다.** 연결 반납은 그 뒤 정리 단계(afterCompletion)에서 일어난다.
+* 같은 스레드에서 REQUIRES_NEW로 새 트랜잭션을 열면 **연결을 하나 더** 잡는다.
+* 동시에 10개 넘는 요청이 들어오면, 풀의 연결 10개를 모두 "첫 번째 연결"이 차지한 채 각자 "두 번째 연결"을 기다려 아무도 진행하지 못한다.
+* 메일 리스너는 처음부터 `@Async`라 문제가 없었다. 알림 리스너만 같은 스레드에서 돌았다.
+
+### 🛠️ 해결 방법 (Solution)
+
+알림 리스너에도 `@Async("applicationTaskExecutor")`를 붙여 별도 스레드에서 저장한다.
+요청 스레드는 커밋 후 곧바로 연결을 반납하고, 알림 저장은 풀에 여유가 생겼을 때 이뤄진다.
+알림 테스트는 비동기 저장을 잠깐 기다렸다 확인하도록 바꿨다 (`NotificationAwait`).
+
+* **코드**: `notification/service/NotificationEventListener`
+* **검증**: `StockConcurrencyTest`(100건 동시 승인)가 다시 통과. `@Async`를 빼면 같은 오류로 실패한다.
+
+### 💡 성과 및 깨달음 (Insight)
+
+* **"커밋 이후"는 "연결 반납 이후"가 아니다.** AFTER_COMMIT에서 DB를 쓰면 연결을 두 개 잡는다는 점을 기억한다.
+* 단독 테스트로는 보이지 않고 **동시성 테스트에서만 드러나는 문제**였다. 동시성 테스트를 지워 두지 않은 덕분에 배포 전에 잡았다.
+
 ---
 
 # 부록 A. 사고 방지 체크리스트 (개인 원칙)
 
 1. **재고·잔액 등 자원 차감 전에는 락 획득 후 반드시 `refresh`로 영속성 컨텍스트를 최신화한다.**
 2. **검증(Check)과 실행(Execute)은 2-Pass로 격리한다.** 실패 시 보상 트랜잭션이 복구할 대상을 명확히 분리해야 한다.
-3. **외부 I/O(메일, 알림, 외부 API)는 비즈니스 트랜잭션 내에 두지 않는다.** `AFTER_COMMIT` 이벤트 + `@Async` 처리를 기본으로 적용한다.
+3. **외부 I/O(메일, 알림, 외부 API)는 비즈니스 트랜잭션 내에 두지 않는다.** `AFTER_COMMIT` 이벤트 + `@Async` 처리를 기본으로 적용한다. (AFTER_COMMIT에서 같은 스레드로 DB를 쓰면 연결을 두 개 잡는다 — 5.2)
 4. **CUD 연산 전에는 사전 검증(Fail-Fast)을 거쳐 무효 데이터가 DB에 저장되지 않도록 방어한다.**
 5. **프로필 전용 설정 파일(`application-dev.properties`)에는 하드코딩 리터럴 대신 Placeholder(`${VAR:DEFAULT}`) 구조를 사용한다.**
 6. **의존성 충돌 발생 시 소스 코드 확인에 앞서 `dependencyInsight`로 실제 런타임 클래스패스를 점검한다.**
