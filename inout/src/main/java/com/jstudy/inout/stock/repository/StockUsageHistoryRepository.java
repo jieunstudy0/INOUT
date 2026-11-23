@@ -32,6 +32,11 @@ public interface StockUsageHistoryRepository extends JpaRepository<StockUsageHis
            "WHERE s.processDate >= :startDate " +
            "GROUP BY i.itemId")
     List<Object[]> sumRecentSalesByItem(@Param("startDate") LocalDateTime startDate);
+
+    /** 기준 시각 이후 사용(출고) 기록이 있는 삭제되지 않은 상품 ID. 실사표 대상 선정에 쓴다. */
+    @Query("SELECT DISTINCT s.item.itemId FROM StockUsageHistory s " +
+           "WHERE s.processDate >= :since AND s.item.deleted = false")
+    List<Long> findItemIdsUsedSince(@Param("since") LocalDateTime since);
     
     
 int countByUserIdAndProcessDateAfter(Long userId, LocalDateTime processDate);

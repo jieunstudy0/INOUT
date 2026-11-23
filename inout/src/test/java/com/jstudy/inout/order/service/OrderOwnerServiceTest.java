@@ -1,5 +1,6 @@
 package com.jstudy.inout.order.service;
 
+import com.jstudy.inout.notification.service.Notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +36,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class OrderOwnerServiceTest {
+
+    @Mock
+    private Notifier notifier;
 
     @InjectMocks
     private OrderOwnerService orderOwnerService;

@@ -38,31 +38,6 @@ public class StockEmpService {
     private final UserRepository userRepository;
     private final StockReceivingHistoryRepository receivingHistoryRepository;
 
-    @Transactional
-    public Long useStock(Long itemId, int quantity, Long userId, String memo) {
-
-        Item item = itemRepository.findByIdWithLock(itemId)
-                .filter(i -> !i.getDeleted())
-                .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND, "사용 가능한 상품이 없습니다."));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
-
-        item.removeStock(quantity);
-
-        StockUsageHistory history = StockUsageHistory.builder()
-                .item(item)
-                .user(user)
-                .usageQuantity(quantity)
-                .resultStock(item.getCurrentStock()) 
-                .memo(memo)
-                .build();
-
-        usageHistoryRepository.save(history);
-        return item.getItemId();
-    }
-    
-    
     @Transactional(readOnly = true)
     public Page<ItemResponse> getEmployeeStockList(String name, Pageable pageable) {
         Page<Item> stockPage;

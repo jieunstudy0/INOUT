@@ -10,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.jstudy.inout.common.dto.ResponseError;
@@ -63,6 +64,12 @@ public class GlobalExceptionHandler {
                 .toList());
         List<ResponseError> errors = ResponseError.of(exception.getBindingResult().getAllErrors());
         return ResponseResult.failWithData(ErrorCode.VALIDATION_ERROR, errors);
+    }
+
+    /** spring.servlet.multipart.max-file-size(10MB)를 넘는 업로드. 처리하지 않으면 500으로 나간다. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<?> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+        return ResponseResult.fail(ErrorCode.FILE_TOO_LARGE);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

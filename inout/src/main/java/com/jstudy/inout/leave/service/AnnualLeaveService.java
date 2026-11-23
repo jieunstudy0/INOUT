@@ -1,5 +1,8 @@
 package com.jstudy.inout.leave.service;
 
+import com.jstudy.inout.notification.entity.NotificationType;
+import com.jstudy.inout.notification.service.NotificationEvent.Target;
+import com.jstudy.inout.notification.service.Notifier;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.exception.ErrorCode;
@@ -28,6 +31,7 @@ public class AnnualLeaveService {
 
     private final AnnualLeaveRepository annualLeaveRepository;
     private final UserRepository userRepository;
+    private final Notifier notifier;
 
     @Transactional
     public Long submitLeave(Long userId, AnnualLeaveDto.CreateRequest request) {
@@ -52,7 +56,13 @@ public class AnnualLeaveService {
                 .reason(request.getReason())
                 .build();
 
-        return annualLeaveRepository.save(leave).getId();
+        Long leaveId = annualLeaveRepository.save(leave).getId();
+        if (user.getStore() != null) {
+            notifier.send(NotificationType.LEAVE_REQUESTED, user.getName() + " 님의 연차 신청이 도착했습니다",
+                    request.getStartDate() + " ~ " + request.getEndDate(), userId,
+                    Target.storeOwners(user.getStore().getId(), "/owner/leaves"));
+        }
+        return leaveId;
     }
 
     public Page<AnnualLeaveDto.ListItem> getMyLeaveList(Long userId, Pageable pageable) {
@@ -131,6 +141,10 @@ public class AnnualLeaveService {
             throw new InoutException(ErrorCode.INVALID_LEAVE_STATUS);
         }
 
+        String result = newStatus == LeaveStatus.APPROVED ? "승인" : newStatus == LeaveStatus.REJECTED ? "반려" : "보류";
+        notifier.send(NotificationType.LEAVE_DECIDED, "연차 신청이 " + result + "되었습니다",
+                leave.getStartDate() + " ~ " + leave.getEndDate(), processorId,
+                Target.user(leave.getUser().getId(), "/emp/leaves"));
         return AnnualLeaveDto.toDetail(leave);
     }
 

@@ -62,6 +62,10 @@ public class OrderDetail {
     @Column(length = 500)
     private String aiReason;
 
+    /** 매장이 수령 확인한 수량. 수령 전이면 null. 발주 수량보다 적으면 그만큼 덜 받은 것이다. */
+    @Column(name = "received_quantity")
+    private Integer receivedQuantity;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -69,6 +73,10 @@ public class OrderDetail {
 
     public void updateStatus(OrderDetailStatus newStatus) {
         this.status = newStatus;
+    }
+
+    public void recordReceived(int quantity) {
+        this.receivedQuantity = quantity;
     }
 
     public void updateQuantity(int quantity) {

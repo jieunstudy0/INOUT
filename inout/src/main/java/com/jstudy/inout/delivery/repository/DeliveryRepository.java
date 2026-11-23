@@ -37,6 +37,24 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     
     List<Delivery> findByStatusAndShippedAtBefore(DeliveryStatus status, LocalDateTime shippedAt);
 
+    /**
+     * 매장이 아직 수령 확인하지 않은 배송: 배송 중이거나, 기준 시각 이후 배송 완료된 것.
+     * (기능 도입 전 오래전에 완료된 배송까지 수령 대상으로 뜨지 않게 기간을 둔다.)
+     */
+    @Query("""
+            SELECT d FROM Delivery d
+            JOIN FETCH d.orderRequest o
+            JOIN FETCH o.requestUser u
+            WHERE u.store.id = :storeId
+              AND d.receivedAt IS NULL
+              AND (d.status = com.jstudy.inout.delivery.entity.DeliveryStatus.SHIPPING
+                   OR (d.status = com.jstudy.inout.delivery.entity.DeliveryStatus.COMPLETED
+                       AND d.deliveredAt >= :completedSince))
+            ORDER BY d.id DESC
+            """)
+    List<Delivery> findPendingReceiptsByStore(@Param("storeId") Long storeId,
+                                              @Param("completedSince") LocalDateTime completedSince);
+
     long countByStatus(DeliveryStatus status);
 
     @Query(value = "SELECT d FROM Delivery d JOIN FETCH d.orderRequest WHERE d.status = :status",

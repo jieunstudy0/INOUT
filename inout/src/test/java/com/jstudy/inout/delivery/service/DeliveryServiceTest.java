@@ -1,5 +1,6 @@
 package com.jstudy.inout.delivery.service;
 
+import com.jstudy.inout.notification.service.Notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -30,7 +31,7 @@ import org.springframework.test.context.ContextConfiguration;
 @DataJpaTest
 @ActiveProfiles("jpa-slice")
 @ContextConfiguration(classes = OrderJpaTestApplication.class)
-@Import({JpaAuditConfig.class, DeliveryService.class})
+@Import({JpaAuditConfig.class, DeliveryService.class, Notifier.class})
 class DeliveryServiceTest {
 
     @Autowired

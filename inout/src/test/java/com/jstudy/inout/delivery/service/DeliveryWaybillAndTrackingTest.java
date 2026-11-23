@@ -1,5 +1,6 @@
 package com.jstudy.inout.delivery.service;
 
+import com.jstudy.inout.notification.service.Notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -24,6 +25,9 @@ class DeliveryWaybillAndTrackingTest {
 
     @Mock
     private DeliveryRepository deliveryRepository;
+
+    @Mock
+    private Notifier notifier;
 
     @InjectMocks
     private DeliveryService deliveryService;
