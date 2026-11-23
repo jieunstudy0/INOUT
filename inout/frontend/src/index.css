@@ -1,14 +1,100 @@
 @import "tailwindcss";
 
+/* ───────────────────────────────────────────────────────────────
+ * INOUT 디자인 토큰 — 톤앤매너: 짙은 네이비 글자 + 흰 바탕 + 연회색 패널,
+ * 얇은 회색 테두리, 10px 모서리, 그림자 거의 없음, 가벼운 글자 굵기.
+ * (참고한 화면의 색·간격·모서리 느낌만 따른다. 브랜드 로고·전용 서체는 쓰지 않는다)
+ *
+ * 화면 코드는 그대로 두고 Tailwind 기본 색 이름의 값을 바꿔 전체 톤을 한 번에 맞춘다.
+ *   indigo·blue·violet·sky → 네이비/하늘색 (주요 버튼·강조)
+ *   emerald·green·teal      → 청록 (완료·증가)
+ *   amber·orange·yellow     → 주황 (주의·부족)
+ *   slate·gray              → 네이비 기운의 회색 (글자·테두리·배경)
+ * ─────────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Noto Sans KR', 'Malgun Gothic', system-ui, sans-serif;
+
+  /* 네이비 — 글자·주요 버튼 기준색 #051766 */
+  --color-indigo-50: #eaf4fe;  --color-indigo-100: #d5e8fc; --color-indigo-200: #aecdf5;
+  --color-indigo-300: #7ea6e3; --color-indigo-400: #4a73c4; --color-indigo-500: #2649a6;
+  --color-indigo-600: #051766; --color-indigo-700: #041257; --color-indigo-800: #030e45;
+  --color-indigo-900: #020a33; --color-indigo-950: #01061f;
+
+  --color-blue-50: #eaf4fe;  --color-blue-100: #d5e8fc; --color-blue-200: #aecdf5;
+  --color-blue-300: #7ea6e3; --color-blue-400: #4a73c4; --color-blue-500: #2649a6;
+  --color-blue-600: #051766; --color-blue-700: #041257; --color-blue-800: #030e45;
+  --color-blue-900: #020a33;
+
+  --color-violet-50: #eaf4fe;  --color-violet-100: #d5e8fc; --color-violet-200: #aecdf5;
+  --color-violet-300: #7ea6e3; --color-violet-400: #4a73c4; --color-violet-500: #2649a6;
+  --color-violet-600: #051766; --color-violet-700: #041257; --color-violet-800: #030e45;
+  --color-violet-900: #020a33;
+
+  --color-sky-50: #eaf4fe;  --color-sky-100: #d5e8fc; --color-sky-200: #aecdf5;
+  --color-sky-300: #7ea6e3; --color-sky-400: #4a73c4; --color-sky-500: #2649a6;
+  --color-sky-600: #1c3c94; --color-sky-700: #051766; --color-sky-800: #041257;
+  --color-sky-900: #030e45;
+
+  /* 청록 — 완료·증가 (#176F66 / 바탕 #DEFBF8) */
+  --color-emerald-50: #eefcfa;  --color-emerald-100: #defbf8; --color-emerald-200: #b5f0e8;
+  --color-emerald-300: #7fddd0; --color-emerald-400: #3fbdad; --color-emerald-500: #1f9384;
+  --color-emerald-600: #176f66; --color-emerald-700: #125a53; --color-emerald-800: #0e4641;
+  --color-emerald-900: #0a3430;
+  --color-green-50: #eefcfa;  --color-green-100: #defbf8; --color-green-200: #b5f0e8;
+  --color-green-500: #1f9384; --color-green-600: #176f66; --color-green-700: #125a53;
+  --color-teal-50: #eefcfa;  --color-teal-100: #defbf8; --color-teal-200: #b5f0e8;
+  --color-teal-300: #7fddd0; --color-teal-400: #3fbdad; --color-teal-500: #1f9384;
+  --color-teal-600: #176f66; --color-teal-700: #125a53; --color-teal-800: #0e4641;
+
+  /* 주황 — 주의·부족 (#C03F04 / 바탕 #FBEBDE) */
+  --color-amber-50: #fdf5ee;  --color-amber-100: #fbebde; --color-amber-200: #f6d1b5;
+  --color-amber-300: #edac80; --color-amber-400: #e07c3e; --color-amber-500: #d15b17;
+  --color-amber-600: #c03f04; --color-amber-700: #9c3303; --color-amber-800: #782702;
+  --color-amber-900: #561c02;
+  --color-orange-50: #fdf5ee;  --color-orange-100: #fbebde; --color-orange-200: #f6d1b5;
+  --color-orange-500: #d15b17; --color-orange-600: #c03f04; --color-orange-700: #9c3303;
+  --color-yellow-50: #fdf5ee;  --color-yellow-100: #fbebde; --color-yellow-500: #d15b17;
+  --color-yellow-600: #c03f04; --color-yellow-700: #9c3303;
+
+  /* 회색 — 네이비 기운. 50 = 정보 패널, 200 = 테두리, 800·900 = 글자 */
+  --color-slate-50: #f7f7f7;  --color-slate-100: #f0f1f4; --color-slate-200: #d9dbe1;
+  --color-slate-300: #c4c8d2; --color-slate-400: #8e95ab; --color-slate-500: #5e6784;
+  --color-slate-600: #3d4770; --color-slate-700: #273260; --color-slate-800: #14215f;
+  --color-slate-900: #051766; --color-slate-950: #030e45;
+  --color-gray-50: #f7f7f7;  --color-gray-100: #f0f1f4; --color-gray-200: #d9dbe1;
+  --color-gray-300: #c4c8d2; --color-gray-400: #8e95ab; --color-gray-500: #5e6784;
+  --color-gray-600: #3d4770; --color-gray-700: #273260; --color-gray-800: #14215f;
+  --color-gray-900: #051766;
+
+  /* 모서리 10px, 그림자 최소화, 글자 굵기 한 단계 가볍게 */
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.625rem;
+  --radius-3xl: 0.75rem;
+  --shadow-sm: none;
+  --shadow-md: 0 2px 8px rgb(5 23 102 / 0.06);
+  --shadow-lg: 0 4px 16px rgb(5 23 102 / 0.08);
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 700;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
+  /* 표 안의 숫자·버튼·상태 표시는 줄바꿈하지 않는다 (한글 서체가 넓어 "12,000 / 원"처럼 끊기는 것 방지) */
+  th,
+  td.text-right,
+  td button,
+  td [class*="rounded-full"] {
+    white-space: nowrap;
+  }
+
   body {
     margin: 0;
-    font-family: 'Inter', 'Pretendard', system-ui, sans-serif;
-    background-color: rgb(248 250 252);
+    font-family: var(--font-sans);
+    color: #051766;
+    background-color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -37,9 +123,47 @@
 .toast-leave { animation: toast-out 0.3s ease forwards; }
 
 .nav-active {
-  background-color: rgb(79 70 229);
-  color: white;
+  background-color: #eaf4fe;
+  color: #051766;
 }
 .nav-active svg {
-  color: white !important;
+  color: #051766 !important;
+}
+
+/* ───────────────────────────────────────────────────────────────
+ * 재고 실사 영수증 (80mm 영수증 프린터)
+ * 화면에서는 미리보기, 인쇄 시에는 .print-area 안의 영수증만 출력한다.
+ * ─────────────────────────────────────────────────────────────── */
+.stock-count-receipt {
+  width: 72mm; /* 80mm 용지의 실제 인쇄 폭 */
+  padding: 3mm 0;
+  background: #fff;
+  color: #000;
+  font-family: 'Pretendard', 'Malgun Gothic', system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.stock-count-receipt .scr-title { text-align: center; font-size: 16px; font-weight: 800; }
+.stock-count-receipt .scr-code { text-align: center; font-size: 15px; font-weight: 800; letter-spacing: 1px; margin-top: 1mm; font-family: ui-monospace, Consolas, monospace; }
+.stock-count-receipt .scr-meta { text-align: center; font-size: 10px; margin: 1mm 0 2mm; }
+.stock-count-receipt .scr-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.stock-count-receipt .scr-table th { font-size: 10px; font-weight: 700; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 1mm 0; }
+.stock-count-receipt .scr-table td { border-bottom: 1px dotted #000; padding: 1.5mm 0; vertical-align: middle; }
+.stock-count-receipt .scr-no { width: 7mm; text-align: left; font-weight: 800; font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+.stock-count-receipt .scr-name { text-align: left; padding-right: 1mm; word-break: break-all; }
+.stock-count-receipt .scr-item { font-weight: 700; }
+.stock-count-receipt .scr-sub { font-size: 9px; }
+.stock-count-receipt .scr-loc { width: 11mm; text-align: center; font-size: 10px; }
+.stock-count-receipt .scr-sys { width: 10mm; text-align: center; font-weight: 700; }
+.stock-count-receipt .scr-real { width: 16mm; text-align: center; }
+.stock-count-receipt .scr-box { width: 14mm; height: 8mm; border: 2px solid #000; margin: 0 auto; }
+.stock-count-receipt .scr-guide { margin-top: 2mm; font-size: 9px; }
+.stock-count-receipt .scr-sign { display: flex; justify-content: space-between; margin-top: 4mm; font-size: 10px; }
+
+@media print {
+  @page { size: 80mm auto; margin: 0 4mm; }
+  body * { visibility: hidden !important; }
+  .print-area, .print-area * { visibility: visible !important; }
+  .print-area { position: absolute; left: 0; top: 0; }
+  .print-area .stock-count-receipt { box-shadow: none; }
 }
