@@ -6,7 +6,7 @@
 
 ## 학습 순서
 
-- [ ] **준비** — 9. 공통 응답 · 예외 계층 · BaseTimeEntity · CustomUserDetails(@AuthenticationPrincipal 원리)
+- [ ] **준비** — 9. 응답 포맷 표준화 · 예외 처리 구조 · 사라지거나 바뀐 코드 · BaseTimeEntity · CustomUserDetails(@AuthenticationPrincipal 원리)
 - [ ] **1주차** — 2. order: 장바구니 → 도메인 모델·상태 전이 → 직원 기안 → 점주 결재 → 점주 직접 발주
 - [ ] **2주차** — 2. order 본사 승인 ①② → 3. stock → 4. payment → 5. delivery
 - [ ] **3주차** — 6. common.auth → jwt → oauth2 → 7. common.config
@@ -25,7 +25,7 @@
 | REQUIRES_NEW 분리 | ★OrderApprovalTxService · OrderAdmService.bulkApproveOrders · AiCsPersistenceService · AiAutoOrderPersistenceService |
 | 이벤트 후처리 | ★OrderStateChangedEvent · ★OrderNotificationEventListener · AsyncConfig · MailComponent |
 | Redis 캐시 장애 대응 | ★CacheConfig · ★ResilientCacheManager · ★LoggingCacheErrorHandler · RedisConfig · EmbeddedRedisConfig |
-| 공통 응답·예외 | ★ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError · ★InoutException · ★GlobalExceptionHandler |
+| 공통 응답·예외 | ★ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError · ★ErrorCode · ★InoutException · ★GlobalExceptionHandler · CustomAuthenticationEntryPoint · CustomAccessDeniedHandler (글은 9. 공통 기반의 3편으로 나눠 씀) |
 
 ---
 
@@ -35,25 +35,26 @@
 |----|--------|
 | 도메인 모델·상태 전이 | ★OrderRequest · ★OrderDetail · ★OrderStatus · ★OrderDetailStatus · OrderRequestRepository · OrderDetailRepository |
 | 장바구니 | ★CartEmpController · ★CartEmpService · Cart · CartDetail · CartRepository · CartDetailRepository · CartAddRequest · CartQuantityUpdateRequest · CartResponse |
-| 직원 기안 | ★OrderEmpController · ★OrderEmpService · OrderCreateRequest · OrderPreResponse · OrderItemDto · OrderResponse · OrderListResponse · OrderDetailResponse |
+| 직원 기안 | ★OrderEmpController · ★OrderEmpService · OrderCreateRequest · OrderPreResponse · OrderItemDto · OrderListResponse · OrderDetailResponse |
 | 점주 결재 | ★OrderOwnerController · ★OrderOwnerService(modifyAndApprove, rejectDraft) · OwnerOrderModifyRequest · OrderRejectRequest · OrderAdminResponse · OrderAdminDetailResponse |
 | 점주 직접 발주 | OrderOwnerService.createOwnerOrder · OwnerOrderCreateRequest |
 | 본사 승인 ① 단건·항목별 | ★OrderAdmController · ★OrderAdmService · OrderProcessRequest |
 | 본사 승인 ② 일괄 | ★OrderApprovalTxService · BulkOrderRequest · BulkOrderResponse |
 | 이벤트 알림 | OrderStateChangedEvent · OrderNotificationEventListener · (정리 대상) OrderApprovedEvent · OrderDeliveryEventListener |
 | 운영 기능 | OrderAdmController(/excel) · common.config.OrderStatusRenameRunner |
-| (미사용 확인 필요) | AiOrderApprovalRequest · AiOrderApprovalResponse |
+| (미사용 — 사용처 0곳, 2026-11-23 확인) | AiOrderApprovalRequest · AiOrderApprovalResponse · OrderResponse |
 
 ## 3. stock
 
 | 글 | 클래스 |
 |----|--------|
-| 도메인 모델 | ★Item · ItemCategory · ★BaseStockHistory(@MappedSuperclass) · StockReceivingHistory · StockUsageHistory · StockType · ItemRepository · ItemCategoryRepository · StockReceivingHistoryRepository · StockUsageHistoryRepository |
-| 상품 관리 | ★StockAdmController · ★StockAdmService(register/update/delete) · StockRegister · StockUpdate · ImageController · ImageService · common.util.FileStorageUtil |
+| 도메인 모델 | ★Item · ItemCategory · ★BaseStockHistory(@MappedSuperclass) · StockReceivingHistory · StockUsageHistory · ItemRepository · ItemCategoryRepository · StockReceivingHistoryRepository · StockUsageHistoryRepository |
+| 상품 관리 | ★StockAdmController · ★StockAdmService(registerStock/updateStock/deleteStock) · StockRegister · StockUpdate · ImageController · ImageService · common.util.FileStorageUtil |
 | 입고 | StockAdmService.receiveStock · StockReceiveRequest |
 | 재고 사용 | ★StockEmpController · ★StockEmpService.useStock · StockUseRequest · NotEnoughStockException |
-| 재고 실사 | StockAdmService.adjustStock · StockAdjustRequest · StockAdmRequest |
-| 조회·이력·알림 | StockAdminResponse · StockDetailResponse · StockDashboardResponse · StockHistoryResponse · ItemResponse · StockUserDetailResponse |
+| 재고 실사 | StockAdmService.adjustStock · StockAdjustRequest(컨트롤러가 받음) → StockAdmRequest(서비스로 넘김) |
+| 조회·이력·알림 | StockAdminResponse · StockDetailResponse · StockHistoryResponse · ItemResponse · StockUserDetailResponse |
+| (미사용 — 사용처 0곳, 2026-11-23 확인) | StockType · StockDashboardResponse |
 
 ## 4. payment
 
@@ -72,7 +73,7 @@
 |----|--------|
 | 도메인 모델 | ★Delivery · DeliveryStatus · DeliveryRepository |
 | 배송 생성 | ★DeliveryService.createDeliveryIfAbsentForCompletedOrder · markAiInboundWaiting |
-| 본사 배송 처리 | ★DeliveryAdmController · DeliveryService(generateWaybill, startShipping, complete) · DeliveryDto |
+| 본사 배송 처리 | ★DeliveryAdmController · DeliveryService(generateWaybill, startShipping, completeDelivery) · DeliveryDto |
 | 조회·추적 | DeliveryEmpController · DeliveryOwnerController · DeliveryTrackingController · DeliveryTrackingService · DeliveryTrackingDto |
 | 자동 완료 | ★DeliveryScheduler · common.config.DeliveryMockWaybillBackfillRunner |
 
@@ -82,10 +83,10 @@
 
 | 글 | 클래스 |
 |----|--------|
-| 도메인 모델 | ★User · Role · UserRole · UserRoleId · Store · UserStatus · 각 Repository |
+| 도메인 모델 | ★User · Role · UserRole · UserRoleId · Store · UserStatus · UserRepository · RoleRepository · UserRoleRepository · StoreRepository |
 | 회원가입 | UserController(/register, /public/check-email) · AuthService · AuthServiceImpl · UserInput |
 | 로그인·재발급·로그아웃 | ★AuthLoginController · RefreshToken · RefreshTokenRepository · UserLogin |
-| 아이디·비번 찾기 | UserController(/find, /public/password/**, /resetPassword) · UserInputFind · UserPasswordResetInput · PasswordResetCompleteRequest · UserInputPassword |
+| 아이디·비번 찾기 | UserController(/find, /public/password/**, /resetPassword) · UserInputFind · UserPasswordResetInput · UserInputPassword · (미사용) PasswordResetCompleteRequest |
 | 프로필 | UserController(/profile/**) · UserProfileResponse · UserProfileUpdateRequest · UserUpdate |
 | 점주 직원 관리 | OwnerUserController · OwnerEmployeeController · OwnerUserDto |
 | 본사 회원 관리 | AdminUserController · AdminEmployeeController · AdminUserDto · UserResponse |
@@ -109,7 +110,7 @@
 
 | 패키지 | 글 | 클래스 |
 |--------|----|--------|
-| dashboard | 역할별 집계 | DashboardController · DashboardEmpController · DashboardOwnerController · DashboardService · DashboardEmpService · DashboardOwnerService · 4개 Response DTO |
+| dashboard | 역할별 집계 | DashboardController · DashboardEmpController · DashboardOwnerController · DashboardService · DashboardEmpService · DashboardOwnerService · DashboardSummaryResponse · DashboardStatisticsResponse · DashboardOwnerResponse · DashboardEmpResponse |
 | dashboard | 캐싱 | ★DashboardAggregateService |
 | inquiry | 작성·상세·삭제 | ★InquiryController · ★InquiryService · Inquiry · InquiryRepository · InquiryCreateRequest · InquiryDetailResponse |
 | inquiry | 대상별 목록 | InquiryTargetType · InquiryListResponse |
@@ -120,15 +121,17 @@
 | ai | 자동 발주 | ★AiAutoOrderService · AiAutoOrderScheduler · AiAutoOrderPersistenceService |
 | ai | CS 분류 | ★AiCsService · AiCsScheduler · AiCsPersistenceService |
 | ai | 스마트 추천 | StockEmpService.getAiStockSuggestions · AiStockSuggestionResponse |
-| common.mail | 템플릿·발송 | MailComponent · MailTemplate · MailTemplateRepository · MailTemplateCacheService |
+| common.mail | 템플릿·발송 | MailComponent · MailTemplate(엔티티인데 dto 패키지·@Data — 정리 대상) · MailTemplateRepository · MailTemplateCacheService |
 
 ## 9. 공통 기반
 
 | 글 | 클래스 |
 |----|--------|
-| 공통 응답 | ResponseResult · ResponseMessage · ResponseMessageHeader · ResponseError |
-| 예외 계층 | InoutException · UserNotFoundException · (stock) NotEnoughStockException |
+| 응답 포맷 표준화 (현재형) | ★ResponseMessageHeader · ★ResponseMessage · ★ResponseResult · ResponseError · ★ErrorCode |
+| 예외 처리 구조 (현재형) | ★InoutException · UserNotFoundException · (stock) NotEnoughStockException · ★GlobalExceptionHandler(핸들러 8개) · CustomAuthenticationEntryPoint · CustomAccessDeniedHandler · (test) ErrorCodeTest · SecurityPathAclSmokeTest · GlobalExceptionHandlerValidationLogTest |
+| 사라지거나 바뀐 코드 (과거형) | (삭제 `5508a9c`) AuthFailException · ResourceNotFoundException · UnauthorizedException · ErrorResponse — 삭제 직전 사용처 0곳 · (삭제 `e5489f4`) ServiceResult · (변경 `b900f8a`) InoutException 옛 생성자(int errorCode, 빈 resultCode) · ResponseResult 옛 fail 오버로드(null → resultCode null) |
 | 기반 엔티티 | BaseTimeEntity · JpaAuditConfig |
+| 애플리케이션 시작점 | InoutApplication |
 | 대용량 데이터 | MassDataController · MassDataGeneratorService · MassDataGenerationResponse · MassDataStepResult |
 
 ---
@@ -136,22 +139,37 @@
 ## 학습 중 확인할 개선 포인트 (회고 글 재료)
 
 - [ ] `OrderApprovedEvent`를 발행하는 코드가 없음 → `OrderDeliveryEventListener`는 실행되지 않는 리스너. 배송 생성은 서비스에서 직접 호출 중. 제거할지 이벤트로 통일할지 결정
-- [ ] `AiOrderApprovalRequest/Response` 사용처 없음
-- [ ] `DeliveryEmpController`, `AnnualLeaveEmpController`의 `@Operation` 한글이 `???`로 깨져 있음 (파일 인코딩 손실)
-- [ ] `CartEmpService.deleteSelectedCartItems`에 본인 소유 검증 누락 의심
+- [ ] 사용처 0곳인 클래스 정리 — `AiOrderApprovalRequest/Response` · `OrderResponse` · `StockType` · `StockDashboardResponse` · `PasswordResetCompleteRequest` (2026-11-23 운영·테스트 코드 전체 검색으로 확인)
+- [x] `DeliveryEmpController`, `AnnualLeaveEmpController`의 `@Operation` 한글이 `???`로 깨져 있던 문제 — 커밋 `eeff997`(2026-10-15)에서 복구, 2026-11-23 재확인
+- [ ] `CartEmpService.deleteSelectedCartItems`에 본인 소유 검증 누락 (확인됨) — `userId`를 받지만 쓰지 않고 `updateDeletedStatusInBatch(cartDetailIds)`가 ID만으로 삭제 처리한다. 다른 사용자의 장바구니 항목 ID를 넣으면 지워진다
 - [ ] `docs/ARCHITECTURE.md`가 레거시 상태(PAID/COMPLETED)·비활성 PaymentService 기준으로 서술됨 → 현재 흐름(REQUESTED→ORDERED→APPROVED)으로 갱신 필요
-- [x] 미사용 공통 클래스 삭제 — ErrorResponse · AuthFailException · ResourceNotFoundException · UnauthorizedException, ResponseResult.result() · ServiceResult.result() (2026-10-09)
-- [ ] `resultCode`가 문자열 리터럴로 흩어져 있음(`"ORDER_NOT_FOUND"` 등) → `ErrorCode` Enum으로 모으면 오타 방지·목록화 가능
+- [x] 미사용 공통 클래스 삭제 — ErrorResponse · AuthFailException · ResourceNotFoundException · UnauthorizedException, ResponseResult.result() · ServiceResult.result() (2026-10-09, 커밋 `5508a9c`)
+- [x] `resultCode`가 문자열 리터럴로 흩어져 있음(`"ORDER_NOT_FOUND"` 등) → 아래 D(ErrorCode Enum 도입, 커밋 `b900f8a`)로 해결. 도입 직전 같은 `ADMIN_NOT_FOUND`가 404(5곳)와 500(AiAutoOrderPersistenceService)으로 다르게 나가던 사례가 있었음 → `SYSTEM_ADMIN_MISSING(500)`으로 분리
 - [x] 비밀번호 재설정 실패를 ServiceResult.fail → InoutException(404 USER_NOT_FOUND / 400 EXPIRED_LINK)으로 통일, 컨트롤러 try/catch 제거 (2026-10-09)
 - [x] 재설정 링크 만료를 BaseTimeEntity.updatedAt → passwordResetLimit으로 판단 (2026-10-09)
-- [x] ServiceResult 삭제 — 실패를 InoutException으로 통일한 뒤 성공 문구만 전달하던 반환값을 void로 바꾸고, 성공 문구는 컨트롤러가 정하도록 정리. 항상 참이던 isSuccess() 테스트 검사 4곳 제거 (2026-11-20)
+- [x] ServiceResult 삭제 — 실패를 InoutException으로 통일한 뒤 성공 문구만 전달하던 반환값을 void로 바꾸고, 성공 문구는 컨트롤러가 정하도록 정리. 항상 참이던 isSuccess() 테스트 검사 4곳 제거 (2026-11-20, 커밋 `e5489f4`)
 - [x] UserNotFoundException이 InoutException을 상속(404, USER_NOT_FOUND), 전용 핸들러 제거 (2026-10-09)
 - [x] 인자 1개 InoutException 6곳에 status·resultCode 지정, 재고 부족 코드 STOCK_SHORTAGE로 통일 (2026-10-09)
 - [x] 예치금 금액 검증 IllegalArgumentException(500) → InoutException(400 INVALID_AMOUNT) + DTO @Valid (2026-10-09)
 - [x] ResponseError의 FieldError 강제 캐스팅 제거, DummyDataController ADMIN 권한 추가 (2026-10-09)
-- [x] @PreAuthorize(메서드 보안) 거부가 GlobalExceptionHandler의 Exception 핸들러에 잡혀 500으로 응답 → AccessDeniedException 핸들러 추가로 403 AUTH_403 통일, ACL 회귀 테스트 3개 추가 (2026-10-10)
+- [x] @PreAuthorize(메서드 보안) 거부가 GlobalExceptionHandler의 Exception 핸들러에 잡혀 500으로 응답 → AccessDeniedException 핸들러 추가로 403 AUTH_403 통일, ACL 회귀 테스트 3개 추가 (2026-10-10, 커밋 `0175049`)
 - [x] 프론트 실패 토스트 단일화: 공통 인터셉터만 토스트를 띄우고 화면 catch 34곳의 중복 토스트 제거, 검증 오류는 첫 필드 오류를 토스트로·입력칸별 표시(온보딩·직원 생성), blob 다운로드 오류 문구 파싱 (2026-10-15)
 - [x] 실패 문구 정비 (2026-10-15): A 내부 정보 노출·깨진 문구 18건+AI 공급자명 4건 수정(원인은 log로), B 조회 API 48곳에 errorContext(5xx·네트워크 시 화면 문맥), C 표준 문구·resultCode 79건 통일(발주 용어, *_NOT_FOUND, NOT_OWNER, CROSS_STORE_FORBIDDEN, 중복·이미 처리 409) — 규칙은 ERROR_MESSAGE_GUIDE.md
-- [x] D: ErrorCode Enum 도입 (2026-10-15) — InoutException 문자열 생성자 삭제, 호출부 219곳·핸들러·Security 핸들러 전환, 로그인 실패 resultCode null 해결, VALIDATION_ERROR 추가, ErrorCodeTest로 문구 규칙 검사
+- [x] D: ErrorCode Enum 도입 (2026-10-15, 커밋 `b900f8a`) — InoutException 문자열 생성자 삭제, 호출부 219곳·핸들러·Security 핸들러 전환, 로그인 실패 resultCode null 해결, VALIDATION_ERROR 추가, ErrorCodeTest로 문구 규칙 검사
 - [x] E: resultCode 기반 화면 분기 (2026-10-15) — 잔액 부족 토스트에 충전 버튼, 낡은 데이터 오류 시 화면 재조회(본사 승인 재고 부족 시 자동 반려된 발주가 목록에 남던 문제 해결), 재설정 링크 만료 시 메일 재요청 버튼
-- [x] 검증 실패 로그에 사용자 입력값(비밀번호 포함)이 평문으로 남던 문제 수정 (2026-10-21) — MethodArgumentNotValidException.getMessage()에 rejected value가 포함됨. 필드 이름·규칙만 로그에 남기고 회귀 테스트 추가
+- [x] 검증 실패 로그에 사용자 입력값(비밀번호 포함)이 평문으로 남던 문제 수정 (2026-10-21) — MethodArgumentNotValidException.getMessage()에 rejected value가 포함됨. 필드 이름·규칙만 로그에 남기고 회귀 테스트 추가 (커밋 `02f9104`, `GlobalExceptionHandlerValidationLogTest`)
+- [x] 트러블슈팅 #1(일부 품목만 차감된 채 전액 환불)을 지키는 회귀 테스트가 없던 문제 — `OrderApprovalPartialStockTest` 추가, 검사·차감을 한 반복문으로 되돌리면 실패하는 것까지 확인 (2026-11-20, 커밋 `5b62bc6`, PR #3)
+
+### 2026-11-20 ~ 11-23 코드 재학습 중 새로 발견 (미해결)
+- [ ] `OrderAdmService.bulkApproveOrders`의 `catch (NotEnoughStockException)`은 실행될 일이 없음 — `OrderApprovalTxService.processSingleOrderApproval`이 이 예외를 안에서 잡아 `false`를 돌려주기 때문
+- [ ] `OrderStatus.isCancelable()`은 REQUESTED만 취소 가능하다고 하지만 `OrderEmpService.cancelOrder`는 ORDERED·PAID도 환불 후 취소함 — 둘 중 하나로 맞추기
+- [ ] `PARTIAL`이 `@Deprecated`인데 `OrderAdmService.updateOrderStatus`가 아직 이 상태로 바꿈
+- [ ] `OrderAdmService.approveOrder`는 바깥 트랜잭션 안에서 `REQUIRES_NEW`를 불러 요청 하나가 DB 연결 2개를 씀 (동시 요청이 몰리면 커넥션 풀 고갈 가능성)
+- [ ] 여러 품목 락을 주문 상세 순서대로 잡음 → 서로 다른 순서로 락을 잡는 주문 사이 데드락 가능성. itemId 오름차순 정렬 필요 (README 알려진 한계)
+- [ ] 동시성 테스트가 H2에서 실행됨 → MySQL InnoDB와 락 동작이 달라 Testcontainers(MySQL)로 이전 필요
+- [ ] Security 핸들러(`CustomAuthenticationEntryPoint`·`CustomAccessDeniedHandler`)가 `setStatus`와 본문 생성을 두 줄로 따로 씀(한쪽만 고치면 어긋남), 스프링 관리 `ObjectMapper` 대신 `new ObjectMapper()` 사용
+- [ ] 액세스·리프레시 토큰을 프론트 `localStorage`에 저장 (`LoginPage.jsx`) → XSS 시 탈취 가능
+- [ ] Gemini API 키를 URL 쿼리에 넣어 호출 (`AiAutoOrderService` 등) → 로그에 키가 남을 수 있음. `x-goog-api-key` 헤더로 이동
+- [ ] AI 모델 설정이 나뉨 — 자동 발주·문의 답변은 `gemini.model`(현재 gemini-2.0-flash), `AiInsightService`는 gemini-2.5-flash를 코드에 직접 적음. Gemini 호출 코드도 3개 서비스에 복사돼 있음
+- [ ] `AiInsightService.generateInsightReport`가 읽기 트랜잭션 안에서 Gemini를 호출 → DB 연결을 오래 잡음
+- [ ] `common/mail/dto/MailTemplate`이 엔티티인데 `dto` 패키지에 있고 `@Data`를 씀 (CLAUDE.md의 엔티티 `@Setter` 금지 규칙 예외)
