@@ -11,6 +11,12 @@ import DashboardEmpPage from './pages/emp/EmpDashboard';
 import OrderAdmPage from './pages/OrderAdmPage';
 import StockPage from './pages/StockPage';
 import StockEmpPage from './pages/StockEmpPage';
+import StockCountEmpPage from './pages/StockCountEmpPage';
+import StockCountOwnerPage from './pages/StockCountOwnerPage';
+import StoreStockOwnerPage from './pages/StoreStockOwnerPage';
+import StoreReceiptPage from './pages/StoreReceiptPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ChangeRequestsPage from './pages/ChangeRequestsPage';
 import CartEmpPage from './pages/CartEmpPage';
 import OrderEmpPage from './pages/OrderEmpPage';
 import ToastContainer from './components/common/ToastContainer';
@@ -87,10 +93,16 @@ export default function App() {
           <Route path="/admin/deposit" element={<DepositAdmPage />} />
           <Route path="/admin/delivery" element={<DeliveryAdmPage />} />
           <Route path="/admin/leaves" element={<VacationAdmPage />} />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
+          <Route path="/admin/requests" element={<ChangeRequestsPage role="admin" />} />
 
           <Route path="/emp/dashboard" element={<DashboardEmpPage />} />
           <Route path="/emp/stocks" element={<StockEmpPage />} />
           <Route path="/emp/stock-use" element={<StockUseEmpPage />} />
+          <Route path="/emp/stock-counts" element={<StockCountEmpPage />} />
+          <Route path="/emp/receipts" element={<StoreReceiptPage role="emp" />} />
+          <Route path="/emp/notifications" element={<NotificationsPage />} />
+          <Route path="/emp/requests" element={<ChangeRequestsPage role="emp" />} />
           <Route path="/emp/cart" element={<CartEmpPage />} />
           <Route path="/emp/orders" element={<OrderEmpPage />} />
           <Route path="/emp/inquiries" element={<InquiryEmpPage />} />
@@ -119,6 +131,11 @@ export default function App() {
           <Route path="deposit" element={<OwnerDepositManagement />} />
           <Route path="orders" element={<OwnerOrderList />} />
           <Route path="leaves" element={<OwnerLeaveApproval />} />
+          <Route path="store-stocks" element={<StoreStockOwnerPage />} />
+          <Route path="stock-counts" element={<StockCountOwnerPage />} />
+          <Route path="receipts" element={<StoreReceiptPage role="owner" />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="requests" element={<ChangeRequestsPage role="owner" />} />
           <Route path="inquiries" element={<InquiryOwnerPage />} />
           <Route path="inquiries/new" element={<InquiryCreatePage />} />
           <Route path="inquiries/:inquiryId" element={<InquiryDetailOwnerPage />} />

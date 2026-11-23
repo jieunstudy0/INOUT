@@ -75,6 +75,8 @@ client.interceptors.response.use(
       window.location.href = '/login';
     } else if (status === 403) {
       Toast.error('접근 권한이 없습니다.');
+    } else if (error?.config?.silent) {
+      // 주기적으로 다시 부르는 요청(알림 배지 등)은 실패해도 오류 창을 띄우지 않는다.
     } else {
       // 5xx·네트워크 오류는 서버 문구가 일반적이므로, 요청에 붙인 화면 문맥(errorContext)을 앞에 덧붙인다.
       // 4xx는 서버 문구가 이미 구체적이라 그대로 쓰고, 검증 오류면 첫 번째 필드 오류를 보여 준다.
