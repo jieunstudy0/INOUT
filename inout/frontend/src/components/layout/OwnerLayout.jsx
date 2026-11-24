@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import NotificationBell from '../common/NotificationBell';
 import InstallAppBanner from '../common/InstallAppBanner';
 import TopNav from './TopNav';
+import SideNav from './SideNav';
 import { OWNER_MENU } from './navMenus';
 import { logout } from '../../api/authApi';
 import { getOwnerDashboardSummary } from '../../api/dashboardOwnerApi';
@@ -145,9 +146,12 @@ export default function OwnerLayout() {
         utility={utility}
         actions={<><NotificationBell basePath="/owner" />{logoutButton}</>}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-        <InstallAppBanner />
-        <Outlet context={{ summary, refreshSummary }} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 lg:flex lg:gap-10">
+        <SideNav menu={OWNER_MENU} />
+        <div className="min-w-0 flex-1">
+          <InstallAppBanner />
+          <Outlet context={{ summary, refreshSummary }} />
+        </div>
       </main>
 
       <ChargeModal

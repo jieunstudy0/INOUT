@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import NotificationBell from '../common/NotificationBell';
 import InstallAppBanner from '../common/InstallAppBanner';
 import TopNav from './TopNav';
+import SideNav from './SideNav';
 import { EMP_MENU, ADMIN_MENU } from './navMenus';
 import { logout } from '../../api/authApi';
 import { getMyProfile } from '../../api/profileApi';
@@ -149,9 +150,12 @@ export default function Layout() {
         actions={<>{cartButton}<NotificationBell basePath={basePath} />{logoutButton}</>}
         mobileActions={<>{cartButton}<NotificationBell basePath={basePath} />{logoutButton}</>}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
-        {!isAdmin && <InstallAppBanner />}
-        <Outlet />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 lg:flex lg:gap-10">
+        <SideNav menu={menu} />
+        <div className="min-w-0 flex-1">
+          {!isAdmin && <InstallAppBanner />}
+          <Outlet />
+        </div>
       </main>
     </div>
   );
