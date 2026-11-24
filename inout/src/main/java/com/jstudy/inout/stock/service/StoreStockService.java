@@ -62,9 +62,17 @@ public class StoreStockService {
                         .itemName(i.getName())
                         .categoryName(i.getCategory() != null ? i.getCategory().getCategoryName() : "미지정")
                         .unitDescription(i.getUnitDescription())
+                        .imageUrl(i.getImageUrl())
                         .registered(registered.contains(i.getItemId()))
                         .build())
                 .toList();
+    }
+
+    public StockResponse getStoreStock(Long userId, Long storeStockId) {
+        StoreStock stock = storeStockRepository.findById(storeStockId)
+                .orElseThrow(() -> new InoutException(ErrorCode.STORE_STOCK_NOT_FOUND));
+        assertSameStore(loadUser(userId), stock);
+        return StockResponse.from(stock);
     }
 
     public List<HistoryResponse> getHistory(Long userId, Long storeStockId) {

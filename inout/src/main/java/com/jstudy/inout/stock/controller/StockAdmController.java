@@ -152,6 +152,13 @@ public class StockAdmController {
         return ResponseResult.success("이력 조회가 완료되었습니다.", history);
     }
 
+    @Operation(summary = "상품 카테고리 목록", description = "상품 등록·수정 화면의 카테고리 선택에 씁니다.")
+    @GetMapping("/categories")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getCategories() {
+        return ResponseResult.success("카테고리 조회가 완료되었습니다.", stockAdmService.getCategories());
+    }
+
     @Operation(summary = "저재고 알림 목록 조회",
                description = "`currentStock ≤ minStockLevel` 조건인 상품 목록을 반환합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")

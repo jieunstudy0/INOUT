@@ -24,7 +24,11 @@ public class StockUserDetailResponse {
     
     private String description;    
     
-    private String status;  
+    private String status;
+
+    private String imageUrl;
+
+    private Integer minStockLevel;
     
     public static StockUserDetailResponse from(Item item) {
         String status = "정상";
@@ -40,6 +44,8 @@ public class StockUserDetailResponse {
                 .unitPrice(item.getUnitPrice())
                 .description(item.getDescription())
                 .status(status)
+                .imageUrl(item.getImageUrl())
+                .minStockLevel(item.getMinStockLevel())
                 .build();
     }
 }

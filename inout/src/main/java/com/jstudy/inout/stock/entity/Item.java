@@ -48,6 +48,10 @@ public class Item extends BaseTimeEntity {
     @Column
     private String description;
 
+    /** 상품 사진 경로 (/uploads/...). 목록 카드·상세 화면에 보인다. */
+    @Column(name = "image_url", length = 255)
+    private String imageUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;
@@ -75,13 +79,14 @@ public class Item extends BaseTimeEntity {
 
 
     public void updateInfo(String name, ItemCategory category, Long unitPrice,
-            Integer minStockLevel, String unitDescription, String description) {
+            Integer minStockLevel, String unitDescription, String description, String imageUrl) {
         this.name = name;
         this.category = category;
         this.unitPrice = unitPrice;
         this.minStockLevel = minStockLevel;
         this.unitDescription = unitDescription;
         this.description = description;
+        this.imageUrl = imageUrl;
     }
 
     public void delete() {

@@ -31,6 +31,8 @@ public final class StoreStockDtos {
         private String itemName;
         private String categoryName;
         private String unitDescription;
+        private String description;
+        private String imageUrl;
         private Integer quantity;
         private Integer minStockLevel;
         private String location;
@@ -45,6 +47,8 @@ public final class StoreStockDtos {
                     .itemName(item.getName())
                     .categoryName(item.getCategory() != null ? item.getCategory().getCategoryName() : "미지정")
                     .unitDescription(item.getUnitDescription())
+                    .description(item.getDescription())
+                    .imageUrl(item.getImageUrl())
                     .quantity(s.getQuantity())
                     .minStockLevel(s.getMinStockLevel())
                     .location(s.getLocation())
@@ -62,6 +66,7 @@ public final class StoreStockDtos {
         private String itemName;
         private String categoryName;
         private String unitDescription;
+        private String imageUrl;
         private boolean registered;
     }
 

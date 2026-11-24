@@ -64,6 +64,14 @@ public class StoreStockOwnerController {
         return ResponseResult.successWithMessage("매장 재고 설정이 변경되었습니다.");
     }
 
+    @Operation(summary = "매장 재고 한 건 (상세 화면)")
+    @GetMapping("/{storeStockId}")
+    public ResponseEntity<?> getStoreStock(@PathVariable("storeStockId") Long storeStockId,
+                                           @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseResult.success("매장 재고 조회가 완료되었습니다.",
+                storeStockService.getStoreStock(principal.getUser().getId(), storeStockId));
+    }
+
     @Operation(summary = "매장 재고 변경 이력 (최근 50건)")
     @GetMapping("/{storeStockId}/history")
     public ResponseEntity<?> getHistory(@PathVariable("storeStockId") Long storeStockId,

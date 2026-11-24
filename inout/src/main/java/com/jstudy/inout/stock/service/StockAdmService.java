@@ -74,7 +74,8 @@ public class StockAdmService {
                 stockUpdate.getUnitPrice(),
                 stockUpdate.getMinStockLevel(),
                 stockUpdate.getUnitDescription(),
-                stockUpdate.getDescription()
+                stockUpdate.getDescription(),
+                stockUpdate.getImageUrl()
         );
     }
 
@@ -152,6 +153,17 @@ public class StockAdmService {
                 .collect(Collectors.toList());
     }
 
+    /** 상품 등록·수정 화면의 카테고리 선택 목록 */
+    public List<CategoryOption> getCategories() {
+        return itemCategoryRepository.findAll().stream()
+                .sorted(Comparator.comparing(ItemCategory::getCategoryId))
+                .map(c -> new CategoryOption(c.getCategoryId(), c.getCategoryName()))
+                .toList();
+    }
+
+    public record CategoryOption(Integer categoryId, String name) {
+    }
+
     @Cacheable(value = CacheConfig.STOCK_ALERTS, key = "'lowStock'")
     public List<StockAdminResponse> getLowStockAlerts() {
         return itemRepository.findLowStockItems().stream()
@@ -186,6 +198,12 @@ public class StockAdmService {
                 .itemId(item.getItemId())
                 .itemName(item.getName())
                 .categoryName(item.getCategory() != null ? item.getCategory().getCategoryName() : "미지정")
+                .categoryId(item.getCategory() != null ? item.getCategory().getCategoryId() : null)
+                .unitPrice(item.getUnitPrice())
+                .unitDescription(item.getUnitDescription())
+                .description(item.getDescription())
+                .imageUrl(item.getImageUrl())
+                .deleted(item.getDeleted())
                 .currentStock(item.getCurrentStock())
                 .minStockLevel(item.getMinStockLevel())
                 .status(status)

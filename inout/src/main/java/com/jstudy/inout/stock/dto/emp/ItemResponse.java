@@ -16,6 +16,8 @@ public class ItemResponse {
     private Integer currentStock;  
     private String status; 
     private String unitDescription;
+    private String description;
+    private String imageUrl;
 
     public static ItemResponse from(Item item) { 
         return ItemResponse.builder()
@@ -26,6 +28,8 @@ public class ItemResponse {
                 .currentStock(item.getCurrentStock())
                 .status(determineStatus(item))
                 .unitDescription(item.getUnitDescription())
+                .description(item.getDescription())
+                .imageUrl(item.getImageUrl())
                 .build();
     }
 
