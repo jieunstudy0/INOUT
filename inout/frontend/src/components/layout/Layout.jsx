@@ -137,7 +137,7 @@ export default function Layout() {
 
   const logoutButton = (
     <button type="button" onClick={handleLogout}
-      className="px-4 py-1.5 text-sm rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">
+      className="shrink-0 whitespace-nowrap px-2.5 sm:px-4 py-1.5 text-[13px] sm:text-sm rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">
       로그아웃
     </button>
   );
@@ -148,7 +148,8 @@ export default function Layout() {
         menu={menu}
         utility={utility}
         actions={<>{cartButton}<NotificationBell basePath={basePath} />{logoutButton}</>}
-        mobileActions={<>{cartButton}<NotificationBell basePath={basePath} />{logoutButton}</>}
+        // 휴대폰에서는 자리가 좁아 장바구니 아이콘을 빼고 메뉴(발주 → 장바구니)로 들어간다
+        mobileActions={<><NotificationBell basePath={basePath} />{logoutButton}</>}
       />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 lg:flex lg:gap-10">
         <SideNav menu={menu} />

@@ -66,7 +66,7 @@ export default function TopNav({ menu, utility, actions, mobileActions }) {
 
       {/* ── 메뉴 줄 ── */}
       <div className="border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 h-16 lg:h-[72px] flex items-center gap-4 lg:gap-10">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 h-16 lg:h-[72px] flex items-center gap-2 sm:gap-4 lg:gap-10">
           <button type="button" onClick={() => setDrawerOpen(true)} aria-label="메뉴 열기"
             className="lg:hidden -ml-1 p-2 rounded-lg text-slate-700 hover:bg-slate-50">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">

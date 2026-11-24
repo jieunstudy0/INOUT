@@ -134,7 +134,7 @@ export default function OwnerLayout() {
 
   const logoutButton = (
     <button type="button" onClick={handleLogout}
-      className="px-4 py-1.5 text-sm rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">
+      className="shrink-0 whitespace-nowrap px-2.5 sm:px-4 py-1.5 text-[13px] sm:text-sm rounded-full border border-indigo-600 text-indigo-600 hover:bg-indigo-50">
       로그아웃
     </button>
   );
