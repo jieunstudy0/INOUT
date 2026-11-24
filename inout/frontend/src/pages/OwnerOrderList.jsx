@@ -122,8 +122,12 @@ function OrderDetailModal({ orderId, onClose }) {
   );
 }
 
-export default function OwnerOrderList() {
-  const [view, setView] = useState('orders');
+/**
+ * 점주 발주 조회(/owner/orders)·배송 조회(/owner/deliveries).
+ * 예전에는 한 화면에서 버튼으로 바꿔 봤는데, 상단·왼쪽 메뉴에서 바로 고를 수 있게 화면 주소를 나눴다.
+ * view: 'orders' | 'deliveries'
+ */
+export default function OwnerOrderList({ view = 'orders' }) {
   const [orders, setOrders] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,23 +179,12 @@ export default function OwnerOrderList() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h2 className="text-xl font-bold text-slate-800">매장 발주/배송</h2>
-        <p className="text-sm text-slate-500 mt-0.5">직원 기안 검토·결제 후 본사 승인까지 3단계로 관리합니다.</p>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => setView('orders')}
-          className={`px-4 py-2 text-sm font-bold rounded-xl border transition-colors ${view === 'orders' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'}`}
-        >
-          발주 내역
-        </button>
-        <button
-          onClick={() => setView('deliveries')}
-          className={`px-4 py-2 text-sm font-bold rounded-xl border transition-colors ${view === 'deliveries' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'}`}
-        >
-          배송 현황
-        </button>
+        <h2 className="text-3xl font-normal text-slate-900">{view === 'orders' ? '발주 조회' : '배송 조회'}</h2>
+        <p className="mt-2 text-slate-600">
+          {view === 'orders'
+            ? '직원 기안을 검토·결제하고, 본사 승인까지의 진행 상태를 확인합니다.'
+            : '본사가 보낸 배송의 상태와 운송장을 확인합니다. 도착하면 [수령 확인]에서 받은 수량을 확인해 주세요.'}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">

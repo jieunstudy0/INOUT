@@ -67,7 +67,8 @@ export const OWNER_MENU = {
       key: 'order',
       label: '발주 · 배송',
       items: [
-        { path: '/owner/orders', label: '발주 / 배송 조회', desc: '직원 기안 승인·결제와 배송 현황' },
+        { path: '/owner/orders', label: '발주 조회', desc: '직원 기안 검토·결제와 본사 승인 진행 상태' },
+        { path: '/owner/deliveries', label: '배송 조회', desc: '배송 상태와 운송장 확인' },
       ],
     },
     {

@@ -138,7 +138,8 @@ export default function App() {
           <Route path="users" element={<OwnerUserManagement />} />
           <Route path="users/:userId" element={<UserDetailOwnerPage />} />
           <Route path="deposit" element={<OwnerDepositManagement />} />
-          <Route path="orders" element={<OwnerOrderList />} />
+          <Route path="orders" element={<OwnerOrderList view="orders" key="orders" />} />
+          <Route path="deliveries" element={<OwnerOrderList view="deliveries" key="deliveries" />} />
           <Route path="leaves" element={<OwnerLeaveApproval />} />
           <Route path="store-stocks" element={<StoreStockOwnerPage />} />
           <Route path="store-stocks/:storeStockId" element={<StoreStockOwnerDetailPage />} />
@@ -151,7 +152,7 @@ export default function App() {
           <Route path="inquiries/:inquiryId" element={<InquiryDetailOwnerPage />} />
           {/* 하위 호환 별칭 */}
           <Route path="vacation" element={<Navigate to="/owner/leaves" replace />} />
-          <Route path="delivery" element={<Navigate to="/owner/orders" replace />} />
+          <Route path="delivery" element={<Navigate to="/owner/deliveries" replace />} />
         </Route>
 
         <Route path="/" element={<HomeRedirect />} />
