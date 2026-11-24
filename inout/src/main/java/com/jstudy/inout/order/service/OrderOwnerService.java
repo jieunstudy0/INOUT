@@ -1,5 +1,8 @@
 package com.jstudy.inout.order.service;
 
+import com.jstudy.inout.notification.entity.NotificationType;
+import com.jstudy.inout.notification.service.NotificationEvent.Target;
+import com.jstudy.inout.notification.service.Notifier;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.auth.util.UserDisplayNames;
@@ -45,6 +48,7 @@ public class OrderOwnerService {
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
     private final DepositService depositService;
+    private final Notifier notifier;
 
     public Page<OrderAdminResponse> getStoreOrders(Long ownerUserId, OrderStatus status, Pageable pageable) {
         Long storeId = requireStoreId(ownerUserId);
@@ -167,6 +171,9 @@ public class OrderOwnerService {
         for (OrderDetail detail : order.getOrderDetails()) {
             detail.updateStatus(OrderDetailStatus.REJECTED);
         }
+        notifier.send(NotificationType.ORDER_REJECTED, "발주 #" + order.getId() + " 기안을 점주가 반려했습니다",
+                "사유는 발주 내역에서 확인해 주세요.", ownerUserId,
+                Target.user(order.getRequestUser().getId(), "/emp/orders"));
     }
 
     /**

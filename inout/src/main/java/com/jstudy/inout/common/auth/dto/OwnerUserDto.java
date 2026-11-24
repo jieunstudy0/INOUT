@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -88,9 +89,11 @@ public class OwnerUserDto {
         private String name;
         private String email;
         private String phone;
+        private String profileImageUrl;
         private Long storeId;
         private String storeName;
         private UserStatus status;
+        @JsonProperty("isLocked")
         private boolean isLocked;
         private String roleName;
         private LocalDateTime createdAt;

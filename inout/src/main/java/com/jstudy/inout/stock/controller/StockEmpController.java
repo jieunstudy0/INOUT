@@ -22,45 +22,18 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.dto.ResponseResult;
 import com.jstudy.inout.stock.dto.emp.ItemResponse;
-import com.jstudy.inout.stock.dto.emp.StockUseRequest;
 import com.jstudy.inout.stock.dto.emp.StockUserDetailResponse;
 import com.jstudy.inout.stock.service.StockEmpService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Tag(name = "직원 재고 조회·사용", description = "상품 목록/상세 조회, 재고 사용 기록 (EMPLOYEE / ADMIN)")
+@Tag(name = "본사 상품 조회 (직원)", description = "발주할 본사 상품 목록/상세 조회. 매장 재고 사용은 /api/emp/store-stocks")
 @RestController
 @RequestMapping("/api/emp/stocks")
 @RequiredArgsConstructor
 public class StockEmpController {
 
     private final StockEmpService stockEmpService;
-
-    @Operation(summary = "재고 사용 처리",
-               description = """
-                       재고에서 수량을 차감하고 사용 이력을 기록합니다.
-                       비관적 락(PESSIMISTIC_WRITE)으로 동시 차감을 방지합니다.
-                       삭제된 상품에는 사용 처리를 할 수 없습니다.
-                       """)
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "사용 처리 성공 — 상품 ID 반환"),
-            @ApiResponse(responseCode = "400", description = "재고 부족"),
-            @ApiResponse(responseCode = "404", description = "상품 없음 또는 삭제된 상품")
-    })
-    @PostMapping("/use")
-    @PreAuthorize("hasRole('EMPLOYEE')")
-    public ResponseEntity<?> useStock(
-            @RequestBody @Valid StockUseRequest stockUseRequest,
-            @AuthenticationPrincipal CustomUserDetails principal) {
-
-        Long itemId = stockEmpService.useStock(
-                stockUseRequest.getItemId(),
-                stockUseRequest.getQuantity(),
-                principal.getUser().getId(),
-                stockUseRequest.getMemo()
-        );
-        return ResponseResult.success("재고 사용 처리가 완료되었습니다.", itemId);
-    }
 
     @Operation(summary = "직원용 재고 목록 조회",
                description = "삭제되지 않은 상품만 조회합니다. 상품명으로 부분 검색이 가능합니다.")

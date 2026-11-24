@@ -34,6 +34,9 @@ class OwnerUserControllerTest {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private com.jstudy.inout.common.auth.service.UserManageService userManageService;
+
     @BeforeEach
     void setUp() {
         Store store = Store.builder().id(10L).name("지점 1호").address("서울").build();

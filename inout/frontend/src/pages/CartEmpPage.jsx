@@ -5,6 +5,7 @@ import { Toast } from '../utils/toast';
 import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import AiSmartOrderPanel from '../components/dashboard/AiSmartOrderPanel';
+import { confirmDialog } from '../utils/dialog';
 
 export default function CartEmpPage() {
   const [cartData, setCartData]     = useState({ items: [], totalQuantity: 0, totalPrice: 0 });
@@ -67,7 +68,7 @@ export default function CartEmpPage() {
 
 
   const handleDelete = async (ids) => {
-    if (!window.confirm('선택한 상품을 삭제하시겠습니까?')) return;
+    if (!await confirmDialog('선택한 상품을 삭제하시겠습니까?')) return;
     try {
       await unwrap(client.delete('/emp/carts/items', { data: ids }));
       Toast.success('삭제되었습니다.');

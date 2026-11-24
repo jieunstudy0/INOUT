@@ -55,6 +55,11 @@ public class DummyDataService {
     private final CartRepository cartRepository;
     private final InquiryCommentRepository inquiryCommentRepository;
     private final InquiryRepository inquiryRepository;
+    private final com.jstudy.inout.stock.repository.StockCountSheetRepository stockCountSheetRepository;
+    private final com.jstudy.inout.stock.repository.StoreStockHistoryRepository storeStockHistoryRepository;
+    private final com.jstudy.inout.stock.repository.StoreStockRepository storeStockRepository;
+    private final com.jstudy.inout.request.repository.ChangeRequestRepository changeRequestRepository;
+    private final com.jstudy.inout.notification.repository.NotificationRepository notificationRepository;
 
     @Transactional
     public void clearAllData() {
@@ -68,6 +73,14 @@ public class DummyDataService {
      * user 삭제 전에 반드시 제거한다.
      */
     private void deleteAllInFkSafeOrder() {
+        // 0) 매장 재고·실사·수정 요청·알림 (store·item·user를 참조하므로 가장 먼저)
+        stockCountSheetRepository.deleteAll();   // 실사표 줄은 cascade로 함께 지운다
+        stockCountSheetRepository.flush();
+        storeStockHistoryRepository.deleteAllInBatch();
+        storeStockRepository.deleteAllInBatch();
+        changeRequestRepository.deleteAllInBatch();
+        notificationRepository.deleteAllInBatch();
+
         // 1) 최하위 자식
         inquiryCommentRepository.deleteAll();
         inquiryCommentRepository.flush();

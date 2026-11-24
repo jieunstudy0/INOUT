@@ -235,6 +235,7 @@ public class AuthServiceImpl implements AuthService {
                     .name(u.getName())
                     .email(u.getEmail())
                     .phone(u.getPhone())
+                    .profileImageUrl(u.getProfileImageUrl())
                     .storeId(u.getStore() != null ? u.getStore().getId() : null)
                     .storeName(u.getStore() != null ? u.getStore().getName() : "본점 (소속 없음)")
                     .status(u.getStatus())
@@ -249,9 +250,29 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void updateUserByAdmin(Long userId, AdminUserDto.UpdateRequest request) {
+    public void updateUserByAdmin(Long actorId, Long userId, AdminUserDto.UpdateRequest request) {
+        if (request.getStatus() == null) {
+            throw new InoutException(ErrorCode.STATUS_REQUIRED);
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new InoutException(ErrorCode.USER_NOT_FOUND));
+
+        // 관리자가 관리자로 일할 수 없게 되는 변경(권한 빼기·휴직·퇴사)은 두 경우를 막는다.
+        // 1) 본인 계정 — 저장하는 순간 본사 화면에서 쫓겨난다
+        // 2) 로그인할 수 있는 마지막 관리자 — 아무도 본사 기능을 쓸 수 없게 된다
+        boolean wasAdmin = user.getUserRoles().stream()
+                .anyMatch(ur -> ur.getRole().getRoleName().equals("ROLE_ADMIN"));
+        boolean staysWorkingAdmin = request.isAdmin() && request.getStatus() == UserStatus.ACTIVE;
+        if (wasAdmin && !staysWorkingAdmin) {
+            if (user.getId().equals(actorId)) {
+                throw new InoutException(ErrorCode.SELF_ADMIN_CHANGE_FORBIDDEN);
+            }
+            boolean wasWorking = user.getStatus() == UserStatus.ACTIVE && !user.isDeleted();
+            long workingAdmins = userRoleRepository.countByRoleNameAndUserStatus("ROLE_ADMIN", UserStatus.ACTIVE);
+            if (wasWorking && workingAdmins <= 1) {
+                throw new InoutException(ErrorCode.LAST_ADMIN_REQUIRED);
+            }
+        }
 
         Store store = null;
         if (request.getStoreId() != null) {
@@ -319,6 +340,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(u.getName())
                 .email(u.getEmail())
                 .phone(u.getPhone())
+                    .profileImageUrl(u.getProfileImageUrl())
                 .storeId(u.getStore() != null ? u.getStore().getId() : null)
                 .storeName(u.getStore() != null ? u.getStore().getName() : "본점 (소속 없음)")
                 .status(u.getStatus())
@@ -334,7 +356,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
+    public Long createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
         User owner = requireOwnerWithStore(ownerUserId);
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -358,6 +380,7 @@ public class AuthServiceImpl implements AuthService {
         Role employeeRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
                 .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "기본 권한 정보를 찾을 수 없습니다."));
         userRoleRepository.save(UserRole.builder().user(employee).role(employeeRole).build());
+        return employee.getId();
     }
 
     @Override

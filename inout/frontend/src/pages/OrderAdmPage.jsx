@@ -9,6 +9,7 @@ import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import PersonName from '../components/common/PersonName';
 import client from '../api/apiClient';
+import { confirmDialog } from '../utils/dialog';
 
 const TABS = [
   { key: 'ALL',          label: '전체',        statuses: [],                        accent: 'slate'  },
@@ -303,7 +304,7 @@ export default function OrderAdmPage() {
   };
 
   const handleRejectOne = async (orderId) => {
-    if (!window.confirm(`발주 #${orderId}을(를) 반려하고 예치금을 환불할까요?`)) return;
+    if (!await confirmDialog(`발주 #${orderId}을(를) 반려하고 예치금을 환불할까요?`)) return;
     setActionBusyId(orderId);
     try {
       await rejectOrder(orderId, { reason: '본사 발주 반려' });

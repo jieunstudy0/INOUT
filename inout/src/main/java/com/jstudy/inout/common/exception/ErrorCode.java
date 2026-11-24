@@ -34,11 +34,13 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(409, "이미 사용 중인 이메일입니다."),
     EXPIRED_LINK(400, "링크 유효 시간(30분)이 만료되었습니다. 다시 시도해 주세요."),
     INVALID_LINK(400, "유효하지 않은 재설정 링크입니다."),
+    LAST_ADMIN_REQUIRED(409, "로그인할 수 있는 관리자가 한 명 이상 남아 있어야 합니다."),
     LOGIN_FAILED(401, "아이디 또는 비밀번호가 일치하지 않습니다."),
     PASSWORD_CONFIRM_MISMATCH(400, "비밀번호 확인이 일치하지 않습니다."),
     PASSWORD_MISMATCH(400, "비밀번호가 일치하지 않습니다."),
     REFRESH_TOKEN_REQUIRED(400, "리프레시 토큰이 필요합니다."),
     ROLE_NOT_FOUND(500, "권한 정보를 찾을 수 없습니다. 관리자에게 문의해 주세요."),
+    SELF_ADMIN_CHANGE_FORBIDDEN(400, "본인 계정의 관리자 권한을 빼거나 재직 상태를 바꿀 수 없습니다."),
     STATUS_REQUIRED(400, "변경할 계정 상태를 선택해 주세요."),
     STORE_NOT_FOUND(404, "매장 정보를 찾을 수 없습니다."),
     STORE_REQUIRED(403, "소속 매장 정보가 없습니다."),
@@ -66,7 +68,15 @@ public enum ErrorCode {
     DUPLICATE_ITEM_NAME(409, "이미 등록된 상품명입니다."),
     FILE_EMPTY(400, "업로드할 파일이 없습니다."),
     ITEM_NOT_FOUND(404, "상품 정보를 찾을 수 없습니다."),
+    STOCK_COUNT_EMPTY(400, "실재고가 입력된 품목이 없습니다. 한 개 이상 입력해 주세요."),
+    STOCK_COUNT_INVALID_STATUS(409, "현재 상태에서는 처리할 수 없는 실사표입니다. 새로고침 후 다시 확인해 주세요."),
+    STOCK_COUNT_LINE_MISMATCH(400, "실사표에 없는 품목이 포함되어 있습니다."),
+    STOCK_COUNT_NEGATIVE_RESULT(409, "반영하면 재고가 0보다 작아지는 상품이 있어 승인할 수 없습니다."),
+    STOCK_COUNT_NO_TARGET(404, "지금은 실사가 필요한 상품이 없습니다."),
+    STOCK_COUNT_SHEET_NOT_FOUND(404, "실사표를 찾을 수 없습니다."),
     STOCK_SHORTAGE(400, "재고가 부족합니다."),
+    STORE_STOCK_NOT_FOUND(404, "매장 재고 정보를 찾을 수 없습니다."),
+    STORE_STOCK_SHORTAGE(400, "매장 재고가 부족합니다."),
 
     // 예치금·결제
     ACCOUNT_NOT_FOUND(404, "예치금 계좌를 찾을 수 없습니다."),
@@ -80,6 +90,8 @@ public enum ErrorCode {
     // 배송
     DELIVERY_NOT_FOUND(404, "배송 정보를 찾을 수 없습니다."),
     INVALID_DELIVERY_STATUS(400, "현재 상태에서는 처리할 수 없는 배송입니다."),
+    ALREADY_RECEIVED(409, "이미 수령 확인된 배송입니다."),
+    INVALID_RECEIVED_QUANTITY(400, "수령 수량은 0개 이상, 발주 수량 이하로 입력해 주세요."),
     INVALID_TRACKING_NUMBER(400, "운송장 번호는 필수입니다."),
     ORDER_SHIPPING_SNAPSHOT_MISSING(400, "발주에 저장된 배송 정보가 없습니다."),
     WAYBILL_INTERRUPTED(500, "운송장 발급이 중단되었습니다."),
@@ -96,9 +108,15 @@ public enum ErrorCode {
     PROCESSOR_NOT_FOUND(404, "처리자 정보를 찾을 수 없습니다."),
     REJECT_REASON_REQUIRED(400, "반려 사유를 입력해야 합니다."),
 
+    // 수정 요청
+    CHANGE_REQUEST_NOT_FOUND(404, "수정 요청을 찾을 수 없습니다."),
+    INVALID_REQUEST_STATUS(400, "바꿀 수 없는 요청 상태입니다."),
+    INVALID_REQUEST_TARGET(400, "요청 대상을 찾을 수 없습니다. 다시 선택해 주세요."),
+
     // 파일
     FILE_DOWNLOAD_ERROR(500, "첨부파일 다운로드 중 오류가 발생했습니다."),
     FILE_NOT_FOUND(404, "첨부파일을 찾을 수 없습니다."),
+    FILE_TOO_LARGE(400, "파일은 10MB 이하로 올려 주세요."),
     FILE_UPLOAD_ERROR(500, "파일 업로드 중 오류가 발생했습니다."),
     INVALID_FILE_EXTENSION(400, "허용되지 않는 파일 형식입니다."),
     INVALID_FILE_NAME(400, "파일 이름이 유효하지 않습니다."),
@@ -116,6 +134,7 @@ public enum ErrorCode {
     AI_SERVICE_ERROR(500, "AI 분석 중 오류가 발생했습니다."),
     AI_TIMEOUT(504, "AI 분석 요청이 시간 초과되었습니다. 잠시 후 다시 시도해 주세요."),
     INQUIRY_NOT_FOUND(404, "문의글을 찾을 수 없습니다."),
+    NOTIFICATION_NOT_FOUND(404, "알림을 찾을 수 없습니다."),
     SYSTEM_ADMIN_MISSING(500, "시스템 관리자 계정이 없어 자동 발주를 처리할 수 없습니다. 관리자에게 문의해 주세요.");
 
     private final int status;

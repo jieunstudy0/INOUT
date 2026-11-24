@@ -9,6 +9,7 @@ import { Toast } from '../../utils/toast';
 import Spinner from '../../components/common/Spinner';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import KpiCard from '../../components/dashboard/KpiCard';
+import QuickTasks from '../../components/dashboard/QuickTasks';
 import DashboardPanel, { ProgressBar } from '../../components/dashboard/DashboardPanel';
 import RecentActivityTable from '../../components/dashboard/RecentActivityTable';
 import StatusBadge from '../../components/dashboard/StatusBadge';
@@ -128,6 +129,7 @@ export default function OwnerDashboard() {
             새로고침
           </button>
         )}
+        quickSlot={<QuickTasks role="owner" />}
         kpiSlot={(
           <>
             <KpiCard

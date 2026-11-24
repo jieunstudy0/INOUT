@@ -5,6 +5,7 @@ import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import DeliveryTrackingModal from '../components/delivery/DeliveryTrackingModal';
+import { confirmDialog } from '../utils/dialog';
 
 const DELIVERY_STATUS = {
   READY: { label: '배송 준비', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -44,7 +45,7 @@ function OrderDetailModal({ orderId, onClose, onRefresh }) {
       ? `결제 완료된 발주입니다.\n취소 시 예치금 ${detail.totalPrice?.toLocaleString()}원이 즉시 환불됩니다.\n\n정말 취소하시겠습니까?`
       : '정말 이 발주를 취소하시겠습니까?';
 
-    if (!window.confirm(confirmMessage)) return;
+    if (!await confirmDialog(confirmMessage)) return;
     try {
       await cancelEmpOrder(orderId);
       Toast.success(isPaid ? '발주가 취소되었습니다. 예치금이 환불되었습니다.' : '발주가 취소되었습니다.');

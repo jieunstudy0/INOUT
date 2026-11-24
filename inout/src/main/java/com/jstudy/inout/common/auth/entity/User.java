@@ -42,6 +42,10 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDate birthday;
 
+    /** 직원 사진 경로 (/uploads/...). 직원 목록·상세 화면에 보인다. */
+    @Column(name = "profile_image_url", length = 255)
+    private String profileImageUrl;
+
     @Column(length = 30)
     private String provider;
 
@@ -155,6 +159,13 @@ public class User extends BaseTimeEntity {
      * RESIGNED(퇴사) 시 Soft Delete: deleted=true, store=null (지점 통계·소속에서 분리).
      * 과거 발주/문의 FK는 User 행을 유지하므로 보존된다.
      */
+    /** 점주·본사가 직원 기본 정보(이름·연락처·사진)를 바꾼다. */
+    public void changeBasicInfo(String name, String phone, String profileImageUrl) {
+        this.name = name;
+        this.phone = phone;
+        this.profileImageUrl = profileImageUrl;
+    }
+
     public void updateStatusAndStore(UserStatus status, Store store) {
         this.status = status;
 

@@ -348,3 +348,58 @@ docker compose logs -f backend | grep -E "AI (CS 자동화|자동 발주)"
 - 10분 이내에 `[AI CS 자동화 스케줄러] 실행 시작` 로그가 보이면 정상.
 - 자정 무렵(로그 타임스탬프가 한국 시간 기준 00:0x인지 확인) `[AI 자동 발주 스케줄러]` 관련 로그가 보이면 정상.
 - 스케줄러를 기다리지 않고 즉시 확인하려면, 관리자 로그인 후 대시보드에서 "지금 분석 실행"(AI CS) / "재고 분석 즉시 실행"(AI 자동 발주) 버튼을 눌러 수동 트리거로 바로 테스트할 수 있다.
+
+---
+
+## 10. HTTPS 적용 (PWA 설치·알림에 필요)
+
+PWA(홈 화면 설치, 서비스 워커)는 **HTTPS 주소에서만** 동작한다. IP 주소(`http://1.2.3.4`)로는 설치 안내가 뜨지 않는다.
+설정 예시는 `nginx/https.conf.example`에 있다. 백엔드는 이미 준비되어 있다
+(`server.forward-headers-strategy=framework`로 HTTPS 여부를 인식하고, 리프레시 토큰 쿠키의 `Secure`가 그에 맞춰 붙는다).
+
+1. **도메인 연결**: 도메인 DNS에 A 레코드로 EC2 탄력적 IP를 등록한다.
+2. **보안 그룹**: 인바운드 443(HTTPS)을 연다.
+3. **인증서 발급** (EC2에서, frontend 컨테이너를 잠시 멈추고 80 포트를 비운 상태):
+   ```bash
+   sudo apt-get install -y certbot          # Amazon Linux: sudo dnf install -y certbot
+   docker compose stop frontend
+   sudo certbot certonly --standalone -d <도메인> --agree-tos -m <관리자 메일> --no-eff-email
+   ```
+4. **Nginx 설정 교체**: `nginx/https.conf.example`을 `nginx/default.conf`로 복사하고 `${DOMAIN}`을 실제 도메인으로 바꾼다.
+5. **docker-compose.yml frontend 서비스 수정**:
+   ```yaml
+   ports:
+     - "80:80"
+     - "443:443"
+   volumes:
+     - /etc/letsencrypt:/etc/letsencrypt:ro
+     - /var/www/certbot:/var/www/certbot:ro
+   ```
+6. **재기동**: `docker compose up -d --build frontend`
+7. **OAuth2 콜백 주소**를 각 개발자 콘솔에서 `https://<도메인>/login/oauth2/code/{google|kakao|naver}`로 바꾼다.
+8. **인증서 자동 갱신**(90일): 갱신은 80 포트의 `/.well-known/acme-challenge/`로 받는다.
+   ```bash
+   sudo certbot renew --webroot -w /var/www/certbot --deploy-hook "docker exec inout-frontend nginx -s reload"
+   ```
+   이 명령을 `sudo crontab -e`에 하루 두 번 실행되게 등록한다 (예: `0 3,15 * * *`).
+
+확인: 휴대폰 크롬으로 `https://<도메인>`에 접속하면 "INOUT을 앱처럼 설치해 두세요" 안내와 [설치] 버튼이 보인다.
+아이폰은 사파리 공유 → "홈 화면에 추가"로 설치한다.
+
+---
+
+## 11. 매장 재고·알림·수정 요청 배포 시 (DB 스키마 추가)
+
+이번 변경으로 테이블과 칼럼이 추가된다. 운영은 `DDL_AUTO=validate`라서 **한 번은 `DDL_AUTO=update`로 띄워** 만들어야 한다 (§3.4와 같은 방법).
+
+- 새 테이블: `store_stock`, `store_stock_history`, `stock_count_sheet`, `stock_count_line`, `notification`, `change_request`
+- 새 칼럼: `delivery.received_at`, `delivery.received_by`, `order_detail.received_quantity`, `change_request.issue_type` (배송 이상 세부 종류), `item.image_url` (상품 사진), `user.profile_image_url` (직원 사진)
+
+새 환경 변수(선택):
+
+| 변수 | 기본값 | 설명 |
+|---|---|---|
+| `STOCK_COUNT_SCHEDULER_ENABLED` | `true` | 매일 9시(서울) 매장별 재고 실사표 자동 생성 |
+
+처음 배포하면 모든 매장의 매장 재고가 비어 있다. 점주가 [매장 재고 관리 → 새 상품 등록]으로 처음 수량을 넣거나,
+이후 배송을 [수령 확인]하면 매장 재고가 생긴다. 수령 확인은 배송 중이거나 완료 후 14일 이내인 배송만 받는다.

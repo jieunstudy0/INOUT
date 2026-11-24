@@ -11,9 +11,21 @@ import DashboardEmpPage from './pages/emp/EmpDashboard';
 import OrderAdmPage from './pages/OrderAdmPage';
 import StockPage from './pages/StockPage';
 import StockEmpPage from './pages/StockEmpPage';
+import StockCountEmpPage from './pages/StockCountEmpPage';
+import StockCountOwnerPage from './pages/StockCountOwnerPage';
+import StoreStockOwnerPage from './pages/StoreStockOwnerPage';
+import StoreReceiptPage from './pages/StoreReceiptPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ChangeRequestsPage from './pages/ChangeRequestsPage';
+import StockDetailAdmPage from './pages/StockDetailAdmPage';
+import StockEmpDetailPage from './pages/StockEmpDetailPage';
+import StoreStockOwnerDetailPage from './pages/StoreStockOwnerDetailPage';
+import UserDetailAdmPage from './pages/UserDetailAdmPage';
+import UserDetailOwnerPage from './pages/UserDetailOwnerPage';
 import CartEmpPage from './pages/CartEmpPage';
 import OrderEmpPage from './pages/OrderEmpPage';
 import ToastContainer from './components/common/ToastContainer';
+import DialogHost from './components/common/DialogHost';
 import InquiryAdmPage from './pages/InquiryAdmPage';
 import InquiryEmpPage from './pages/InquiryEmpPage';
 import InquiryCreatePage from './pages/InquiryCreatePage';
@@ -62,6 +74,7 @@ export default function App() {
     <BrowserRouter>
       <NavigationBridge />
       <ToastContainer />
+      <DialogHost />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
@@ -81,16 +94,25 @@ export default function App() {
           <Route path="/admin/orders" element={<OrderAdmPage />} />
           <Route path="/admin/orders/:orderId" element={<OrderAdmDetailPage />} />
           <Route path="/admin/stock" element={<StockPage />} />
+          <Route path="/admin/stock/:itemId" element={<StockDetailAdmPage />} />
           <Route path="/admin/inquiries" element={<InquiryAdmPage />} />
           <Route path="/admin/users" element={<UserAdmPage />} />
+          <Route path="/admin/users/:userId" element={<UserDetailAdmPage />} />
           <Route path="/admin/inquiries/:inquiryId" element={<InquiryDetailAdmPage />} />
           <Route path="/admin/deposit" element={<DepositAdmPage />} />
           <Route path="/admin/delivery" element={<DeliveryAdmPage />} />
           <Route path="/admin/leaves" element={<VacationAdmPage />} />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
+          <Route path="/admin/requests" element={<ChangeRequestsPage role="admin" />} />
 
           <Route path="/emp/dashboard" element={<DashboardEmpPage />} />
           <Route path="/emp/stocks" element={<StockEmpPage />} />
+          <Route path="/emp/stocks/:itemId" element={<StockEmpDetailPage />} />
           <Route path="/emp/stock-use" element={<StockUseEmpPage />} />
+          <Route path="/emp/stock-counts" element={<StockCountEmpPage />} />
+          <Route path="/emp/receipts" element={<StoreReceiptPage role="emp" />} />
+          <Route path="/emp/notifications" element={<NotificationsPage />} />
+          <Route path="/emp/requests" element={<ChangeRequestsPage role="emp" />} />
           <Route path="/emp/cart" element={<CartEmpPage />} />
           <Route path="/emp/orders" element={<OrderEmpPage />} />
           <Route path="/emp/inquiries" element={<InquiryEmpPage />} />
@@ -116,15 +138,23 @@ export default function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<OwnerDashboard />} />
           <Route path="users" element={<OwnerUserManagement />} />
+          <Route path="users/:userId" element={<UserDetailOwnerPage />} />
           <Route path="deposit" element={<OwnerDepositManagement />} />
-          <Route path="orders" element={<OwnerOrderList />} />
+          <Route path="orders" element={<OwnerOrderList view="orders" key="orders" />} />
+          <Route path="deliveries" element={<OwnerOrderList view="deliveries" key="deliveries" />} />
           <Route path="leaves" element={<OwnerLeaveApproval />} />
+          <Route path="store-stocks" element={<StoreStockOwnerPage />} />
+          <Route path="store-stocks/:storeStockId" element={<StoreStockOwnerDetailPage />} />
+          <Route path="stock-counts" element={<StockCountOwnerPage />} />
+          <Route path="receipts" element={<StoreReceiptPage role="owner" />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="requests" element={<ChangeRequestsPage role="owner" />} />
           <Route path="inquiries" element={<InquiryOwnerPage />} />
           <Route path="inquiries/new" element={<InquiryCreatePage />} />
           <Route path="inquiries/:inquiryId" element={<InquiryDetailOwnerPage />} />
           {/* 하위 호환 별칭 */}
           <Route path="vacation" element={<Navigate to="/owner/leaves" replace />} />
-          <Route path="delivery" element={<Navigate to="/owner/orders" replace />} />
+          <Route path="delivery" element={<Navigate to="/owner/deliveries" replace />} />
         </Route>
 
         <Route path="/" element={<HomeRedirect />} />

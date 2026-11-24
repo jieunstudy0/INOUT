@@ -58,32 +58,6 @@ class StockEmpControllerTest {
     }
 
     @Test
-    @DisplayName("직원 재고 사용 API - 재고 사용 요청 성공")
-    void useStock_Success() throws Exception {
-        String requestJson = "{\"itemId\": 1, \"quantity\": 10, \"memo\": \"업무 사용\"}";
-
-        given(stockEmpService.useStock(eq(1L), eq(10), eq(2L), eq("업무 사용"))).willReturn(1L);
-
-        mockMvc.perform(post("/api/emp/stocks/use")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.header.message").value("재고 사용 처리가 완료되었습니다."))
-                .andExpect(jsonPath("$.body").value(1));
-    }
-
-    @Test
-    @DisplayName("직원 재고 사용 API - 수량이 1 미만일 경우 400 에러 발생")
-    void useStock_Fail_Validation() throws Exception {
-        String requestJson = "{\"itemId\": 1, \"quantity\": 0, \"memo\": \"잘못된 수량\"}";
-
-        mockMvc.perform(post("/api/emp/stocks/use")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(requestJson))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     @DisplayName("직원용 상품 목록 조회 API - 페이징 처리되어 반환된다")
     void getEmployeeStockList_Success() throws Exception {
         ItemResponse item = ItemResponse.builder().itemId(1L).name("테스트상품").build();

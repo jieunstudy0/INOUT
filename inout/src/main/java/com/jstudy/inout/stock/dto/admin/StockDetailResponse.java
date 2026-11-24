@@ -14,6 +14,12 @@ public class StockDetailResponse {
     private String itemName;
     
     private String categoryName;
+    private Integer categoryId;
+    private Long unitPrice;
+    private String unitDescription;
+    private String description;
+    private String imageUrl;
+    private Boolean deleted;
     
     private Integer currentStock;
     

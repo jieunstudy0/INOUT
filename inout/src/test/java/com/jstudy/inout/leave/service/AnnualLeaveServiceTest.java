@@ -1,5 +1,6 @@
 package com.jstudy.inout.leave.service;
 
+import com.jstudy.inout.notification.service.Notifier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -28,7 +29,7 @@ import org.springframework.test.context.TestPropertySource;
 
 @DataJpaTest
 @ActiveProfiles("jpa-slice")
-@Import({JpaAuditConfig.class, AnnualLeaveService.class})
+@Import({JpaAuditConfig.class, AnnualLeaveService.class, Notifier.class})
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class AnnualLeaveServiceTest {
 

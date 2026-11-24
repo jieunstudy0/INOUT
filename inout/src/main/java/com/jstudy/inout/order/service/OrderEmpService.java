@@ -1,5 +1,8 @@
 package com.jstudy.inout.order.service;
 
+import com.jstudy.inout.notification.entity.NotificationType;
+import com.jstudy.inout.notification.service.NotificationEvent.Target;
+import com.jstudy.inout.notification.service.Notifier;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,15 +36,16 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class OrderEmpService {
-        
+
     private final CartDetailRepository cartDetailRepository;
     private final UserRepository userRepository;
     private final OrderRequestRepository orderRequestRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ItemRepository itemRepository;
     private final DepositService depositService;
+    private final Notifier notifier;
 
-    @Transactional(readOnly = true) 
+    @Transactional(readOnly = true)
     public OrderPreResponse getOrderPreview(Long userId, OrderCreateRequest request) {
 
         List<CartDetail> selectedItems = cartDetailRepository.findWithCartAndUserByIds(request.getCartDetailIds());
@@ -79,7 +83,7 @@ public class OrderEmpService {
 
             Item item = itemRepository.findByIdWithLock(cartItem.getItem().getItemId())
                     .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
-            
+
             if (item.getCurrentStock() < cartItem.getQuantity()) {
                 throw new InoutException(ErrorCode.STOCK_SHORTAGE, item.getName() + " 재고가 부족합니다.");
             }
@@ -98,7 +102,7 @@ public class OrderEmpService {
                 .receiverPhone(resolveReceiverPhone(request, user))
                 .destinationAddress(resolveDestinationAddress(request, user))
                 .build();
-        
+
         orderRequestRepository.save(orderRequest);
 
         for (CartDetail cartItem : selectedItems) {
@@ -113,7 +117,13 @@ public class OrderEmpService {
         }
 
         cartDetailRepository.updateDeletedStatusInBatch(request.getCartDetailIds());
-        
+
+        if (user.getStore() != null) {
+            notifier.send(NotificationType.ORDER_REQUESTED,
+                    user.getName() + " 님의 발주 기안이 도착했습니다",
+                    selectedItems.size() + "개 품목 · 확인 후 승인·결제해 주세요.", userId,
+                    Target.storeOwners(user.getStore().getId(), "/owner/orders"));
+        }
         return orderRequest.getId();
     }
 
@@ -124,7 +134,7 @@ public class OrderEmpService {
 
         return orders.stream()
                 .<OrderListResponse>map(order -> {
-                    String repName = order.getOrderDetails().isEmpty() ? "상품 없음" 
+                    String repName = order.getOrderDetails().isEmpty() ? "상품 없음"
                             : order.getOrderDetails().get(0).getItem().getName();
                     int extraCount = order.getOrderDetails().size() - 1;
                     String displayName = extraCount > 0 ? repName + " 외 " + extraCount + "건" : repName;
@@ -172,7 +182,7 @@ public class OrderEmpService {
                 .items(itemDtos)
                 .build();
     }
-    
+
     @Transactional
     public void cancelOrder(Long userId, Long orderRequestId) {
 

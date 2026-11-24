@@ -1,13 +1,20 @@
 package com.jstudy.inout.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import com.jstudy.inout.common.auth.entity.Store;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.StoreRepository;
 import com.jstudy.inout.common.auth.repository.UserRepository;
 import com.jstudy.inout.common.mail.config.MailComponent;
+import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.delivery.service.DeliveryService;
+import com.jstudy.inout.order.dto.BulkOrderRequest;
+import com.jstudy.inout.order.dto.BulkOrderResponse;
 import com.jstudy.inout.order.entity.OrderDetail;
 import com.jstudy.inout.order.entity.OrderDetailStatus;
 import com.jstudy.inout.order.entity.OrderRequest;
@@ -66,6 +73,7 @@ class OrderApprovalPartialStockTest {
     @MockBean private DeliveryService deliveryService;
 
     @Autowired private OrderApprovalTxService orderApprovalTxService;
+    @Autowired private OrderAdmService orderAdmService;
     @Autowired private StoreRepository storeRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private ItemCategoryRepository itemCategoryRepository;
@@ -200,6 +208,92 @@ class OrderApprovalPartialStockTest {
             DepositAccount reloadedAccount = depositAccountRepository.findById(account.getId()).orElseThrow();
             assertThat(reloadedAccount.getBalance()).isEqualTo(INITIAL_BALANCE);
         });
+    }
+
+    @Test
+    @DisplayName("[일괄 승인] 이미 반려·환불된 발주는 다시 승인되지 않고 배송도 만들지 않는다")
+    void bulkApprove_rejectedOrder_staysRejected() {
+        markOrder(OrderStatus.REJECTED, OrderDetailStatus.REJECTED);
+
+        BulkOrderResponse result = orderAdmService.bulkApproveOrders(bulk(), admin.getId());
+
+        assertThat(result.getSuccessCount()).isZero();
+        assertThat(result.getFailureCount()).isEqualTo(1);
+        assertOrderUntouched(OrderStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("[일괄 승인] 점주 결제 전(직원 기안) 발주는 승인되지 않고 재고도 빠지지 않는다")
+    void bulkApprove_unpaidOrder_notApproved() {
+        markOrder(OrderStatus.REQUESTED, OrderDetailStatus.WAITING);
+
+        BulkOrderResponse result = orderAdmService.bulkApproveOrders(bulk(), admin.getId());
+
+        assertThat(result.getSuccessCount()).isZero();
+        assertThat(result.getFailureCount()).isEqualTo(1);
+        assertOrderUntouched(OrderStatus.REQUESTED);
+    }
+
+    @Test
+    @DisplayName("[승인·반려 동시] 반려가 먼저 끝난 뒤 들어온 승인은 거부되고, 환불은 한 번만 된다")
+    void approveAfterReject_refusedAndRefundedOnce() {
+        orderAdmService.rejectOrder(order.getId(), admin.getId(), null);
+
+        assertThatThrownBy(() -> orderApprovalTxService.processSingleOrderApproval(order.getId(), admin.getId()))
+                .isInstanceOf(InoutException.class)
+                .extracting("resultCode").isEqualTo("INVALID_ORDER_STATUS");
+
+        tx.executeWithoutResult(s -> {
+            assertThat(orderRequestRepository.findById(order.getId()).orElseThrow().getStatus())
+                    .isEqualTo(OrderStatus.REJECTED);
+            assertThat(depositHistoryRepository
+                    .findByDepositAccountIdOrderByCreatedAtDesc(account.getId(), Pageable.unpaged()).getContent())
+                    .extracting(DepositHistory::getType).containsExactly(TransactionType.REFUND);
+        });
+        verify(deliveryService, never()).createDeliveryIfAbsentForCompletedOrder(any());
+    }
+
+    @Test
+    @DisplayName("[품목별 처리 후] 일부 품목이 이미 처리된 발주는 한꺼번에 승인·반려하지 않는다 (전액 이중 환불 방지)")
+    void partiallyProcessedOrder_bulkPathRefused() {
+        // 품목 A만 먼저 반려(부분 환불)된 상태 — 마지막 품목 C는 재고가 부족해 예전 코드는 전액을 다시 환불했다
+        tx.executeWithoutResult(s -> orderRequestRepository.findByIdWithDetails(order.getId()).orElseThrow()
+                .getOrderDetails().get(0).updateStatus(OrderDetailStatus.REJECTED));
+
+        assertThatThrownBy(() -> orderApprovalTxService.processSingleOrderApproval(order.getId(), admin.getId()))
+                .isInstanceOf(InoutException.class)
+                .extracting("resultCode").isEqualTo("INVALID_ORDER_STATUS");
+        assertThatThrownBy(() -> orderApprovalTxService.processSingleOrderRejection(order.getId(), admin.getId(), "반려"))
+                .isInstanceOf(InoutException.class)
+                .extracting("resultCode").isEqualTo("INVALID_ORDER_STATUS");
+
+        assertOrderUntouched(OrderStatus.ORDERED);
+    }
+
+    private void markOrder(OrderStatus status, OrderDetailStatus detailStatus) {
+        tx.executeWithoutResult(s -> {
+            OrderRequest o = orderRequestRepository.findByIdWithDetails(order.getId()).orElseThrow();
+            o.updateStatus(status);
+            o.getOrderDetails().forEach(d -> d.updateStatus(detailStatus));
+        });
+    }
+
+    private BulkOrderRequest bulk() {
+        BulkOrderRequest request = new BulkOrderRequest();
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "orderIds", List.of(order.getId()));
+        return request;
+    }
+
+    private void assertOrderUntouched(OrderStatus expected) {
+        tx.executeWithoutResult(s -> assertThat(orderRequestRepository.findById(order.getId()).orElseThrow().getStatus())
+                .isEqualTo(expected));
+        assertThat(stockOf(itemA)).isEqualTo(STOCK_A);
+        assertThat(stockOf(itemB)).isEqualTo(STOCK_B);
+        assertThat(stockOf(itemC)).isEqualTo(STOCK_C);
+        verify(deliveryService, never()).createDeliveryIfAbsentForCompletedOrder(any());
+        tx.executeWithoutResult(s -> assertThat(depositHistoryRepository
+                .findByDepositAccountIdOrderByCreatedAtDesc(account.getId(), Pageable.unpaged()).getContent())
+                .as("환불·차감 이력이 새로 생기지 않아야 한다").isEmpty());
     }
 
     private int stockOf(Item item) {

@@ -3,6 +3,7 @@ package com.jstudy.inout.stock.dto.admin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,5 +31,8 @@ public class StockUpdate {
     private String unitDescription;
     
     private String description;
+
+    @Size(max = 255, message = "사진 경로가 너무 깁니다.")
+    private String imageUrl;
     
 }

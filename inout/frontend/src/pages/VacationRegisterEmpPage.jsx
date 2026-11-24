@@ -32,13 +32,13 @@ export default function VacationRegisterEmpPage() {
     e.preventDefault();
 
     if (!formData.startDate || !formData.endDate) {
-      window.alert('시작일과 종료일을 모두 선택해주세요.');
+      Toast.warning('시작일과 종료일을 모두 선택해주세요.');
       return;
     }
 
     // 1차 방어: 백엔드 호출 전, 브라우저 단에서 기간 유효성을 먼저 확인한다.
     if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      window.alert('시작일이 종료일보다 늦을 수 없습니다. 날짜를 다시 확인해주세요.');
+      Toast.warning('시작일이 종료일보다 늦을 수 없습니다. 날짜를 다시 확인해주세요.');
       return;
     }
 

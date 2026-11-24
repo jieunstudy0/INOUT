@@ -6,6 +6,7 @@ export default function DashboardShell({
   title,
   subtitle,
   actions,
+  quickSlot,
   kpiSlot,
   mainSlot,
   activitySlot,
@@ -19,6 +20,8 @@ export default function DashboardShell({
         </div>
         {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
+
+      {quickSlot}
 
       {/* 1구역: KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

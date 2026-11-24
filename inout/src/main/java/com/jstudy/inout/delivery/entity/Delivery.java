@@ -1,5 +1,7 @@
 package com.jstudy.inout.delivery.entity;
 
+import com.jstudy.inout.common.auth.entity.User;
+import jakarta.persistence.ManyToOne;
 import com.jstudy.inout.common.entity.BaseTimeEntity;
 import com.jstudy.inout.order.entity.OrderRequest;
 import jakarta.persistence.Column;
@@ -62,6 +64,13 @@ public class Delivery extends BaseTimeEntity {
 
     private LocalDateTime deliveredAt;
 
+    /** 매장이 물건을 받고 수령 확인한 시각. 이때 매장 재고가 늘어난다. */
+    private LocalDateTime receivedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "received_by")
+    private User receivedBy;
+
     @Builder
     public Delivery(
             OrderRequest orderRequest,
@@ -101,6 +110,19 @@ public class Delivery extends BaseTimeEntity {
         this.trackingNumber = trackingNumber;
         this.shippedAt = shippedAt;
         this.status = DeliveryStatus.SHIPPING;
+    }
+
+    /** 매장 수령 확인. 배송 중이었다면 배송 완료로 함께 바꾼다 (매장이 받았으니 도착한 것이다). */
+    public void confirmReceipt(User receiver, LocalDateTime receivedAt) {
+        if (this.status == DeliveryStatus.SHIPPING) {
+            completeDelivery(receivedAt);
+        }
+        this.receivedBy = receiver;
+        this.receivedAt = receivedAt;
+    }
+
+    public boolean isReceived() {
+        return receivedAt != null;
     }
 
     public void completeDelivery(LocalDateTime deliveredAt) {

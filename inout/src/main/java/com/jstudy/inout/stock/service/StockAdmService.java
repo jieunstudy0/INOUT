@@ -61,6 +61,11 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void updateStock(Long itemId, StockUpdate stockUpdate, Long userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
@@ -74,11 +79,17 @@ public class StockAdmService {
                 stockUpdate.getUnitPrice(),
                 stockUpdate.getMinStockLevel(),
                 stockUpdate.getUnitDescription(),
-                stockUpdate.getDescription()
+                stockUpdate.getDescription(),
+                stockUpdate.getImageUrl()
         );
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void deleteStock(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
@@ -152,6 +163,17 @@ public class StockAdmService {
                 .collect(Collectors.toList());
     }
 
+    /** 상품 등록·수정 화면의 카테고리 선택 목록 */
+    public List<CategoryOption> getCategories() {
+        return itemCategoryRepository.findAll().stream()
+                .sorted(Comparator.comparing(ItemCategory::getCategoryId))
+                .map(c -> new CategoryOption(c.getCategoryId(), c.getCategoryName()))
+                .toList();
+    }
+
+    public record CategoryOption(Integer categoryId, String name) {
+    }
+
     @Cacheable(value = CacheConfig.STOCK_ALERTS, key = "'lowStock'")
     public List<StockAdminResponse> getLowStockAlerts() {
         return itemRepository.findLowStockItems().stream()
@@ -186,6 +208,12 @@ public class StockAdmService {
                 .itemId(item.getItemId())
                 .itemName(item.getName())
                 .categoryName(item.getCategory() != null ? item.getCategory().getCategoryName() : "미지정")
+                .categoryId(item.getCategory() != null ? item.getCategory().getCategoryId() : null)
+                .unitPrice(item.getUnitPrice())
+                .unitDescription(item.getUnitDescription())
+                .description(item.getDescription())
+                .imageUrl(item.getImageUrl())
+                .deleted(item.getDeleted())
                 .currentStock(item.getCurrentStock())
                 .minStockLevel(item.getMinStockLevel())
                 .status(status)
@@ -202,6 +230,11 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void adjustStock(Long adminId, StockAdmRequest request) {
         Item item = itemRepository.findByIdWithLock(request.getItemId())
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));

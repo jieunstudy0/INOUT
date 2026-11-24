@@ -38,54 +38,6 @@ class StockEmpServiceTest {
     @Mock private StockReceivingHistoryRepository receivingHistoryRepository;
 
     @Test
-    @DisplayName("재고 사용 성공 - 충분한 재고가 있을 때 수량이 차감되고 이력이 남는다")
-    void useStock_Success() {
-        // given
-        Item item = Item.builder().itemId(1L).currentStock(50).deleted(false).build();
-        User employee = User.builder().id(1L).build();
-
-        given(itemRepository.findByIdWithLock(1L)).willReturn(Optional.of(item));
-        given(userRepository.findById(1L)).willReturn(Optional.of(employee));
-
-        // when 
-        Long usedItemId = stockEmpService.useStock(1L, 10, 1L, "매장 사용");
-
-        // then
-        assertThat(usedItemId).isEqualTo(1L);
-        assertThat(item.getCurrentStock()).isEqualTo(40);
-        verify(usageHistoryRepository).save(any());
-    }
-
-    @Test
-    @DisplayName("재고 사용 실패 - 삭제된 상품(deleted=true)이면 예외가 발생한다")
-    void useStock_Fail_DeletedItem() {
-        // given
-        Item deletedItem = Item.builder().itemId(1L).deleted(true).build(); 
-
-        given(itemRepository.findByIdWithLock(1L)).willReturn(Optional.of(deletedItem));
-
-        // when & then
-        assertThatThrownBy(() -> stockEmpService.useStock(1L, 10, 1L, "사용"))
-                .isInstanceOf(InoutException.class)
-                .hasMessageContaining("사용 가능한 상품이 없습니다.");
-    }
-
-    @Test
-    @DisplayName("재고 사용 실패 - 현재 재고보다 많은 수량을 요청하면 예외가 발생한다")
-    void useStock_Fail_NotEnoughStock() {
-        // given
-        Item item = Item.builder().itemId(1L).currentStock(5).deleted(false).build(); 
-        User employee = User.builder().id(1L).build();
-
-        given(itemRepository.findByIdWithLock(1L)).willReturn(Optional.of(item));
-        given(userRepository.findById(1L)).willReturn(Optional.of(employee));
-
-        // when & then 
-        assertThatThrownBy(() -> stockEmpService.useStock(1L, 10, 1L, "사용"))
-                .isInstanceOf(NotEnoughStockException.class); 
-    }
-
-    @Test
     @DisplayName("직원용 상품 상세 조회 성공")
     void getEmployeeStockDetail_Success() {
         // given

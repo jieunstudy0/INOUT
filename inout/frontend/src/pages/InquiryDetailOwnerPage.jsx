@@ -4,6 +4,7 @@ import { getInquiryDetail, deleteInquiry, createComment, deleteComment, updateCo
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import PersonName from '../components/common/PersonName';
+import { confirmDialog } from '../utils/dialog';
 
 function parseToken() {
   try {
@@ -69,7 +70,7 @@ export default function InquiryDetailOwnerPage() {
   useEffect(() => { loadDetail(); }, [loadDetail]);
 
   const handleDeleteInquiry = async () => {
-    if (!window.confirm('이 문의글을 삭제하시겠습니까?')) return;
+    if (!await confirmDialog('이 문의글을 삭제하시겠습니까?')) return;
     try {
       await deleteInquiry(inquiryId);
       Toast.success('문의글이 삭제되었습니다.');
@@ -127,7 +128,7 @@ export default function InquiryDetailOwnerPage() {
     } catch {}
   };
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('댓글을 삭제하시겠습니까?')) return;
+    if (!await confirmDialog('댓글을 삭제하시겠습니까?')) return;
     try {
       await deleteComment(inquiryId, commentId);
       Toast.success('댓글이 삭제되었습니다.');

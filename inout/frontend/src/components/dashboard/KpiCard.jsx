@@ -42,7 +42,7 @@ export default function KpiCard({
           {loading ? (
             <div className="mt-3"><Spinner size="sm" /></div>
           ) : (
-            <p className="mt-2 text-2xl font-extrabold text-slate-800 tabular-nums leading-tight break-all">
+            <p className="mt-2 text-xl 2xl:text-2xl font-extrabold text-slate-800 tabular-nums leading-tight whitespace-nowrap">
               {typeof value === 'number' ? value.toLocaleString('ko-KR') : value}
             </p>
           )}

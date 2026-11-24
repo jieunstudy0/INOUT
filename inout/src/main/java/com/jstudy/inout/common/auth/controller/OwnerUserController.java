@@ -3,6 +3,8 @@ package com.jstudy.inout.common.auth.controller;
 import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import com.jstudy.inout.common.auth.dto.OwnerUserDto;
 import com.jstudy.inout.common.auth.service.AuthService;
+import com.jstudy.inout.common.auth.service.UserManageService;
+import com.jstudy.inout.common.auth.dto.UserDetailDto;
 import com.jstudy.inout.common.dto.ResponseResult;
 import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
@@ -32,6 +34,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class OwnerUserController {
 
     private final AuthService authService;
+    private final UserManageService userManageService;
+
+    @Operation(summary = "소속 매장 직원 상세 (상세 화면)")
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getEmployeeDetail(@AuthenticationPrincipal CustomUserDetails principal,
+                                               @PathVariable("id") Long id) {
+        return ResponseResult.success("직원 조회가 완료되었습니다.",
+                userManageService.getDetailForOwner(requireOwnerId(principal), id));
+    }
+
+    @Operation(summary = "소속 매장 직원 기본 정보 수정 (이름·연락처·사진)")
+    @PutMapping("/{id}/basic-info")
+    public ResponseEntity<?> updateEmployeeBasicInfo(@AuthenticationPrincipal CustomUserDetails principal,
+                                                     @PathVariable("id") Long id,
+                                                     @Valid @RequestBody UserDetailDto.BasicInfoRequest request) {
+        userManageService.updateBasicInfoByOwner(requireOwnerId(principal), id, request);
+        return ResponseResult.successWithMessage("직원 기본 정보가 수정되었습니다.");
+    }
 
     @Operation(summary = "소속 매장 직원 목록 조회")
     @GetMapping
@@ -52,8 +72,8 @@ public class OwnerUserController {
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody OwnerUserDto.CreateRequest request) {
 
-        authService.createEmployeeByOwner(requireOwnerId(principal), request);
-        return ResponseResult.successWithMessage("직원 계정이 생성되었습니다.");
+        Long id = authService.createEmployeeByOwner(requireOwnerId(principal), request);
+        return ResponseResult.success("직원 계정이 생성되었습니다.", id);
     }
 
     @Operation(summary = "소속 매장 직원 상태 변경 (재직/휴직/퇴사)")

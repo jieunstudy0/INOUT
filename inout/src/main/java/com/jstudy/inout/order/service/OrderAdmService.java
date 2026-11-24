@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import com.jstudy.inout.common.config.CacheConfig;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
@@ -145,6 +148,11 @@ public class OrderAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void processOrderItems(Long orderId, OrderProcessRequest request, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
@@ -219,7 +227,11 @@ public class OrderAdmService {
             } catch (NotEnoughStockException e) {
                 orderApprovalTxService.processSingleOrderRejection(orderId, adminId, "자동 반려: " + e.getMessage());
                 failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason("재고 부족").build());
+            } catch (InoutException e) {
+                // 승인 대기가 아닌 발주 등 — 이 건만 건너뛰고 나머지는 계속 처리한다
+                failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason(e.getMessage()).build());
             } catch (Exception e) {
+                log.error("일괄 승인 중 오류 - orderId={}", orderId, e);
                 failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason("시스템 오류: " + e.getMessage()).build());
             }
         }

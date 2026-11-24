@@ -3,11 +3,15 @@ package com.jstudy.inout.common.auth.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 
 import com.jstudy.inout.common.auth.service.AuthService;
+import com.jstudy.inout.common.auth.service.UserManageService;
+import com.jstudy.inout.common.auth.dto.UserDetailDto;
 import com.jstudy.inout.common.dto.ResponseResult;
 import com.jstudy.inout.common.auth.dto.AdminUserDto;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,30 @@ import lombok.RequiredArgsConstructor;
 public class AdminUserController {
 
     private final AuthService authService;
+    private final UserManageService userManageService;
+
+    @Operation(summary = "회원 상세 (상세 화면)")
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getUserDetail(@PathVariable("id") Long id) {
+        return ResponseResult.success("회원 조회가 완료되었습니다.", userManageService.getDetailForAdmin(id));
+    }
+
+    @Operation(summary = "회원 기본 정보 수정 (이름·연락처·사진)")
+    @PutMapping("/{id}/basic-info")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateBasicInfo(@PathVariable("id") Long id,
+                                             @jakarta.validation.Valid @RequestBody UserDetailDto.BasicInfoRequest request) {
+        userManageService.updateBasicInfoByAdmin(id, request);
+        return ResponseResult.successWithMessage("회원 기본 정보가 수정되었습니다.");
+    }
+
+    @Operation(summary = "매장 목록 (소속 매장 선택용)")
+    @GetMapping("/stores")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getStores() {
+        return ResponseResult.success("매장 목록 조회가 완료되었습니다.", userManageService.getStores());
+    }
 
     @Operation(summary = "회원 목록 및 요약 조회", description = "필터 조건에 맞는 회원 목록과 상단 요약 통계를 반환합니다.")
     @GetMapping
@@ -39,9 +67,10 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUserByAdmin(
             @PathVariable("id") Long id,
-            @RequestBody AdminUserDto.UpdateRequest request) {
-            
-        authService.updateUserByAdmin(id, request);
+            @RequestBody AdminUserDto.UpdateRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+
+        authService.updateUserByAdmin(principal.getUser().getId(), id, request);
         return ResponseResult.successWithMessage("회원 정보가 성공적으로 변경되었습니다.");
     }
 

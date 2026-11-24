@@ -24,6 +24,10 @@ public class StockAdminResponse {
     private Integer minStockLevel;
     
     private String unitDescription;
+
+    private String description;
+
+    private String imageUrl;
     
     private Boolean deleted; 
     
@@ -37,7 +41,9 @@ public class StockAdminResponse {
                 .unitPrice(item.getUnitPrice())
                 .currentStock(item.getCurrentStock())
                 .minStockLevel(item.getMinStockLevel())
-                .unitDescription(item.getUnitDescription()) 
+                .unitDescription(item.getUnitDescription())
+                .description(item.getDescription())
+                .imageUrl(item.getImageUrl())
                 .deleted(item.getDeleted())
                 .createdAt(item.getCreatedAt())
                 .build();

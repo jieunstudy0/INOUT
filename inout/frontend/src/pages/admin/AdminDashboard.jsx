@@ -4,6 +4,7 @@ import { getDashboardSummary } from '../../api/dashboardApi';
 import { getListByStatuses } from '../../api/orderAdmApi';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import KpiCard from '../../components/dashboard/KpiCard';
+import QuickTasks from '../../components/dashboard/QuickTasks';
 import DashboardPanel, { ProgressBar } from '../../components/dashboard/DashboardPanel';
 import RecentActivityTable from '../../components/dashboard/RecentActivityTable';
 import StatusBadge from '../../components/dashboard/StatusBadge';
@@ -84,6 +85,7 @@ export default function AdminDashboard() {
           </button>
         </>
       )}
+      quickSlot={<QuickTasks role="admin" />}
       kpiSlot={(
         <>
           <KpiCard

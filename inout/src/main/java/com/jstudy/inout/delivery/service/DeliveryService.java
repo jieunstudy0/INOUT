@@ -1,5 +1,8 @@
 package com.jstudy.inout.delivery.service;
 
+import com.jstudy.inout.notification.entity.NotificationType;
+import com.jstudy.inout.notification.service.NotificationEvent.Target;
+import com.jstudy.inout.notification.service.Notifier;
 import com.jstudy.inout.common.exception.ErrorCode;
 import com.jstudy.inout.common.exception.InoutException;
 import com.jstudy.inout.delivery.dto.DeliveryDto;
@@ -27,6 +30,7 @@ public class DeliveryService {
     public static final String CARRIER_CJ = "CJ대한통운";
 
     private final DeliveryRepository deliveryRepository;
+    private final Notifier notifier;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -180,7 +184,23 @@ public class DeliveryService {
 
         String carrier = StringUtils.hasText(delivery.getCarrier()) ? delivery.getCarrier() : CARRIER_CJ;
         delivery.startShipping(carrier, request.getTrackingNumber().trim(), shippedAt);
+        notifyShipped(delivery);
         return DeliveryDto.from(delivery);
+    }
+
+    /** 배송이 출발하면 매장에 알린다. 도착하면 수령 확인을 눌러야 매장 재고가 늘어난다. */
+    private void notifyShipped(Delivery delivery) {
+        var requester = delivery.getOrderRequest().getRequestUser();
+        String title = "발주 #" + delivery.getOrderRequest().getId() + " 배송이 출발했습니다";
+        String message = "물건이 도착하면 [수령 확인]에서 받은 수량을 확인해 주세요.";
+        if (requester.getStore() == null) {
+            notifier.send(NotificationType.DELIVERY_SHIPPED, title, message, null,
+                    Target.user(requester.getId(), "/emp/receipts"));
+            return;
+        }
+        notifier.send(NotificationType.DELIVERY_SHIPPED, title, message, null,
+                Target.user(requester.getId(), "/emp/receipts"),
+                Target.storeOwners(requester.getStore().getId(), "/owner/receipts"));
     }
 
     @Transactional

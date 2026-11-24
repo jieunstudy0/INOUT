@@ -7,7 +7,7 @@ B2B 발주·재고 관리 시스템. Spring Boot 백엔드 + React(Vite) 프론�
 - **Backend**: Java 17, Spring Boot 3.5.7, JPA/Hibernate, MySQL 8, JWT, Spring Security
 - **Frontend**: React 19 + Vite + Tailwind CSS (frontend/ 폴더)
 - **Cache**: Redis (Spring Cache Abstraction)
-- **AI**: Gemini API 연동 — 자동 발주·문의 답변은 `gemini.model` 설정(현재 `gemini-2.0-flash`), 인사이트 리포트는 `gemini-2.5-flash`를 코드에 직접 적어 사용 (설정 하나로 통일 예정)
+- **AI**: Gemini API 연동 — 자동 발주·문의 답변·실사 영수증 읽기는 `gemini.model` 설정(현재 `gemini-2.5-flash`. `gemini-2.0-flash`는 서비스 종료로 404), 인사이트 리포트는 `gemini-2.5-flash`를 코드에 직접 적어 사용 (설정 하나로 통일 예정)
 - **Test**: JUnit5, Mockito, MockMvc, Spring Security Test — 개수 대신 `./gradlew test` 전체 통과로 확인
 - **Build**: Gradle 8
 
@@ -35,13 +35,20 @@ INOUT/
         ├── common/               ← 인증, JWT, OAuth2, 예외처리, 공통 응답, 설정, 메일
         ├── order/                ← 발주 (핵심 도메인)
         ├── payment/              ← 결제·예치금
-        ├── stock/                ← 재고
+        ├── stock/                ← 재고 (본사 상품·재고 + 매장 재고·수령 확인·실사)
         ├── delivery/             ← 배송
         ├── inquiry/              ← 문의게시판
         ├── leave/                ← 연차
         ├── dashboard/            ← 대시보드
-        └── ai/                   ← Gemini AI 연동
+        ├── notification/         ← 화면 안 알림 (커밋 이후 @Async 저장)
+        ├── request/              ← 현장 수정 요청 (직원·점주 → 점주·본사)
+        └── ai/                   ← Gemini AI 연동 (실사 영수증 사진 읽기 포함)
 ```
+
+## 재고는 두 종류다
+- **본사 재고** `Item.currentStock`: 발주 본사 승인 때 줄고, 본사 입고·조정으로 늘어난다. 점주·본사가 발주 흐름으로 다룬다.
+- **매장 재고** `StoreStock`(매장 × 상품): 매장이 배송을 [수령 확인]하면 받은 만큼 늘고, 직원 사용(차감)·점주 조정·점주가 승인한 실사로 바뀐다. 모든 증감은 `StoreStockHistory`에 남는다.
+- 직원은 매장 재고를 **사용(차감)만** 할 수 있다. 조정·처음 등록·안전재고·위치는 점주만. 매장 실사 승인도 점주.
 
 ## 핵심 설계 원칙
 1. **동시성**: 비관적 락(PESSIMISTIC_WRITE) + 낙관적 락(@Version) 병행
@@ -150,6 +157,9 @@ docs: 문서 수정
 - 동시성 테스트를 H2에서 돌린다. MySQL InnoDB와 락 동작이 달라 Testcontainers(MySQL)로 옮길 예정이다
 - AI 모델 설정이 두 군데로 나뉘어 있다 (`gemini.model` 설정 / `AiInsightService`는 코드에 직접 적음). 하나로 통일할 예정이다
 - `common/mail/dto/MailTemplate`은 엔티티인데 `@Data`를 쓰고 있고 패키지도 `dto`에 있다. `@Setter`·`@Data` 금지 규칙의 예외로 남아 있어 정리할 예정이다
+- 매장 재고 행은 처음 수령·등록할 때 만든다. 같은 매장·상품 행을 두 요청이 동시에 처음 만들면 유니크 제약 위반으로 한쪽이 실패한다 (드묾, 재시도하면 됨)
+- 직원 대시보드의 저재고 수치와 장바구니 AI 발주 추천은 아직 본사 재고 기준이다. 매장 재고 기준으로 바꿀 예정이다
+- PWA 푸시 알림은 아직 없다 (서버 Web Push 라이브러리·VAPID 키 결정 필요). 지금 알림은 화면 안 목록 + 1분마다 안 읽은 개수 확인
 - `AiInsightService.generateInsightReport`는 읽기 트랜잭션 안에서 Gemini를 호출한다. 조회와 외부 호출을 나눠 DB 연결을 오래 잡지 않게 할 예정이다
 
 ## 배포 체크리스트

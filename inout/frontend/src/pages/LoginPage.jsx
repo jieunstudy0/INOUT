@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Logo from '../components/common/Logo';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../api/authApi';
 import { Toast } from '../utils/toast';
@@ -87,11 +88,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center py-10">
       <div className="p-8 sm:p-10 bg-white shadow-xl rounded-3xl w-full max-w-[420px] border border-slate-200">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
-            <span className="text-white font-bold text-xl tracking-tight">IN</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">INOUT SYSTEM</h1>
-          <p className="text-slate-500 text-sm mt-1">재고 및 주문 관리 시스템</p>
+          <h1 className="mb-2"><Logo size="lg" /></h1>
+          <p className="text-slate-500 text-sm mt-1">매장 재고 · 발주 · 배송 관리</p>
         </div>
 
         <div className="space-y-4">
@@ -136,7 +134,7 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-[#111111] text-white py-3.5 rounded-xl font-bold hover:bg-black active:scale-[0.98] transition-all mt-2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold hover:bg-indigo-700 active:scale-[0.98] transition-all mt-2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

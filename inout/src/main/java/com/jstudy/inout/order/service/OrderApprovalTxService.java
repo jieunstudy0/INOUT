@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import com.jstudy.inout.common.config.CacheConfig;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
@@ -48,6 +51,11 @@ public class OrderApprovalTxService {
 
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public boolean processSingleOrderApproval(Long orderId, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
@@ -55,9 +63,24 @@ public class OrderApprovalTxService {
                 .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
         boolean aiSuggestedOrder = isAiSuggestedOrder(order);
 
+        // 잠금을 잡은 뒤에 상태를 다시 확인한다. 일괄 승인은 앞에서 상태를 보지 않고,
+        // 단건 승인도 잠금 전에 본 상태라 그사이 반려·취소됐을 수 있다.
+        // (반려·환불된 발주가 일괄 승인으로 다시 '승인'되고 배송까지 만들어지던 문제)
+        boolean aiDraft = aiSuggestedOrder && order.getStatus() == OrderStatus.REQUESTED;
+        if (!(order.getStatus().isAwaitingHq() || aiDraft)) {
+            throw new InoutException(ErrorCode.INVALID_ORDER_STATUS, "본사 승인 대기 상태의 발주만 승인할 수 있습니다.");
+        }
+
         List<OrderDetail> waitingDetails = order.getOrderDetails().stream()
                 .filter(detail -> detail.getStatus().isWaiting())
                 .toList();
+
+        // 한꺼번에 승인·반려하는 이 경로는 "모든 품목이 아직 대기 중"일 때만 맞다.
+        // 재고 부족이면 발주 전체 금액을 돌려주는데, 이미 품목별로 반려·환불된 품목이 있으면 그 금액이 두 번 나간다.
+        // 품목별 처리가 시작된 발주는 품목별 처리(processOrderItems)로 마무리한다.
+        if (!aiSuggestedOrder) {
+            requireAllWaiting(order, waitingDetails);
+        }
 
         if (aiSuggestedOrder) {
             ensureAiProcurementSnapshot(order);
@@ -134,11 +157,16 @@ public class OrderApprovalTxService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
     public void processSingleOrderRejection(Long orderId, Long adminId, String reason) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
 
         if (order.getStatus().isAwaitingHq()) {
+            // 전액 환불은 품목별 처리(부분 환불·차감)가 하나도 없을 때만 맞다
+            requireAllWaiting(order, order.getOrderDetails().stream()
+                    .filter(detail -> detail.getStatus().isWaiting())
+                    .toList());
             depositService.refundDeposit(
                     order.getRequestUser().getId(),
                     adminId,                   
@@ -158,6 +186,13 @@ public class OrderApprovalTxService {
         }
 
         publishOrderStateChanged(order);
+    }
+
+    private static void requireAllWaiting(OrderRequest order, List<OrderDetail> waitingDetails) {
+        if (waitingDetails.size() != order.getOrderDetails().size()) {
+            throw new InoutException(ErrorCode.INVALID_ORDER_STATUS,
+                    "품목별 처리가 시작된 발주입니다. 남은 품목은 발주 상세에서 품목별로 처리해 주세요.");
+        }
     }
 
     private void publishOrderStateChanged(OrderRequest order) {

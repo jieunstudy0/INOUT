@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { LogoMark } from '../components/common/Logo';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPasswordComplete } from '../api/authApi';
 import { isUnusableResetLink } from '../utils/resultCodes';
+import { alertDialog } from '../utils/dialog';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -31,7 +33,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     try {
       await resetPasswordComplete(resetKey, formData.password, formData.passwordConfirm);
-      alert('비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해 주세요!');
+      await alertDialog('비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해 주세요!');
       navigate('/login');
     } catch (err) {
       console.error("비밀번호 재설정 에러:", err);
@@ -50,9 +52,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center py-10">
       <div className="p-10 bg-white shadow-xl rounded-2xl w-[480px] border border-slate-200">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
-            <span className="text-white font-bold text-xl">IN</span>
-          </div>
+          <div className="mb-4"><LogoMark size={48} /></div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">비밀번호 재설정</h1>
           <p className="text-slate-500 text-sm mt-1">새로운 비밀번호를 입력해 주세요.</p>
         </div>

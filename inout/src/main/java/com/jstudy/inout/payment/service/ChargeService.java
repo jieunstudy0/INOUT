@@ -44,7 +44,7 @@ public class ChargeService {
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
 
-        ChargeRequest request = chargeRequestRepository.findById(chargeRequestId)
+        ChargeRequest request = chargeRequestRepository.findByIdForUpdate(chargeRequestId)
                 .orElseThrow(() -> new InoutException(ErrorCode.REQUEST_NOT_FOUND));
 
         if (request.getStatus() != ChargeStatus.PENDING) {
@@ -66,7 +66,7 @@ public class ChargeService {
         User admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
 
-        ChargeRequest request = chargeRequestRepository.findById(chargeRequestId)
+        ChargeRequest request = chargeRequestRepository.findByIdForUpdate(chargeRequestId)
                 .orElseThrow(() -> new InoutException(ErrorCode.REQUEST_NOT_FOUND));
 
         if (request.getStatus() != ChargeStatus.PENDING) {

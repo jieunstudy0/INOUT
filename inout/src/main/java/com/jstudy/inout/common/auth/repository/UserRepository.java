@@ -72,6 +72,25 @@ public interface UserRepository extends JpaRepository<User, Long>{
             """)
     java.util.List<User> findAdminUsersSortedById(Pageable pageable);
 
+    /** 알림 받는 사람 찾기: 매장 + 역할 (예: 그 매장의 점주들) */
+    @Query("""
+            SELECT u.id
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.store.id = :storeId AND r.roleName = :roleName
+            """)
+    java.util.List<Long> findIdsByStoreAndRole(@Param("storeId") Long storeId, @Param("roleName") String roleName);
+
+    @Query("""
+            SELECT u.id
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE r.roleName = :roleName
+            """)
+    java.util.List<Long> findIdsByRole(@Param("roleName") String roleName);
+
     @Query("""
             SELECT u
             FROM User u
