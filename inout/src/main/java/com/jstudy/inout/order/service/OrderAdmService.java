@@ -219,7 +219,11 @@ public class OrderAdmService {
             } catch (NotEnoughStockException e) {
                 orderApprovalTxService.processSingleOrderRejection(orderId, adminId, "자동 반려: " + e.getMessage());
                 failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason("재고 부족").build());
+            } catch (InoutException e) {
+                // 승인 대기가 아닌 발주 등 — 이 건만 건너뛰고 나머지는 계속 처리한다
+                failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason(e.getMessage()).build());
             } catch (Exception e) {
+                log.error("일괄 승인 중 오류 - orderId={}", orderId, e);
                 failures.add(BulkOrderResponse.FailedOrder.builder().orderId(orderId).reason("시스템 오류: " + e.getMessage()).build());
             }
         }

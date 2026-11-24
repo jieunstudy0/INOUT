@@ -55,6 +55,14 @@ public class OrderApprovalTxService {
                 .orElseThrow(() -> new InoutException(ErrorCode.ADMIN_NOT_FOUND));
         boolean aiSuggestedOrder = isAiSuggestedOrder(order);
 
+        // 잠금을 잡은 뒤에 상태를 다시 확인한다. 일괄 승인은 앞에서 상태를 보지 않고,
+        // 단건 승인도 잠금 전에 본 상태라 그사이 반려·취소됐을 수 있다.
+        // (반려·환불된 발주가 일괄 승인으로 다시 '승인'되고 배송까지 만들어지던 문제)
+        boolean aiDraft = aiSuggestedOrder && order.getStatus() == OrderStatus.REQUESTED;
+        if (!(order.getStatus().isAwaitingHq() || aiDraft)) {
+            throw new InoutException(ErrorCode.INVALID_ORDER_STATUS, "본사 승인 대기 상태의 발주만 승인할 수 있습니다.");
+        }
+
         List<OrderDetail> waitingDetails = order.getOrderDetails().stream()
                 .filter(detail -> detail.getStatus().isWaiting())
                 .toList();
