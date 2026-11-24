@@ -198,6 +198,82 @@ JPA 1차 캐시는 트랜잭션 단위로 유지된다. 동일 트랜잭션 내�
 
 ---
 
+## 2.3 반려·환불된 발주가 일괄 승인으로 다시 '승인'되던 문제 — 잠금 뒤에 상태를 다시 확인
+
+### 📌 문제 현상 (Issue)
+
+본사 발주 목록의 [일괄 승인]에 이미 반려·환불이 끝난 발주를 넣으면 '승인'으로 바뀌고 배송까지 만들어졌다. 점주에게 돈은 돌려줬는데 물건은 나가는 상태가 된다. 결제 전(직원 기안)·취소된 발주도 같은 경로로 결제 없이 재고가 빠지고 승인됐다.
+
+### 🔍 원인 분석 (Cause)
+
+* 단건 승인(`approveOrder`)은 '점주 결제 완료' 상태인지 확인한 뒤 `processSingleOrderApproval`을 불렀지만, 일괄 승인(`bulkApproveOrders`)은 확인 없이 바로 불렀다.
+* `processSingleOrderApproval` 자체는 상태를 보지 않고 '대기(WAITING) 품목'만 골랐다. 반려된 발주는 대기 품목이 0개라 재고 검사를 그냥 통과했고, 그대로 주문을 APPROVED로 바꾸고 배송을 만들었다.
+* 단건 승인도 상태를 잠금 **전에** 확인했기 때문에, 그사이 다른 관리자가 반려하면 같은 일이 생길 수 있었다.
+
+### 🛠️ 해결 방법 (Solution)
+
+주문 행을 잠근(`findByIdForUpdateWithDetails`) **직후** `processSingleOrderApproval` 안에서 상태를 다시 확인한다. 점주 결제 완료(또는 AI 자동발주 초안)가 아니면 `INVALID_ORDER_STATUS`로 거부한다. 일괄 승인은 이 실패를 해당 건의 실패 사유로 담고 나머지 건을 계속 처리한다.
+
+회귀 테스트: `OrderApprovalPartialStockTest`의 `bulkApprove_rejectedOrder_staysRejected`, `bulkApprove_unpaidOrder_notApproved`. 상태 확인을 지우면 두 테스트가 실패하는 것을 확인했다.
+
+### 🛠️ 이어서 막은 것 — 품목별 처리가 시작된 발주의 이중 환불
+
+같은 메서드는 재고가 부족하면 **발주 전체 금액**을 돌려준다. 이는 "모든 품목이 아직 대기 중"일 때만 맞다. 품목 일부를 먼저 반려(부분 환불)한 발주가 이 경로로 들어오면 그 금액이 두 번 나간다. 그래서 승인(`processSingleOrderApproval`)과 전체 반려(`processSingleOrderRejection`) 모두 대기 품목 수가 전체 품목 수와 같은지 확인하고, 다르면 `INVALID_ORDER_STATUS`로 거부한다. 남은 품목은 품목별 처리(`processOrderItems`)로 마무리한다.
+
+회귀 테스트: `approveAfterReject_refusedAndRefundedOnce`(반려 뒤 들어온 승인 거부·환불 1회), `partiallyProcessedOrder_bulkPathRefused`(일부 처리된 발주의 일괄 승인·반려 거부).
+
+### 💡 성과 및 깨달음 (Insight)
+
+* **"이 상태에서 해도 되는가"는 바꾸는 쪽(잠금을 잡은 쪽)이 확인해야 한다.** 부르는 쪽이 미리 확인하는 것은 잠금 전 값이라 믿을 수 없고, 부르는 곳이 늘면 빠뜨리기 쉽다.
+
+---
+
+## 2.4 예치금 충전 요청을 동시에 두 번 승인하면 두 번 충전되던 문제
+
+### 📌 문제 현상 (Issue)
+
+관리자 두 명이 같은 충전 요청을 동시에 승인하거나 버튼이 두 번 눌리면, 두 요청이 모두 성공해 예치금이 두 번 충전될 수 있었다.
+
+### 🔍 원인 분석 (Cause)
+
+`ChargeService.approveCharge`가 충전 요청을 잠그지 않고 `findById`로 읽은 뒤 "대기 중(PENDING)인지"만 확인했다. 두 트랜잭션이 동시에 읽으면 둘 다 PENDING을 보고 각각 `chargeDeposit`을 실행한다. `ChargeRequest`에는 `@Version`도 없어 나중 커밋을 막을 장치가 없었다.
+
+### 🛠️ 해결 방법 (Solution)
+
+`ChargeRequestRepository.findByIdForUpdate`(비관적 쓰기 잠금)로 요청을 읽고 상태를 확인한다. 두 번째 승인은 첫 번째가 끝날 때까지 기다린 뒤 APPROVED를 보고 `ALREADY_PROCESSED`로 거부된다. 반려(`rejectCharge`)도 같은 방식으로 읽는다.
+
+회귀 테스트: `ChargeApproveConcurrencyTest` — 두 스레드가 동시에 승인해 한 번만 충전되는지 확인한다. 잠금을 빼면 실패하는 것을 확인했다.
+
+### 💡 성과 및 깨달음 (Insight)
+
+* **"확인하고 바꾸기"는 잠금 없이 하면 확인이 아니다.** 돈이 움직이는 상태 전이에는 확인 전에 잠금을 잡는다.
+
+## 2.5 재고를 바꿔도 저재고 알림·대시보드가 몇 분 동안 예전 숫자를 보여 주던 문제
+
+### 📌 문제 현상 (Issue)
+
+발주 승인으로 재고가 줄거나, 재고를 조정하거나, 안전재고 기준을 바꾸거나, 상품을 삭제해도 저재고 알림과 본사 대시보드 숫자가 최대 3~5분 늦게 바뀌었다.
+
+### 🔍 원인 분석 (Cause)
+
+저재고 알림(`STOCK_ALERTS`)과 대시보드(`DASHBOARD_SUMMARY`)는 Redis에 3~5분 저장해 두고 쓴다. 그런데 저장한 값을 비우는 설정(`@CacheEvict`)이 상품 등록과 입고(`receiveStock`)에만 붙어 있었다.
+
+### 🛠️ 해결 방법 (Solution)
+
+본사 재고 수량이나 저재고 기준을 바꾸는 메서드에 같은 비우기 설정을 붙였다.
+* `StockAdmService`: `adjustStock`, `updateStock`, `deleteStock`
+* `OrderApprovalTxService.processSingleOrderApproval`
+* `OrderAdmService.processOrderItems`
+* 전체 반려는 재고를 바꾸지 않으므로 대시보드만 비운다.
+
+회귀 테스트: `StockCacheEvictionTest`. 테스트 환경에는 Redis가 없어 캐시가 실제로 동작하지 않으므로, 각 메서드에 비우기 설정이 붙어 있는지 확인한다.
+
+### 💡 성과 및 깨달음 (Insight)
+
+* **캐시를 추가할 때는 "이 값을 바꾸는 곳"을 모두 찾아 비우기를 붙인다.** 읽는 곳은 하나여도 바꾸는 곳은 여러 군데다.
+
+---
+
 # SECTION 3. 아키텍처 격리 및 빌드 환경 구축
 
 > 외부 시스템 장애나 빌드 환경의 버전 충돌이 메인 비즈니스 트랜잭션을 저해하지 않도록 격리해야 한다.
@@ -425,6 +501,32 @@ public void addUser(UserInput userInput) { ... }                // 예외 없이
 
 ---
 
+## 5.3 관리자 권한 체크박스가 저장되지 않고, 관리자를 저장하면 권한이 지워지던 문제 — boolean `isXxx` 필드의 JSON 이름
+
+### 📌 문제 현상 (Issue)
+
+본사 회원 상세에서 '관리자 권한'을 체크해도 저장되지 않았다. 반대로 관리자 계정의 정보를 수정·저장하면 관리자 권한이 지워졌다. 회원 카드의 '관리자'·'잠김' 표시도 한 번도 나오지 않았다.
+
+### 🔍 원인 분석 (Cause)
+
+* DTO 필드가 `private boolean isAdmin`이면 Lombok이 getter를 `isAdmin()`으로 만든다. Jackson은 이 getter를 보고 JSON 이름을 `admin`으로 정한다.
+* 응답은 `"admin"`으로 나가는데 화면은 `isAdmin`을 읽어 늘 false였다. 요청의 `"isAdmin"`은 이름이 맞는 쓰기 경로(setter·이름이 같은 필드)가 없어 버려졌고, `"admin"`으로 보내도 마찬가지였다. 그래서 서버는 항상 "관리자 아님"을 받았고, 기존 관리자라면 권한을 지웠다.
+* 본인 권한을 빼거나 마지막 관리자를 없애는 것을 막는 장치도 없었다.
+
+### 🛠️ 해결 방법 (Solution)
+
+* `isAdmin`·`isLocked` 필드에 `@JsonProperty("isAdmin")`처럼 이름을 직접 적었다 (`AdminUserDto`, `UserDetailDto`, `OwnerUserDto`).
+* `updateUserByAdmin`이 수정하는 관리자 id를 받아, 관리자로 일할 수 없게 되는 변경(권한 빼기·휴직·퇴사)에서 본인이면 `SELF_ADMIN_CHANGE_FORBIDDEN`, 로그인할 수 있는 마지막 관리자면 `LAST_ADMIN_REQUIRED`로 거부한다.
+
+회귀 테스트: `AdminUserUpdateGuardTest` — JSON 읽기·쓰기 이름과 본인·마지막 관리자 보호를 확인한다. `@JsonProperty`를 빼면 실패하는 것을 확인했다.
+
+### 💡 성과 및 깨달음 (Insight)
+
+* **boolean 필드 이름을 `isXxx`로 짓지 않거나, 짓는다면 JSON 이름을 직접 적는다.** 컴파일 에러도 런타임 오류도 없이 값만 조용히 사라진다.
+* 화면에서 보내는 값이 서버에 실제로 들어가는지는 요청 → 저장 → 다시 조회로 확인해야 한다.
+
+---
+
 # 부록 A. 사고 방지 체크리스트 (개인 원칙)
 
 1. **재고·잔액 등 자원 차감 전에는 락 획득 후 반드시 `refresh`로 영속성 컨텍스트를 최신화한다.**
@@ -435,6 +537,9 @@ public void addUser(UserInput userInput) { ... }                // 예외 없이
 6. **의존성 충돌 발생 시 소스 코드 확인에 앞서 `dependencyInsight`로 실제 런타임 클래스패스를 점검한다.**
 7. **상태 코드·resultCode처럼 클라이언트와 약속한 값은 한곳(`ErrorCode`)에만 정의한다.** 호출하는 곳에서 숫자나 문자열을 직접 적지 않는다.
 8. **취소해야 하는 실패는 반환값이 아니라 예외로 알린다.** 설계를 바꾸면 쓰이지 않게 된 클래스·메서드도 함께 정리한다.
+9. **상태를 바꾸기 전 확인은 잠금을 잡은 뒤, 바꾸는 메서드 안에서 한다.** (2.3, 2.4)
+10. **boolean 필드를 `isXxx`로 지으면 JSON 이름을 `@JsonProperty`로 직접 적는다.** (5.3)
+11. **캐시를 두면 그 값을 바꾸는 모든 메서드에 비우기를 붙인다.** (2.5)
 
 ```
 
