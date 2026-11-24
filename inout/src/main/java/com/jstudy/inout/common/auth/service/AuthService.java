@@ -31,7 +31,7 @@ public interface AuthService {
     
     void updateMyProfile(Long id, @Valid UserProfileUpdateRequest request);
    
-    void updateUserByAdmin(Long id, AdminUserDto.UpdateRequest request);
+    void updateUserByAdmin(Long actorId, Long userId, AdminUserDto.UpdateRequest request);
     
     AdminUserDto.ListResponse getAdminUserList(Long storeId, String status, String keyword, Pageable pageable);
     

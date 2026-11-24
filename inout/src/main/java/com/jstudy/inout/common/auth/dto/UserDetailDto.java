@@ -7,6 +7,7 @@ import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.entity.UserStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +31,9 @@ public final class UserDetailDto {
         private Long storeId;
         private String storeName;
         private UserStatus status;
+        @JsonProperty("isLocked")
         private boolean isLocked;
+        @JsonProperty("isAdmin")
         private boolean isAdmin;
         private List<String> roles;
         private Long dailyDepositLimit;

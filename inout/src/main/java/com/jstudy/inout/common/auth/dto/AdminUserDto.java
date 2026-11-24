@@ -1,6 +1,7 @@
 package com.jstudy.inout.common.auth.dto;
 
 import com.jstudy.inout.common.auth.entity.UserStatus;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,6 +18,7 @@ public class AdminUserDto {
     public static class UpdateRequest {
         private Long storeId;     
         private UserStatus status;  
+        @JsonProperty("isAdmin")
         private boolean isAdmin; 
     }
 
@@ -47,7 +49,9 @@ public class AdminUserDto {
         private Long storeId;
         private String storeName;
         private UserStatus status;
+        @JsonProperty("isLocked")
         private boolean isLocked;
+        @JsonProperty("isAdmin")
         private boolean isAdmin;
         private LocalDateTime createdAt;
     }

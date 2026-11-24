@@ -3,6 +3,8 @@ package com.jstudy.inout.common.auth.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.jstudy.inout.common.auth.dto.CustomUserDetails;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
@@ -65,9 +67,10 @@ public class AdminUserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateUserByAdmin(
             @PathVariable("id") Long id,
-            @RequestBody AdminUserDto.UpdateRequest request) {
-            
-        authService.updateUserByAdmin(id, request);
+            @RequestBody AdminUserDto.UpdateRequest request,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+
+        authService.updateUserByAdmin(principal.getUser().getId(), id, request);
         return ResponseResult.successWithMessage("회원 정보가 성공적으로 변경되었습니다.");
     }
 
