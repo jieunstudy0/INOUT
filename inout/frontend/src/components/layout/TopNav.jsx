@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Logo from '../common/Logo';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { activeGroupKey } from './navMenus';
 
@@ -73,12 +74,8 @@ export default function TopNav({ menu, utility, actions, mobileActions }) {
             </svg>
           </button>
 
-          <Link to={menu.home} className="flex items-center gap-2.5 shrink-0" aria-label="홈으로">
-            <span className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-sm font-bold tracking-tight">IN</span>
-            <span className="leading-tight">
-              <span className="block text-lg font-semibold text-slate-900 tracking-tight">INOUT</span>
-              <span className="hidden sm:block text-[10px] text-slate-500">{menu.consoleLabel}</span>
-            </span>
+          <Link to={menu.home} className="shrink-0" aria-label={`홈으로 (${menu.consoleLabel})`}>
+            <Logo label={menu.consoleLabel} />
           </Link>
 
           <nav className="hidden lg:flex items-stretch self-stretch gap-1" aria-label="주 메뉴">
@@ -143,9 +140,8 @@ export default function TopNav({ menu, utility, actions, mobileActions }) {
           <div className="absolute inset-0 bg-slate-900/40" onClick={() => setDrawerOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-[86%] max-w-sm bg-white flex flex-col">
             <div className="h-16 px-5 flex items-center justify-between border-b border-slate-200">
-              <Link to={menu.home} className="flex items-center gap-2.5" onClick={() => setDrawerOpen(false)}>
-                <span className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-sm font-bold">IN</span>
-                <span className="text-lg font-semibold text-slate-900">INOUT</span>
+              <Link to={menu.home} onClick={() => setDrawerOpen(false)}>
+                <Logo label={menu.consoleLabel} />
               </Link>
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="메뉴 닫기" className="p-2 text-slate-500">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
