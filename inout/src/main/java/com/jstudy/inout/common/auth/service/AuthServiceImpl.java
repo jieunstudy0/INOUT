@@ -235,6 +235,7 @@ public class AuthServiceImpl implements AuthService {
                     .name(u.getName())
                     .email(u.getEmail())
                     .phone(u.getPhone())
+                    .profileImageUrl(u.getProfileImageUrl())
                     .storeId(u.getStore() != null ? u.getStore().getId() : null)
                     .storeName(u.getStore() != null ? u.getStore().getName() : "본점 (소속 없음)")
                     .status(u.getStatus())
@@ -319,6 +320,7 @@ public class AuthServiceImpl implements AuthService {
                 .name(u.getName())
                 .email(u.getEmail())
                 .phone(u.getPhone())
+                    .profileImageUrl(u.getProfileImageUrl())
                 .storeId(u.getStore() != null ? u.getStore().getId() : null)
                 .storeName(u.getStore() != null ? u.getStore().getName() : "본점 (소속 없음)")
                 .status(u.getStatus())
@@ -334,7 +336,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
+    public Long createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request) {
         User owner = requireOwnerWithStore(ownerUserId);
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -358,6 +360,7 @@ public class AuthServiceImpl implements AuthService {
         Role employeeRole = roleRepository.findByRoleName("ROLE_EMPLOYEE")
                 .orElseThrow(() -> new InoutException(ErrorCode.ROLE_NOT_FOUND, "기본 권한 정보를 찾을 수 없습니다."));
         userRoleRepository.save(UserRole.builder().user(employee).role(employeeRole).build());
+        return employee.getId();
     }
 
     @Override

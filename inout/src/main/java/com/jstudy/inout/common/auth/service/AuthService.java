@@ -39,7 +39,8 @@ public interface AuthService {
 
     OwnerUserDto.ListResponse getOwnerUserList(Long ownerUserId, String status, String keyword, Pageable pageable);
 
-    void createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request);
+    /** @return 새 직원 ID (등록 직후 사진 저장 등 상세 화면에서 이어서 쓴다) */
+    Long createEmployeeByOwner(Long ownerUserId, OwnerUserDto.CreateRequest request);
 
     void updateEmployeeByOwner(Long ownerUserId, Long employeeUserId, OwnerUserDto.UpdateRequest request);
 

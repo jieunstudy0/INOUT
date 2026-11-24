@@ -43,6 +43,7 @@ public class AdminUserDto {
         private String name;
         private String email;
         private String phone;
+        private String profileImageUrl;
         private Long storeId;
         private String storeName;
         private UserStatus status;
