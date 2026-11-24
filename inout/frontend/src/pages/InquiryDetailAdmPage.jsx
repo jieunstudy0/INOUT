@@ -5,6 +5,7 @@ import { triggerAiCsClassificationForOne } from '../api/aiApi';
 import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import PersonName from '../components/common/PersonName';
+import { confirmDialog } from '../utils/dialog';
 
 function parseToken() {
   try {
@@ -118,7 +119,7 @@ export default function InquiryDetailAdmPage() {
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('답변을 삭제하시겠습니까?')) return;
+    if (!await confirmDialog('답변을 삭제하시겠습니까?')) return;
     try {
       await deleteComment(inquiryId, commentId);
       Toast.success('답변이 삭제되었습니다.');

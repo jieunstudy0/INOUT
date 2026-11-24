@@ -3,6 +3,7 @@ import { LogoMark } from '../components/common/Logo';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPasswordComplete } from '../api/authApi';
 import { isUnusableResetLink } from '../utils/resultCodes';
+import { alertDialog } from '../utils/dialog';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     try {
       await resetPasswordComplete(resetKey, formData.password, formData.passwordConfirm);
-      alert('비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해 주세요!');
+      await alertDialog('비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해 주세요!');
       navigate('/login');
     } catch (err) {
       console.error("비밀번호 재설정 에러:", err);

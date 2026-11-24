@@ -6,6 +6,7 @@ import EmptyState from '../components/common/EmptyState';
 import ChangeRequestForm from '../components/request/ChangeRequestForm';
 import ProductCard from '../components/common/ProductCard';
 import { stockBadge, stockTone } from '../utils/stockStatus';
+import { confirmDialog } from '../utils/dialog';
 
 /**
  * 매장 재고 사용 처리 (직원).
@@ -40,7 +41,7 @@ export default function StockUseEmpPage() {
     const qty = Number(inputs[stock.storeStockId]);
     if (!qty || qty < 1) return Toast.warning('사용할 수량을 1개 이상 입력해 주세요.');
     if (qty > stock.quantity) return Toast.warning('매장 재고보다 많이 사용할 수 없습니다.');
-    if (!window.confirm(`[${stock.itemName}] ${qty}개를 사용 처리할까요?`)) return;
+    if (!await confirmDialog(`[${stock.itemName}] ${qty}개를 사용 처리할까요?`)) return;
 
     setSubmittingId(stock.storeStockId);
     try {

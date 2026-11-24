@@ -15,6 +15,7 @@ import {
   formatWon,
   parseJwtPayload,
 } from '../../utils/headerSync';
+import { confirmDialog } from '../../utils/dialog';
 
 function ChargeModal({ open, onClose, onSuccess }) {
   const [amount, setAmount] = useState('');
@@ -102,7 +103,7 @@ export default function OwnerLayout() {
   useEffect(() => subscribeHeaderRefresh(() => loadSummary()), [loadSummary]);
 
   const handleLogout = async () => {
-    if (!window.confirm('로그아웃 하시겠습니까?')) return;
+    if (!await confirmDialog('로그아웃 하시겠습니까?')) return;
     try {
       await logout();
     } catch {

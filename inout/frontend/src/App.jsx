@@ -25,6 +25,7 @@ import UserDetailOwnerPage from './pages/UserDetailOwnerPage';
 import CartEmpPage from './pages/CartEmpPage';
 import OrderEmpPage from './pages/OrderEmpPage';
 import ToastContainer from './components/common/ToastContainer';
+import DialogHost from './components/common/DialogHost';
 import InquiryAdmPage from './pages/InquiryAdmPage';
 import InquiryEmpPage from './pages/InquiryEmpPage';
 import InquiryCreatePage from './pages/InquiryCreatePage';
@@ -73,6 +74,7 @@ export default function App() {
     <BrowserRouter>
       <NavigationBridge />
       <ToastContainer />
+      <DialogHost />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />

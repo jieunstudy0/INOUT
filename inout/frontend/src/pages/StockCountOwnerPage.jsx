@@ -12,6 +12,7 @@ import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import StatusPill from '../components/stock/StockCountStatusPill';
 import { REASON_TEXT, formatDateTime } from '../utils/stockCount';
+import { confirmDialog } from '../utils/dialog';
 
 const FILTERS = [
   { value: 'SUBMITTED', label: '승인 대기' },
@@ -64,7 +65,7 @@ export default function StockCountOwnerPage() {
         changed.slice(0, 8).map((l) => `· ${l.itemName}: ${l.currentStock} → ${l.expectedAfterApply} (${signed(l.diff)})`).join('\n') +
         (changed.length > 8 ? `\n… 외 ${changed.length - 8}품목` : '') +
         '\n\n승인하시겠습니까?';
-    if (!window.confirm(msg)) return;
+    if (!await confirmDialog(msg)) return;
 
     setProcessing(true);
     try {

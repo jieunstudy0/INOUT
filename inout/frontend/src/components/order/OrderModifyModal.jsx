@@ -4,6 +4,7 @@ import { Toast } from '../../utils/toast';
 import { isStaleDataError } from '../../utils/resultCodes';
 import Spinner from '../common/Spinner';
 import PersonName from '../common/PersonName';
+import { confirmDialog } from '../../utils/dialog';
 
 /**
  * 점주: 직원 기안(REQUESTED) 수량 조정·삭제 후 결제 승인 / 기안 반려
@@ -81,7 +82,7 @@ export default function OrderModifyModal({ orderId, onClose, onDone }) {
   };
 
   const handleReject = async () => {
-    if (!window.confirm('이 직원 기안을 반려하시겠습니까? (미결제 상태라 예치금 차감은 없습니다)')) return;
+    if (!await confirmDialog('이 직원 기안을 반려하시겠습니까? (미결제 상태라 예치금 차감은 없습니다)')) return;
     setSubmitting(true);
     try {
       await rejectOwnerDraft(orderId, { reason: '점주 기안 반려' });

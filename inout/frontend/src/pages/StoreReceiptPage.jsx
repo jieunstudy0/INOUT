@@ -6,6 +6,7 @@ import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import { formatDateTime } from '../utils/stockCount';
 import ChangeRequestForm from '../components/request/ChangeRequestForm';
+import { confirmDialog } from '../utils/dialog';
 
 /**
  * 배송 수령 확인 (직원·점주 공용, role = 'emp' | 'owner').
@@ -48,7 +49,7 @@ export default function StoreReceiptPage({ role = 'emp' }) {
     const msg = short.length
       ? `덜 받은 품목이 ${short.length}개 있습니다.\n${short.map((l) => `· ${l.itemName}: ${l.orderedQty} → ${qty[l.orderDetailId]}`).join('\n')}\n\n받은 수량만 매장 재고에 더합니다. 확인할까요?`
       : '발주 수량대로 모두 받았습니다. 수령 확인할까요?';
-    if (!window.confirm(msg)) return;
+    if (!await confirmDialog(msg)) return;
 
     setSubmitting(true);
     try {
@@ -58,7 +59,7 @@ export default function StoreReceiptPage({ role = 'emp' }) {
         : '수령 확인했습니다. 매장 재고에 반영되었습니다.');
       setOpenId(null);
       load();
-      if (short.length && window.confirm('덜 받은 품목을 본사에 배송 이상으로 신고할까요?')) {
+      if (short.length && await confirmDialog('덜 받은 품목을 본사에 배송 이상으로 신고할까요?')) {
         openIssue(r, short.map((l) => `· ${l.itemName}: 발주 ${l.orderedQty} / 받음 ${qty[l.orderDetailId]}`).join('\n'));
       }
     } catch (err) {

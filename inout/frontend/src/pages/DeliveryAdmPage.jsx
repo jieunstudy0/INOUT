@@ -9,6 +9,7 @@ import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import DeliveryTrackingModal from '../components/delivery/DeliveryTrackingModal';
+import { confirmDialog } from '../utils/dialog';
 
 const PAGE_SIZE = 10;
 
@@ -181,7 +182,7 @@ function DeliveryTable({ deliveries, onRefresh, onTrack }) {
   };
 
   const handleComplete = async (orderId) => {
-    if (!window.confirm('배송 완료 처리하시겠습니까?')) return;
+    if (!await confirmDialog('배송 완료 처리하시겠습니까?')) return;
     try {
       await completeDelivery(orderId);
       Toast.success('배송 완료 처리되었습니다.');

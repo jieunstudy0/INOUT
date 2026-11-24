@@ -16,6 +16,7 @@ import {
   parseJwtPayload,
   resolveRoleFromPayload,
 } from '../../utils/headerSync';
+import { confirmDialog } from '../../utils/dialog';
 
 /** 본사(ADMIN)·직원(EMPLOYEE) 공용 레이아웃: 상단 메뉴 + 가운데 본문 */
 export default function Layout() {
@@ -83,7 +84,7 @@ export default function Layout() {
   useEffect(() => subscribeHeaderRefresh(() => loadHeaderMeta()), [loadHeaderMeta]);
 
   const handleLogout = async () => {
-    if (!window.confirm('로그아웃 하시겠습니까?')) return;
+    if (!await confirmDialog('로그아웃 하시겠습니까?')) return;
     try {
       await logout();
     } catch {

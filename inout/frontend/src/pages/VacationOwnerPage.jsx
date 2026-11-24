@@ -4,6 +4,7 @@ import { Toast } from '../utils/toast';
 import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
+import { confirmDialog } from '../utils/dialog';
 
 const PAGE_SIZE = 10;
 
@@ -62,7 +63,7 @@ function RejectModal({ leave, onClose, onConfirm, submitting }) {
 
   const handleConfirm = () => {
     if (!rejectReason.trim()) {
-      window.alert('반려 사유를 입력해주세요.');
+      Toast.warning('반려 사유를 입력해주세요.');
       return;
     }
     onConfirm(rejectReason.trim());
@@ -210,8 +211,8 @@ export default function VacationOwnerPage() {
     }
   };
 
-  const handleApprove = (leave) => {
-    if (!window.confirm(`${leave.employeeName}님의 연차 신청을 승인하시겠습니까?`)) return;
+  const handleApprove = async (leave) => {
+    if (!await confirmDialog(`${leave.employeeName}님의 연차 신청을 승인하시겠습니까?`)) return;
     runProcess(leave.leaveId, { status: 'APPROVED' }, '연차 신청이 승인 완료되었습니다.');
   };
 

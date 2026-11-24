@@ -13,6 +13,7 @@ import EmptyState from '../components/common/EmptyState';
 import StockCountReceipt from '../components/stock/StockCountReceipt';
 import StatusPill from '../components/stock/StockCountStatusPill';
 import { REASON_TEXT, formatDateTime } from '../utils/stockCount';
+import { confirmDialog } from '../utils/dialog';
 
 /** 입력칸 값(문자열) → 제출 값. 빈칸은 null(세지 않음). */
 function toQty(value) {
@@ -112,7 +113,7 @@ export default function StockCountEmpPage() {
     }).length;
     const blank = lines.length - counted;
     const message = `${counted}품목을 제출합니다. (차이 ${diffCount}품목${blank ? `, 비워 둔 ${blank}품목은 반영되지 않음` : ''})\n점주가 승인하면 매장 재고에 반영됩니다.`;
-    if (!window.confirm(message)) return;
+    if (!await confirmDialog(message)) return;
 
     setSubmitting(true);
     try {

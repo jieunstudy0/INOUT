@@ -9,6 +9,7 @@ import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import PhotoField from '../components/common/PhotoField';
 import { stockBadge } from '../utils/stockStatus';
+import { confirmDialog } from '../utils/dialog';
 
 const inputCls = 'w-full px-3 py-2.5 text-sm border border-slate-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400';
 const EMPTY = { name: '', categoryId: '', unitPrice: '', minStockLevel: '0', unitDescription: '', description: '', imageUrl: '' };
@@ -123,7 +124,7 @@ export default function StockDetailAdmPage() {
   };
 
   const doDeactivate = async () => {
-    if (!window.confirm('이 상품을 비활성화할까요? 직원 상품 목록과 발주에서 빠집니다.')) return;
+    if (!await confirmDialog('이 상품을 비활성화할까요? 직원 상품 목록과 발주에서 빠집니다.')) return;
     try {
       await deactivateStock(itemId);
       Toast.success('비활성화했습니다.');

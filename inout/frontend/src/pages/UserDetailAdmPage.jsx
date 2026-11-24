@@ -11,6 +11,7 @@ import EmptyState from '../components/common/EmptyState';
 import PhotoField from '../components/common/PhotoField';
 import Avatar from '../components/common/Avatar';
 import StatusPill from '../components/common/UserStatusPill';
+import { confirmDialog } from '../utils/dialog';
 
 const inputCls = 'w-full px-3 py-2.5 text-sm border border-slate-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:bg-slate-50 disabled:text-slate-500';
 const h3 = 'text-xl font-normal text-slate-900 pb-3 border-b border-slate-900';
@@ -65,12 +66,12 @@ export default function UserDetailAdmPage() {
   };
 
   const unlock = async () => {
-    if (!window.confirm(`${user.name} 님의 계정 잠금을 해제할까요?`)) return;
+    if (!await confirmDialog(`${user.name} 님의 계정 잠금을 해제할까요?`)) return;
     try { await unlockUserAccount(user.id); Toast.success('잠금을 해제했습니다.'); load(); } catch { /* interceptor */ }
   };
 
   const resetPassword = async () => {
-    if (!window.confirm('이 회원의 이메일로 비밀번호 재설정 링크를 보낼까요?')) return;
+    if (!await confirmDialog('이 회원의 이메일로 비밀번호 재설정 링크를 보낼까요?')) return;
     try { await sendPasswordResetByAdmin(user.id); Toast.success('메일을 보냈습니다.'); } catch { /* interceptor */ }
   };
 

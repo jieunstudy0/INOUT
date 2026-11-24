@@ -12,6 +12,7 @@ import { isStaleDataError } from '../utils/resultCodes';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import { dispatchHeaderRefresh } from '../utils/headerSync';
+import { confirmDialog, promptDialog } from '../utils/dialog';
 
 const PAGE_SIZE = 10;
 
@@ -97,7 +98,7 @@ export default function DepositAdmPage() {
   };
 
   const handleApprove = async (chargeId) => {
-    if (!window.confirm('이 충전 신청을 승인하고 매장 예치금에 반영할까요?')) return;
+    if (!await confirmDialog('이 충전 신청을 승인하고 매장 예치금에 반영할까요?')) return;
     setProcessingChargeId(chargeId);
     try {
       await approveChargeRequest(chargeId);
@@ -113,7 +114,7 @@ export default function DepositAdmPage() {
   };
 
   const handleReject = async (chargeId) => {
-    const reason = window.prompt('반려 사유를 입력해 주세요.', '본사 검토 후 반려');
+    const reason = await promptDialog('충전 신청을 반려할까요? 반려 사유를 입력해 주세요.', { defaultValue: '본사 검토 후 반려', confirmLabel: '반려', danger: true });
     if (reason == null) return;
     setProcessingChargeId(chargeId);
     try {
