@@ -393,7 +393,7 @@ PWA(홈 화면 설치, 서비스 워커)는 **HTTPS 주소에서만** 동작한�
 이번 변경으로 테이블과 칼럼이 추가된다. 운영은 `DDL_AUTO=validate`라서 **한 번은 `DDL_AUTO=update`로 띄워** 만들어야 한다 (§3.4와 같은 방법).
 
 - 새 테이블: `store_stock`, `store_stock_history`, `stock_count_sheet`, `stock_count_line`, `notification`, `change_request`
-- 새 칼럼: `delivery.received_at`, `delivery.received_by`, `order_detail.received_quantity`, `change_request.issue_type` (배송 이상 세부 종류)
+- 새 칼럼: `delivery.received_at`, `delivery.received_by`, `order_detail.received_quantity`, `change_request.issue_type` (배송 이상 세부 종류), `item.image_url` (상품 사진), `user.profile_image_url` (직원 사진)
 
 새 환경 변수(선택):
 
