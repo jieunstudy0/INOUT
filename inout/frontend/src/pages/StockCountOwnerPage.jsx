@@ -1,3 +1,4 @@
+import AuthImage from '../components/common/AuthImage';
 import { useState, useEffect, useCallback } from 'react';
 import {
   getOwnerStockCountSheets,
@@ -31,6 +32,7 @@ export default function StockCountOwnerPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [showPhoto, setShowPhoto] = useState(false);
 
   const loadList = useCallback(() => {
     setListLoading(true);
@@ -164,10 +166,10 @@ export default function StockCountOwnerPage() {
                   </div>
                   <div className="flex gap-2">
                     {sheet.photoUrl && (
-                      <a href={sheet.photoUrl} target="_blank" rel="noreferrer"
+                      <button type="button" onClick={() => setShowPhoto((v) => !v)}
                         className="px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">
-                        영수증 사진 보기
-                      </a>
+                        {showPhoto ? '사진 닫기' : '영수증 사진 보기'}
+                      </button>
                     )}
                     {sheet.status === 'SUBMITTED' && (
                       <>
@@ -187,6 +189,11 @@ export default function StockCountOwnerPage() {
                   </div>
                 </div>
 
+                {showPhoto && sheet.photoUrl && (
+                  <div className="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                    <AuthImage src={sheet.photoUrl} alt="영수증 사진" className="max-h-[480px] mx-auto rounded-[10px] border border-slate-200" />
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50">

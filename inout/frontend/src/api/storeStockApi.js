@@ -40,3 +40,7 @@ export function adjustStoreStock(itemId, actualQuantity, reason) {
 export function updateStoreStockSettings(storeStockId, minStockLevel, location) {
   return unwrap(client.patch(`/owner/store-stocks/${storeStockId}/settings`, { minStockLevel, location }));
 }
+
+export function getOwnerStoreStock(storeStockId) {
+  return unwrap(client.get(`/owner/store-stocks/${storeStockId}`, { errorContext: '매장 재고를 불러오지 못했습니다.' }));
+}

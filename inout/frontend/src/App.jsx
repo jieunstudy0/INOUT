@@ -17,6 +17,11 @@ import StoreStockOwnerPage from './pages/StoreStockOwnerPage';
 import StoreReceiptPage from './pages/StoreReceiptPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ChangeRequestsPage from './pages/ChangeRequestsPage';
+import StockDetailAdmPage from './pages/StockDetailAdmPage';
+import StockEmpDetailPage from './pages/StockEmpDetailPage';
+import StoreStockOwnerDetailPage from './pages/StoreStockOwnerDetailPage';
+import UserDetailAdmPage from './pages/UserDetailAdmPage';
+import UserDetailOwnerPage from './pages/UserDetailOwnerPage';
 import CartEmpPage from './pages/CartEmpPage';
 import OrderEmpPage from './pages/OrderEmpPage';
 import ToastContainer from './components/common/ToastContainer';
@@ -87,8 +92,10 @@ export default function App() {
           <Route path="/admin/orders" element={<OrderAdmPage />} />
           <Route path="/admin/orders/:orderId" element={<OrderAdmDetailPage />} />
           <Route path="/admin/stock" element={<StockPage />} />
+          <Route path="/admin/stock/:itemId" element={<StockDetailAdmPage />} />
           <Route path="/admin/inquiries" element={<InquiryAdmPage />} />
           <Route path="/admin/users" element={<UserAdmPage />} />
+          <Route path="/admin/users/:userId" element={<UserDetailAdmPage />} />
           <Route path="/admin/inquiries/:inquiryId" element={<InquiryDetailAdmPage />} />
           <Route path="/admin/deposit" element={<DepositAdmPage />} />
           <Route path="/admin/delivery" element={<DeliveryAdmPage />} />
@@ -98,6 +105,7 @@ export default function App() {
 
           <Route path="/emp/dashboard" element={<DashboardEmpPage />} />
           <Route path="/emp/stocks" element={<StockEmpPage />} />
+          <Route path="/emp/stocks/:itemId" element={<StockEmpDetailPage />} />
           <Route path="/emp/stock-use" element={<StockUseEmpPage />} />
           <Route path="/emp/stock-counts" element={<StockCountEmpPage />} />
           <Route path="/emp/receipts" element={<StoreReceiptPage role="emp" />} />
@@ -128,10 +136,12 @@ export default function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<OwnerDashboard />} />
           <Route path="users" element={<OwnerUserManagement />} />
+          <Route path="users/:userId" element={<UserDetailOwnerPage />} />
           <Route path="deposit" element={<OwnerDepositManagement />} />
           <Route path="orders" element={<OwnerOrderList />} />
           <Route path="leaves" element={<OwnerLeaveApproval />} />
           <Route path="store-stocks" element={<StoreStockOwnerPage />} />
+          <Route path="store-stocks/:storeStockId" element={<StoreStockOwnerDetailPage />} />
           <Route path="stock-counts" element={<StockCountOwnerPage />} />
           <Route path="receipts" element={<StoreReceiptPage role="owner" />} />
           <Route path="notifications" element={<NotificationsPage />} />

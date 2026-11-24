@@ -4,11 +4,13 @@ import { Toast } from '../utils/toast';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import ChangeRequestForm from '../components/request/ChangeRequestForm';
+import ProductCard from '../components/common/ProductCard';
+import { stockBadge, stockTone } from '../utils/stockStatus';
 
 /**
  * 매장 재고 사용 처리 (직원).
  * 소속 매장 재고에서만 차감한다. 본사 재고는 발주 승인 때만 바뀐다.
- * 현장에서 휴대폰으로 쓰는 화면이라 표 대신 카드 목록으로 보여 준다.
+ * 사진 카드로 상품을 바로 알아보고, 카드 아래에서 쓴 만큼 기록한다.
  */
 export default function StockUseEmpPage() {
   const [stocks, setStocks] = useState([]);
@@ -54,17 +56,17 @@ export default function StockUseEmpPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-800">매장 재고 · 사용 처리</h2>
-        <p className="text-sm text-slate-500 mt-0.5">우리 매장 재고입니다. 사용한 만큼 바로 기록해 주세요.</p>
+        <h2 className="text-3xl font-normal text-slate-900">매장 재고</h2>
+        <p className="mt-2 text-slate-600">우리 매장 재고입니다. 사용한 만큼 바로 기록해 주세요.</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
         <input type="search" value={keyword} onChange={(e) => setKeyword(e.target.value)}
           placeholder="상품명 또는 위치(C-01) 검색"
-          className="flex-1 px-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        <label className="flex items-center gap-2 px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl">
+          className="flex-1 px-4 py-2.5 text-sm bg-white border border-slate-300 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+        <label className="flex items-center gap-2 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-[10px]">
           <input type="checkbox" checked={onlyLow} onChange={(e) => setOnlyLow(e.target.checked)} />
           부족한 것만
         </label>
@@ -77,44 +79,37 @@ export default function StockUseEmpPage() {
       ) : visible.length === 0 ? (
         <EmptyState message="조건에 맞는 상품이 없습니다." />
       ) : (
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-9">
           {visible.map((s) => {
             const value = inputs[s.storeStockId] || '';
             const over = Number(value) > s.quantity;
             return (
-              <li key={s.storeStockId} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-800 truncate">{s.itemName}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      {s.location ? `위치 ${s.location} · ` : ''}{s.categoryName}
-                      <button onClick={() => setRequestFor(s)} className="ml-2 text-indigo-600 underline underline-offset-2">수량이 다르면 정정 요청</button>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className={`text-lg font-bold ${s.quantity === 0 ? 'text-rose-600' : s.low ? 'text-amber-600' : 'text-slate-800'}`}>
-                      {s.quantity.toLocaleString()}<span className="text-xs font-medium text-slate-400 ml-0.5">{s.unitDescription || '개'}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">안전재고 {s.minStockLevel}</div>
-                  </div>
-                </div>
+              <ProductCard key={s.storeStockId}
+                imageUrl={s.imageUrl}
+                name={s.itemName}
+                badges={[stockBadge(s.quantity, s.minStockLevel)]}
+                stock={{ value: s.quantity, unit: s.unitDescription, tone: stockTone(s.quantity, s.minStockLevel) }}
+                sub={`${s.location ? `위치 ${s.location} · ` : ''}안전재고 ${s.minStockLevel}`}>
                 {s.quantity > 0 ? (
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-2">
                     <input type="number" inputMode="numeric" min="1" max={s.quantity} value={value} placeholder="사용 수량"
                       onChange={(e) => setInputs((prev) => ({ ...prev, [s.storeStockId]: e.target.value }))}
-                      className={`flex-1 min-w-0 px-3 py-2.5 text-right text-sm border rounded-xl focus:outline-none focus:ring-2 ${over ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-300 focus:ring-indigo-500'}`} />
+                      className={`flex-1 min-w-0 px-3 py-2 text-right text-sm border rounded-[10px] focus:outline-none focus:ring-2 ${over ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-300 focus:ring-indigo-500/30'}`} />
                     <button onClick={() => handleUse(s)} disabled={submittingId === s.storeStockId || over || !value}
-                      className="px-5 py-2.5 text-sm font-bold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40">
+                      className="px-4 py-2 text-sm rounded-full bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40">
                       {submittingId === s.storeStockId ? '처리 중' : '사용'}
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-3 px-3 py-2 text-center text-xs font-semibold text-rose-600 bg-rose-50 rounded-xl">재고 없음 — 발주가 필요합니다</div>
+                  <p className="px-3 py-2 text-center text-xs text-rose-600 bg-rose-50 rounded-[10px]">재고 없음 — 발주가 필요합니다</p>
                 )}
-              </li>
+                <button onClick={() => setRequestFor(s)} className="mt-2 text-xs text-slate-500 underline underline-offset-2 hover:text-slate-900">
+                  수량이 다르면 정정 요청
+                </button>
+              </ProductCard>
             );
           })}
-        </ul>
+        </div>
       )}
 
       {requestFor && (

@@ -29,3 +29,19 @@ export function unlockOwnerEmployee(id) {
 export function resetOwnerEmployeePassword(id) {
   return unwrap(client.post(`/owner/users/${id}/reset-password`));
 }
+
+export function getOwnerUserDetail(id) {
+  return unwrap(client.get(`/owner/users/${id}`, { errorContext: '직원 정보를 불러오지 못했습니다.' }));
+}
+
+/** 이름·연락처·사진 */
+export function updateOwnerUserBasicInfo(id, data) {
+  return unwrap(client.put(`/owner/users/${id}/basic-info`, data));
+}
+
+/** 점주 사진 업로드 → 저장 경로(/uploads/...) */
+export function uploadOwnerImage(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return unwrap(client.post('/owner/images', formData, { headers: { 'Content-Type': 'multipart/form-data' } }));
+}

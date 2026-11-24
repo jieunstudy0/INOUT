@@ -1,3 +1,4 @@
+import AuthImage from '../components/common/AuthImage';
 import { useState, useEffect, useCallback } from 'react';
 import { getMyChangeRequests, getChangeRequestInbox, changeRequestStatus } from '../api/changeRequestApi';
 import { Toast } from '../utils/toast';
@@ -118,9 +119,7 @@ export default function ChangeRequestsPage({ role = 'emp' }) {
                 <div className="border-t border-slate-100 px-4 py-3 space-y-3">
                   <p className="text-sm text-slate-700 whitespace-pre-wrap">{r.content}</p>
                   {r.photoUrl && (
-                    <a href={r.photoUrl} target="_blank" rel="noreferrer">
-                      <img src={r.photoUrl} alt="첨부 사진" className="max-h-60 rounded-xl border border-slate-200" />
-                    </a>
+                    <AuthImage src={r.photoUrl} alt="첨부 사진" className="max-h-72 rounded-[10px] border border-slate-200" />
                   )}
                   {r.responseMessage && (
                     <div className="px-3 py-2 rounded-xl bg-slate-50 text-xs text-slate-600">
