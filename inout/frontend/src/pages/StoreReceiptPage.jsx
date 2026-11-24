@@ -69,14 +69,17 @@ export default function StoreReceiptPage({ role = 'emp' }) {
     }
   };
 
-  /** 배송 이상 신고: 발주를 대상으로 본사에 보낸다. 사진을 함께 올릴 수 있다. */
+  /**
+   * 배송 이상 신고: 발주를 대상으로 본사에 보낸다. 사진을 함께 올릴 수 있다.
+   * 덜 받은 품목이 있으면 '수량 부족'을 골라 두고 목록을 채운다. 그 밖에는 직원이 종류(파손·오배송·기타 등)를 고른다.
+   */
   const openIssue = (r, detail = '') => setIssue({
     category: 'DELIVERY_ISSUE',
+    issueType: detail ? 'SHORTAGE' : null,
+    detail,
     refType: 'ORDER',
     refId: r.orderId,
     refLabel: `발주 #${r.orderId}`,
-    title: `발주 #${r.orderId} 배송 이상`,
-    content: detail ? `덜 받은 품목\n${detail}\n\n상황: ` : '상황 (덜 옴·파손·다른 상품): ',
   });
 
   return (

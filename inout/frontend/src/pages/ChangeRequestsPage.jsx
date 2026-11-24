@@ -108,7 +108,12 @@ export default function ChangeRequestsPage({ role = 'emp' }) {
             <li key={r.requestId} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <button onClick={() => setOpenId(openId === r.requestId ? null : r.requestId)} className="w-full text-left px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-slate-800 truncate">{r.title}</span>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    {r.issueTypeLabel && (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-[10px] text-[11px] bg-rose-50 text-rose-600">{r.issueTypeLabel}</span>
+                    )}
+                    <span className="text-sm font-semibold text-slate-800 truncate">{r.title}</span>
+                  </span>
                   <StatusPill status={r.status} />
                 </div>
                 <div className="text-xs text-slate-500 mt-1 truncate">
