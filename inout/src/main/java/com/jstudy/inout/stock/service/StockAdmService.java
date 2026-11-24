@@ -61,6 +61,11 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void updateStock(Long itemId, StockUpdate stockUpdate, Long userId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
@@ -80,6 +85,11 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void deleteStock(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));
@@ -220,6 +230,11 @@ public class StockAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void adjustStock(Long adminId, StockAdmRequest request) {
         Item item = itemRepository.findByIdWithLock(request.getItemId())
                 .orElseThrow(() -> new InoutException(ErrorCode.ITEM_NOT_FOUND));

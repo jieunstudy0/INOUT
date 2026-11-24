@@ -6,6 +6,9 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import com.jstudy.inout.common.config.CacheConfig;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
 import com.jstudy.inout.common.auth.repository.UserRepository;
@@ -145,6 +148,11 @@ public class OrderAdmService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public void processOrderItems(Long orderId, OrderProcessRequest request, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));

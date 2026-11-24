@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import com.jstudy.inout.common.config.CacheConfig;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.jstudy.inout.common.auth.entity.User;
@@ -48,6 +51,11 @@ public class OrderApprovalTxService {
 
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Caching(evict = {
+            @CacheEvict(value = CacheConfig.STOCK_ALERTS, allEntries = true),
+            @CacheEvict(value = CacheConfig.STOCK_LIST, allEntries = true),
+            @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
+    })
     public boolean processSingleOrderApproval(Long orderId, Long adminId) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
@@ -149,6 +157,7 @@ public class OrderApprovalTxService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @CacheEvict(value = CacheConfig.DASHBOARD_SUMMARY, allEntries = true)
     public void processSingleOrderRejection(Long orderId, Long adminId, String reason) {
         OrderRequest order = orderRequestRepository.findByIdForUpdateWithDetails(orderId)
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
