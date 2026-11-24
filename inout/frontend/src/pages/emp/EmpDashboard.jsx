@@ -5,6 +5,7 @@ import { getMyOrderHistory } from '../../api/orderEmpApi';
 import { getMyLeaveList } from '../../api/vacationEmpApi';
 import DashboardShell from '../../components/dashboard/DashboardShell';
 import KpiCard from '../../components/dashboard/KpiCard';
+import QuickTasks from '../../components/dashboard/QuickTasks';
 import DashboardPanel, { ProgressBar } from '../../components/dashboard/DashboardPanel';
 import RecentActivityTable from '../../components/dashboard/RecentActivityTable';
 import StatusBadge from '../../components/dashboard/StatusBadge';
@@ -61,6 +62,7 @@ export default function EmpDashboard() {
           새로고침
         </button>
       )}
+      quickSlot={<QuickTasks role="emp" />}
       kpiSlot={(
         <>
           <KpiCard
