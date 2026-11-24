@@ -40,7 +40,7 @@ public class AiAutoOrderService {
     private String apiKey;
 
     /** application.properties 에서 모델명을 주입. 기본값 = gemini-1.5-flash (트래픽 안정성 우선). */
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-2.5-flash}")
     private String geminiModel;
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";

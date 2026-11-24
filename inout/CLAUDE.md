@@ -7,7 +7,7 @@ B2B 발주·재고 관리 시스템. Spring Boot 백엔드 + React(Vite) 프론�
 - **Backend**: Java 17, Spring Boot 3.5.7, JPA/Hibernate, MySQL 8, JWT, Spring Security
 - **Frontend**: React 19 + Vite + Tailwind CSS (frontend/ 폴더)
 - **Cache**: Redis (Spring Cache Abstraction)
-- **AI**: Gemini API 연동 — 자동 발주·문의 답변은 `gemini.model` 설정(현재 `gemini-2.0-flash`), 인사이트 리포트는 `gemini-2.5-flash`를 코드에 직접 적어 사용 (설정 하나로 통일 예정)
+- **AI**: Gemini API 연동 — 자동 발주·문의 답변·실사 영수증 읽기는 `gemini.model` 설정(현재 `gemini-2.5-flash`. `gemini-2.0-flash`는 서비스 종료로 404), 인사이트 리포트는 `gemini-2.5-flash`를 코드에 직접 적어 사용 (설정 하나로 통일 예정)
 - **Test**: JUnit5, Mockito, MockMvc, Spring Security Test — 개수 대신 `./gradlew test` 전체 통과로 확인
 - **Build**: Gradle 8
 
