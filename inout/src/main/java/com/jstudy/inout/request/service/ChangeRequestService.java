@@ -79,6 +79,7 @@ public class ChangeRequestService {
                 .requester(user)
                 .requestedByOwner(role == ActorRole.OWNER)
                 .category(req.getCategory())
+                .issueType(req.getIssueType())
                 .refType(refType)
                 .refId(refType == ChangeRequestRefType.NONE ? null : req.getRefId())
                 .refLabel(refLabel)
@@ -87,7 +88,10 @@ public class ChangeRequestService {
                 .photoUrl(photoUrl)
                 .build());
 
-        String title = "[" + req.getCategory().getLabel() + "] " + user.getName() + " 님의 요청이 도착했습니다";
+        String kind = saved.getIssueType() == null
+                ? req.getCategory().getLabel()
+                : req.getCategory().getLabel() + " · " + saved.getIssueType().getLabel();
+        String title = "[" + kind + "] " + user.getName() + " 님의 요청이 도착했습니다";
         Target target = saved.getHandler() == Handler.OWNER
                 ? Target.storeOwners(storeId, "/owner/requests")
                 : Target.admins("/admin/requests");

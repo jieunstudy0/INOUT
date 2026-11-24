@@ -17,6 +17,7 @@ import com.jstudy.inout.order.entity.OrderRequest;
 import com.jstudy.inout.order.repository.OrderDetailRepository;
 import com.jstudy.inout.order.repository.OrderRequestRepository;
 import com.jstudy.inout.request.dto.ChangeRequestDtos.CreateRequest;
+import com.jstudy.inout.request.entity.DeliveryIssueType;
 import com.jstudy.inout.request.dto.ChangeRequestDtos.Response;
 import com.jstudy.inout.request.dto.ChangeRequestDtos.StatusRequest;
 import com.jstudy.inout.request.entity.ChangeRequestCategory;
@@ -184,11 +185,47 @@ class ChangeRequestServiceTest {
     }
 
     @Test
+    @DisplayName("배송 이상은 세부 종류(파손 등)를 저장하고, 고르지 않으면 '기타'로 받는다")
+    void deliveryIssue_keepsIssueType_defaultsToOther() {
+        OrderRequest order = f.shippedOrder(employee, DeliveryStatus.SHIPPING, List.of(f.item("파손상품", 10)), List.of(2));
+        Long damaged = createWithIssue(ChangeRequestCategory.DELIVERY_ISSUE, ChangeRequestRefType.ORDER, order.getId(),
+                DeliveryIssueType.DAMAGED);
+        Long untyped = createWithIssue(ChangeRequestCategory.DELIVERY_ISSUE, ChangeRequestRefType.ORDER, order.getId(), null);
+
+        assertThat(service.getInbox(admin.getId(), ActorRole.ADMIN, ChangeRequestStatus.REQUESTED, 0).getContent())
+                .filteredOn(r -> r.getRequestId().equals(damaged) || r.getRequestId().equals(untyped))
+                .extracting(Response::getRequestId, Response::getIssueType, Response::getIssueTypeLabel)
+                .containsExactlyInAnyOrder(
+                        org.assertj.core.groups.Tuple.tuple(damaged, DeliveryIssueType.DAMAGED, "파손"),
+                        org.assertj.core.groups.Tuple.tuple(untyped, DeliveryIssueType.OTHER, "기타"));
+    }
+
+    @Test
+    @DisplayName("배송 이상이 아닌 요청은 세부 종류를 보내도 저장하지 않는다")
+    void otherCategory_ignoresIssueType() {
+        Long id = createWithIssue(ChangeRequestCategory.OTHER, ChangeRequestRefType.NONE, null, DeliveryIssueType.WRONG_ITEM);
+
+        assertThat(service.getInbox(owner.getId(), ActorRole.OWNER, ChangeRequestStatus.REQUESTED, 0).getContent())
+                .filteredOn(r -> r.getRequestId().equals(id))
+                .singleElement()
+                .satisfies(r -> assertThat(r.getIssueType()).isNull());
+    }
+
+    @Test
     @DisplayName("점주는 매장 안 일(점주 처리 종류)로 요청을 만들 수 없다")
     void owner_cannotCreateOwnerHandledRequest() {
         assertThatThrownBy(() -> create(owner, ActorRole.OWNER, ChangeRequestCategory.STOCK_CORRECTION,
                 ChangeRequestRefType.NONE, null))
                 .extracting("code").isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    private Long createWithIssue(ChangeRequestCategory category, ChangeRequestRefType refType, Long refId,
+                                 DeliveryIssueType issueType) {
+        Long id = service.create(employee.getId(), ActorRole.EMPLOYEE, CreateRequest.builder()
+                .category(category).issueType(issueType).refType(refType).refId(refId)
+                .title("테스트 요청").content("내용").build(), null);
+        requestIds.add(id);
+        return id;
     }
 
     private Long create(User user, ActorRole role, ChangeRequestCategory category, ChangeRequestRefType refType, Long refId) {

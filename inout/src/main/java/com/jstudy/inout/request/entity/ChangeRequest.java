@@ -67,6 +67,11 @@ public class ChangeRequest extends BaseTimeEntity {
     @Column(nullable = false, length = 10)
     private ChangeRequestCategory.Handler handler;
 
+    /** 배송 이상의 세부 종류 (배송 이상 요청에만 있다) */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "issue_type", length = 20)
+    private DeliveryIssueType issueType;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "ref_type", nullable = false, length = 20)
     private ChangeRequestRefType refType;
@@ -103,13 +108,17 @@ public class ChangeRequest extends BaseTimeEntity {
 
     @Builder
     private ChangeRequest(Store store, User requester, boolean requestedByOwner, ChangeRequestCategory category,
-                          ChangeRequestRefType refType, Long refId, String refLabel,
+                          DeliveryIssueType issueType, ChangeRequestRefType refType, Long refId, String refLabel,
                           String title, String content, String photoUrl) {
         this.store = store;
         this.requester = requester;
         this.requestedByOwner = requestedByOwner;
         this.category = category;
         this.handler = category.getHandler();
+        // 세부 종류는 배송 이상에만 둔다. 고르지 않고 보낸 배송 이상은 '기타'로 받는다.
+        if (category == ChangeRequestCategory.DELIVERY_ISSUE) {
+            this.issueType = issueType == null ? DeliveryIssueType.OTHER : issueType;
+        }
         this.refType = refType == null ? ChangeRequestRefType.NONE : refType;
         this.refId = refId;
         this.refLabel = refLabel;

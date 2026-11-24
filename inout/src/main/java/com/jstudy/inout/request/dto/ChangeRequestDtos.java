@@ -5,6 +5,7 @@ import com.jstudy.inout.request.entity.ChangeRequest;
 import com.jstudy.inout.request.entity.ChangeRequestCategory;
 import com.jstudy.inout.request.entity.ChangeRequestRefType;
 import com.jstudy.inout.request.entity.ChangeRequestStatus;
+import com.jstudy.inout.request.entity.DeliveryIssueType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -25,6 +26,9 @@ public final class ChangeRequestDtos {
     public static class CreateRequest {
         @NotNull(message = "요청 종류를 선택해 주세요.")
         private ChangeRequestCategory category;
+
+        /** 배송 이상의 세부 종류 (수량 부족·파손·오배송·기타). 다른 종류의 요청에서는 무시한다 */
+        private DeliveryIssueType issueType;
 
         /** 대상이 없으면 NONE 또는 비움 */
         private ChangeRequestRefType refType;
@@ -57,6 +61,9 @@ public final class ChangeRequestDtos {
         private Long requestId;
         private ChangeRequestCategory category;
         private String categoryLabel;
+        /** 배송 이상의 세부 종류 (배송 이상이 아니면 null) */
+        private DeliveryIssueType issueType;
+        private String issueTypeLabel;
         /** OWNER: 소속 매장 점주가 처리 / HQ: 본사가 처리 */
         private ChangeRequestCategory.Handler handler;
         private ChangeRequestRefType refType;
@@ -81,6 +88,8 @@ public final class ChangeRequestDtos {
                     .requestId(r.getId())
                     .category(r.getCategory())
                     .categoryLabel(r.getCategory().getLabel())
+                    .issueType(r.getIssueType())
+                    .issueTypeLabel(r.getIssueType() != null ? r.getIssueType().getLabel() : null)
                     .handler(r.getHandler())
                     .refType(r.getRefType())
                     .refId(r.getRefId())
