@@ -67,6 +67,13 @@ public class OrderApprovalTxService {
                 .filter(detail -> detail.getStatus().isWaiting())
                 .toList();
 
+        // 한꺼번에 승인·반려하는 이 경로는 "모든 품목이 아직 대기 중"일 때만 맞다.
+        // 재고 부족이면 발주 전체 금액을 돌려주는데, 이미 품목별로 반려·환불된 품목이 있으면 그 금액이 두 번 나간다.
+        // 품목별 처리가 시작된 발주는 품목별 처리(processOrderItems)로 마무리한다.
+        if (!aiSuggestedOrder) {
+            requireAllWaiting(order, waitingDetails);
+        }
+
         if (aiSuggestedOrder) {
             ensureAiProcurementSnapshot(order);
             for (OrderDetail detail : waitingDetails) {
@@ -147,6 +154,10 @@ public class OrderApprovalTxService {
                 .orElseThrow(() -> new InoutException(ErrorCode.ORDER_NOT_FOUND));
 
         if (order.getStatus().isAwaitingHq()) {
+            // 전액 환불은 품목별 처리(부분 환불·차감)가 하나도 없을 때만 맞다
+            requireAllWaiting(order, order.getOrderDetails().stream()
+                    .filter(detail -> detail.getStatus().isWaiting())
+                    .toList());
             depositService.refundDeposit(
                     order.getRequestUser().getId(),
                     adminId,                   
@@ -166,6 +177,13 @@ public class OrderApprovalTxService {
         }
 
         publishOrderStateChanged(order);
+    }
+
+    private static void requireAllWaiting(OrderRequest order, List<OrderDetail> waitingDetails) {
+        if (waitingDetails.size() != order.getOrderDetails().size()) {
+            throw new InoutException(ErrorCode.INVALID_ORDER_STATUS,
+                    "품목별 처리가 시작된 발주입니다. 남은 품목은 발주 상세에서 품목별로 처리해 주세요.");
+        }
     }
 
     private void publishOrderStateChanged(OrderRequest order) {
